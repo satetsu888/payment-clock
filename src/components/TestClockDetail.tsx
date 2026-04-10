@@ -158,13 +158,15 @@ export function TestClockDetail({
           <div className="flex gap-2">
             <button
               onClick={handleFetchEvents}
-              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              disabled={isDeleted}
+              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Fetch Events
             </button>
             <button
               onClick={handleRefresh}
-              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              disabled={isDeleted}
+              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Refresh
             </button>

@@ -39,7 +39,6 @@ export function TestClockCard({ clock, onSelect }: TestClockCardProps) {
     <button
       onClick={() => onSelect(clock.id)}
       className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-indigo-300 transition-colors"
-      disabled={!!clock.deletedAt}
     >
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm font-medium text-gray-900">
