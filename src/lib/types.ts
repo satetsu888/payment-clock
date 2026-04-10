@@ -55,6 +55,19 @@ export interface TestClockResources {
   paymentIntents: ResourceItem[];
 }
 
+export interface PaymentMethodCard {
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+}
+
+export interface PaymentMethodData {
+  id: string;
+  type: string;
+  card?: PaymentMethodCard;
+}
+
 export interface StripeProduct {
   id: string;
   name: string;

@@ -5,6 +5,7 @@ pub mod customer;
 pub mod event;
 pub mod invoice;
 pub mod payment_intent;
+pub mod payment_method;
 pub mod product;
 pub mod subscription;
 pub mod test_clock;

@@ -3,6 +3,8 @@ import {
   fetchTestClockResources,
   createCustomer,
   attachPaymentMethod,
+  setDefaultPaymentMethod,
+  detachPaymentMethod,
   createSubscription,
 } from "../lib/api";
 import type { TestClockResources } from "../lib/types";
@@ -61,6 +63,22 @@ export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
     paymentMethodId: string,
   ) => {
     await attachPaymentMethod(accountId, testClockId, customerId, paymentMethodId);
+    await loadResources();
+  };
+
+  const handleSetDefaultPaymentMethod = async (
+    customerId: string,
+    paymentMethodId: string,
+  ) => {
+    await setDefaultPaymentMethod(accountId, testClockId, customerId, paymentMethodId);
+    await loadResources();
+  };
+
+  const handleDetachPaymentMethod = async (
+    customerId: string,
+    paymentMethodId: string,
+  ) => {
+    await detachPaymentMethod(accountId, testClockId, customerId, paymentMethodId);
     await loadResources();
   };
 
@@ -130,8 +148,11 @@ export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
               Customers ({resources.customers.length})
             </h3>
             <CustomerSection
+              accountId={accountId}
               customers={resources.customers}
               onAttachPaymentMethod={handleAttachPaymentMethod}
+              onSetDefaultPaymentMethod={handleSetDefaultPaymentMethod}
+              onDetachPaymentMethod={handleDetachPaymentMethod}
             />
           </div>
           <div>

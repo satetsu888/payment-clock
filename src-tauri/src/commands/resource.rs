@@ -81,8 +81,80 @@ pub async fn attach_payment_method(
 ) -> Result<serde_json::Value, AppError> {
     let api_key = state.get_api_key(&account_id)?;
 
+    // Attach the payment method
+    let attached_pm =
+        stripe::payment_method::attach_payment_method(&api_key, &payment_method_id, &customer_id)
+            .await?;
+
+    let actual_pm_id = attached_pm["id"]
+        .as_str()
+        .ok_or_else(|| AppError::Stripe("Missing payment method ID in response".to_string()))?
+        .to_string();
+
+    // Check if this is the first payment method — if so, set as default
+    let existing_pms =
+        stripe::payment_method::list_payment_methods(&api_key, &customer_id).await?;
+    let updated_customer = if existing_pms.len() == 1 {
+        // First PM — auto-set as default
+        stripe::customer::set_default_payment_method(&api_key, &customer_id, &actual_pm_id).await?
+    } else {
+        // Not the first — just return current customer state
+        serde_json::json!({ "id": customer_id })
+    };
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    // Save payment method snapshot
+    resource_snapshot::save_snapshot(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "payment_method",
+        &actual_pm_id,
+        &attached_pm.to_string(),
+        &now,
+    )?;
+    // Save updated customer snapshot if default was set
+    if existing_pms.len() == 1 {
+        resource_snapshot::save_snapshot(
+            &db,
+            &account_id,
+            Some(&test_clock_id),
+            "customer",
+            &customer_id,
+            &updated_customer.to_string(),
+            &now,
+        )?;
+    }
+    let params_json = serde_json::json!({
+        "customer_id": customer_id,
+        "payment_method_id": payment_method_id,
+    })
+    .to_string();
+    operation::record(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "attach_payment_method",
+        Some(&params_json),
+        Some(&customer_id),
+        &now,
+    )?;
+    Ok(attached_pm)
+}
+
+#[tauri::command]
+pub async fn set_default_payment_method(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: String,
+    customer_id: String,
+    payment_method_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+
     let updated_customer =
-        stripe::customer::attach_payment_method(&api_key, &customer_id, &payment_method_id)
+        stripe::customer::set_default_payment_method(&api_key, &customer_id, &payment_method_id)
             .await?;
 
     let db = state.db.lock().unwrap();
@@ -105,12 +177,54 @@ pub async fn attach_payment_method(
         &db,
         &account_id,
         Some(&test_clock_id),
-        "attach_payment_method",
+        "set_default_payment_method",
         Some(&params_json),
         Some(&customer_id),
         &now,
     )?;
     Ok(updated_customer)
+}
+
+#[tauri::command]
+pub async fn list_payment_methods(
+    state: State<'_, AppState>,
+    account_id: String,
+    customer_id: String,
+) -> Result<Vec<serde_json::Value>, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    stripe::payment_method::list_payment_methods(&api_key, &customer_id).await
+}
+
+#[tauri::command]
+pub async fn detach_payment_method(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: String,
+    customer_id: String,
+    payment_method_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+
+    let detached_pm =
+        stripe::payment_method::detach_payment_method(&api_key, &payment_method_id).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let params_json = serde_json::json!({
+        "customer_id": customer_id,
+        "payment_method_id": payment_method_id,
+    })
+    .to_string();
+    operation::record(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "detach_payment_method",
+        Some(&params_json),
+        Some(&customer_id),
+        &now,
+    )?;
+    Ok(detached_pm)
 }
 
 #[tauri::command]

@@ -9,6 +9,7 @@ import type {
   StripePrice,
   StripeEvent,
   AdvancePreview,
+  PaymentMethodData,
 } from "./types";
 
 export async function validateAndSaveAccount(
@@ -80,6 +81,44 @@ export async function attachPaymentMethod(
   paymentMethodId: string,
 ): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("attach_payment_method", {
+    accountId,
+    testClockId,
+    customerId,
+    paymentMethodId,
+  });
+}
+
+export async function setDefaultPaymentMethod(
+  accountId: string,
+  testClockId: string,
+  customerId: string,
+  paymentMethodId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("set_default_payment_method", {
+    accountId,
+    testClockId,
+    customerId,
+    paymentMethodId,
+  });
+}
+
+export async function listPaymentMethods(
+  accountId: string,
+  customerId: string,
+): Promise<PaymentMethodData[]> {
+  return invoke<PaymentMethodData[]>("list_payment_methods", {
+    accountId,
+    customerId,
+  });
+}
+
+export async function detachPaymentMethod(
+  accountId: string,
+  testClockId: string,
+  customerId: string,
+  paymentMethodId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("detach_payment_method", {
     accountId,
     testClockId,
     customerId,

@@ -1,9 +1,20 @@
-import { useState } from "react";
-import type { ResourceItem } from "../lib/types";
+import { useCallback, useEffect, useState } from "react";
+import type { ResourceItem, PaymentMethodData } from "../lib/types";
+import { listPaymentMethods } from "../lib/api";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface CustomerSectionProps {
+  accountId: string;
   customers: ResourceItem[];
   onAttachPaymentMethod: (
+    customerId: string,
+    paymentMethodId: string,
+  ) => Promise<void>;
+  onSetDefaultPaymentMethod: (
+    customerId: string,
+    paymentMethodId: string,
+  ) => Promise<void>;
+  onDetachPaymentMethod: (
     customerId: string,
     paymentMethodId: string,
   ) => Promise<void>;
@@ -27,20 +38,162 @@ const TEST_PAYMENT_METHOD_GROUPS = [
   },
 ];
 
-function hasDefaultPaymentMethod(data: Record<string, unknown>): boolean {
+function getDefaultPaymentMethodId(data: Record<string, unknown>): string | null {
   const invoiceSettings = data.invoice_settings as
     | Record<string, unknown>
     | undefined;
-  return !!invoiceSettings?.default_payment_method;
+  if (!invoiceSettings?.default_payment_method) return null;
+  const dpm = invoiceSettings.default_payment_method;
+  if (typeof dpm === "string") return dpm;
+  if (typeof dpm === "object" && dpm !== null && "id" in (dpm as Record<string, unknown>)) {
+    return String((dpm as Record<string, unknown>).id);
+  }
+  return null;
+}
+
+function formatBrand(brand: string): string {
+  const brands: Record<string, string> = {
+    visa: "Visa",
+    mastercard: "Mastercard",
+    amex: "Amex",
+    discover: "Discover",
+    diners: "Diners",
+    jcb: "JCB",
+    unionpay: "UnionPay",
+  };
+  return brands[brand] || brand;
+}
+
+function PaymentMethodList({
+  customerId,
+  paymentMethods,
+  defaultPaymentMethodId,
+  onSetDefault,
+  onDetach,
+}: {
+  customerId: string;
+  paymentMethods: PaymentMethodData[];
+  defaultPaymentMethodId: string | null;
+  onSetDefault: (customerId: string, pmId: string) => Promise<void>;
+  onDetach: (customerId: string, pmId: string) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState<string | null>(null);
+  const [detachTarget, setDetachTarget] = useState<PaymentMethodData | null>(null);
+  const [detachLoading, setDetachLoading] = useState(false);
+
+  const handleSetDefault = async (pmId: string) => {
+    setLoading(pmId);
+    try {
+      await onSetDefault(customerId, pmId);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleDetach = async () => {
+    if (!detachTarget) return;
+    setDetachLoading(true);
+    try {
+      await onDetach(customerId, detachTarget.id);
+      setDetachTarget(null);
+    } finally {
+      setDetachLoading(false);
+    }
+  };
+
+  if (paymentMethods.length === 0) {
+    return <p className="text-xs text-gray-400 mt-1">No payment methods</p>;
+  }
+
+  return (
+    <>
+      <div className="mt-1.5 space-y-1">
+        {paymentMethods.map((pm) => {
+          const isDefault = pm.id === defaultPaymentMethodId;
+          return (
+            <div
+              key={pm.id}
+              className="flex items-center justify-between text-xs px-2 py-1 bg-white rounded border border-gray-100"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-400">
+                  {pm.card ? formatBrand(pm.card.brand) : pm.type}
+                </span>
+                {pm.card && (
+                  <span className="font-mono text-gray-600">
+                    ····{pm.card.last4}
+                  </span>
+                )}
+                {isDefault && (
+                  <span className="text-xs text-green-600 font-medium">
+                    default
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {!isDefault && (
+                  <button
+                    onClick={() => handleSetDefault(pm.id)}
+                    disabled={loading !== null}
+                    className="text-indigo-500 hover:text-indigo-700 disabled:opacity-50"
+                  >
+                    Set Default
+                  </button>
+                )}
+                <button
+                  onClick={() => setDetachTarget(pm)}
+                  disabled={loading !== null}
+                  className="text-red-400 hover:text-red-600 disabled:opacity-50"
+                >
+                  Detach
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {detachTarget && (
+        <ConfirmDialog
+          title="Detach Payment Method"
+          message={`Detach ${detachTarget.card ? `${formatBrand(detachTarget.card.brand)} ····${detachTarget.card.last4}` : detachTarget.id}?`}
+          confirmLabel="Detach"
+          onConfirm={handleDetach}
+          onCancel={() => setDetachTarget(null)}
+          loading={detachLoading}
+        />
+      )}
+    </>
+  );
 }
 
 export function CustomerSection({
+  accountId,
   customers,
   onAttachPaymentMethod,
+  onSetDefaultPaymentMethod,
+  onDetachPaymentMethod,
 }: CustomerSectionProps) {
   const [attachingFor, setAttachingFor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customerPMs, setCustomerPMs] = useState<Record<string, PaymentMethodData[]>>({});
+
+  const loadPaymentMethods = useCallback(async () => {
+    const result: Record<string, PaymentMethodData[]> = {};
+    for (const c of customers) {
+      try {
+        const pms = await listPaymentMethods(accountId, c.stripeId);
+        result[c.stripeId] = pms;
+      } catch {
+        result[c.stripeId] = [];
+      }
+    }
+    setCustomerPMs(result);
+  }, [accountId, customers]);
+
+  useEffect(() => {
+    loadPaymentMethods();
+  }, [loadPaymentMethods]);
 
   const handleAttach = async (customerId: string, pmId: string) => {
     setLoading(true);
@@ -48,10 +201,31 @@ export function CustomerSection({
     try {
       await onAttachPaymentMethod(customerId, pmId);
       setAttachingFor(null);
+      await loadPaymentMethods();
     } catch (e) {
       setError(String(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSetDefault = async (customerId: string, pmId: string) => {
+    setError(null);
+    try {
+      await onSetDefaultPaymentMethod(customerId, pmId);
+      await loadPaymentMethods();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const handleDetach = async (customerId: string, pmId: string) => {
+    setError(null);
+    try {
+      await onDetachPaymentMethod(customerId, pmId);
+      await loadPaymentMethods();
+    } catch (e) {
+      setError(String(e));
     }
   };
 
@@ -67,7 +241,8 @@ export function CustomerSection({
         </p>
       )}
       {customers.map((c) => {
-        const hasPM = hasDefaultPaymentMethod(c.data);
+        const defaultPMId = getDefaultPaymentMethodId(c.data);
+        const pms = customerPMs[c.stripeId] || [];
         return (
           <div key={c.stripeId} className="px-3 py-2 bg-gray-50 rounded text-sm">
             <div className="flex items-center justify-between">
@@ -82,25 +257,28 @@ export function CustomerSection({
                 ) : null}
               </div>
               <div className="flex items-center gap-2">
-                {hasPM ? (
-                  <span className="text-xs text-green-600">Payment method set</span>
-                ) : (
-                  <button
-                    onClick={() =>
-                      setAttachingFor(
-                        attachingFor === c.stripeId ? null : c.stripeId,
-                      )
-                    }
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                  >
-                    + Payment Method
-                  </button>
-                )}
+                <button
+                  onClick={() =>
+                    setAttachingFor(
+                      attachingFor === c.stripeId ? null : c.stripeId,
+                    )
+                  }
+                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                >
+                  + Payment Method
+                </button>
                 <span className="text-xs text-gray-400 font-mono">
                   {c.stripeId}
                 </span>
               </div>
             </div>
+            <PaymentMethodList
+              customerId={c.stripeId}
+              paymentMethods={pms}
+              defaultPaymentMethodId={defaultPMId}
+              onSetDefault={handleSetDefault}
+              onDetach={handleDetach}
+            />
             {attachingFor === c.stripeId && (
               <div className="mt-2 space-y-1.5">
                 {TEST_PAYMENT_METHOD_GROUPS.map((group) => (

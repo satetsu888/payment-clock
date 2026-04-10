@@ -18,26 +18,15 @@ pub async fn create_customer(
     client.post("/v1/customers", &params).await
 }
 
-pub async fn attach_payment_method(
+pub async fn set_default_payment_method(
     api_key: &str,
     customer_id: &str,
     payment_method_id: &str,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
-    // Attach the payment method to the customer (returns the newly created PM)
-    let path = format!("/v1/payment_methods/{}/attach", payment_method_id);
-    let params = [("customer", customer_id)];
-    let attached_pm = client.post(&path, &params).await?;
-
-    // Use the actual PM ID returned by Stripe (may differ from the input token)
-    let actual_pm_id = attached_pm["id"]
-        .as_str()
-        .ok_or_else(|| AppError::Stripe("Missing payment method ID in response".to_string()))?;
-
-    // Set it as the default payment method for invoices
     let params = [(
         "invoice_settings[default_payment_method]",
-        actual_pm_id,
+        payment_method_id,
     )];
     let path = format!("/v1/customers/{}", customer_id);
     client.post(&path, &params).await
