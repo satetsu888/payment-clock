@@ -22,25 +22,7 @@ const TEST_PAYMENT_METHOD_GROUPS = [
   {
     label: "Decline",
     methods: [
-      { id: "pm_card_chargeDeclined", label: "Generic Decline" },
-      { id: "pm_card_chargeDeclinedInsufficientFunds", label: "Insufficient Funds" },
-      { id: "pm_card_chargeDeclinedFraudulent", label: "Fraudulent" },
-      { id: "pm_card_chargeDeclinedExpiredCard", label: "Expired Card" },
-      { id: "pm_card_chargeDeclinedProcessingError", label: "Processing Error" },
-      { id: "pm_card_chargeDeclinedIncorrectCvc", label: "Incorrect CVC" },
-    ],
-  },
-  {
-    label: "3D Secure",
-    methods: [
-      { id: "pm_card_threeDSecure2Required", label: "3DS2 Required" },
-      { id: "pm_card_threeDSecureRequired", label: "3DS Required" },
-    ],
-  },
-  {
-    label: "Dispute",
-    methods: [
-      { id: "pm_card_createDispute", label: "Dispute (Fraudulent)" },
+      { id: "pm_card_chargeCustomerFail", label: "Charge Fail" },
     ],
   },
 ];
