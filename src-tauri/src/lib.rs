@@ -25,7 +25,6 @@ pub fn run() {
             let conn = db::connection::initialize_db(app.handle())?;
             app.manage(AppState {
                 db: Arc::new(Mutex::new(conn)),
-                cli_process: Arc::new(Mutex::new(None)),
             });
 
             Ok(())
@@ -50,9 +49,6 @@ pub fn run() {
             commands::resource::fetch_test_clock_resources,
             commands::event::fetch_events,
             commands::event::get_test_clock_events,
-            commands::event::start_stripe_cli,
-            commands::event::stop_stripe_cli,
-            commands::event::get_stripe_cli_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -6,7 +6,6 @@ use crate::models::{account, test_clock};
 
 pub struct AppState {
     pub db: Arc<Mutex<Connection>>,
-    pub cli_process: Arc<Mutex<Option<tokio::process::Child>>>,
 }
 
 impl AppState {

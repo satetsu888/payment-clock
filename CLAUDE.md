@@ -25,17 +25,16 @@ src-tauri/src/              # Rust backend
     account.rs              # Account CRUD
     test_clock.rs           # Test clock management + advance + preview
     resource.rs             # Customer, subscription, payment method creation
-    event.rs                # Event fetching + Stripe CLI control
+    event.rs                # Event fetching (API polling)
   models/                   # Data models (account, test_clock, operation, event, resource_snapshot)
   db/
     connection.rs           # DB initialization
     migrations.rs           # Schema definitions
   stripe/                   # Stripe API client modules
     client.rs               # HTTP client wrapper
-    cli.rs                  # Stripe CLI process management
     compat.rs               # API version compatibility layer
     account.rs, test_clock.rs, customer.rs, subscription.rs, event.rs, invoice.rs, payment_intent.rs, product.rs
-  state.rs                  # AppState (DB + CLI process handle)
+  state.rs                  # AppState (DB handle)
   error.rs                  # AppError enum
 ```
 
@@ -61,7 +60,7 @@ npm run tauri build
 ## Architecture Notes
 
 - Frontend communicates with backend via Tauri commands defined in `src/lib/api.ts`
-- Backend state is managed through `AppState` with `Arc<Mutex<>>` for thread-safe DB and CLI process access
+- Backend state is managed through `AppState` with `Arc<Mutex<>>` for thread-safe DB access
 - Stripe API keys are stored in SQLite, not in environment variables - users enter them via the UI
-- Stripe CLI (`stripe listen`) is spawned as a child process for real-time event streaming
+- Events are fetched via Stripe API polling (incremental, using latest timestamp)
 - API version compatibility is handled in `stripe/compat.rs` and `lib/stripe-compat.ts` to support field changes across Stripe API versions (e.g., v2025-03-31.basil)

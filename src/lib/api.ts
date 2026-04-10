@@ -158,15 +158,3 @@ export async function getTestClockEvents(
 ): Promise<StripeEvent[]> {
   return invoke<StripeEvent[]>("get_test_clock_events", { testClockId });
 }
-
-export async function startStripeCli(accountId: string): Promise<void> {
-  return invoke<void>("start_stripe_cli", { accountId });
-}
-
-export async function stopStripeCli(): Promise<void> {
-  return invoke<void>("stop_stripe_cli");
-}
-
-export async function getStripeCliStatus(): Promise<boolean> {
-  return invoke<boolean>("get_stripe_cli_status");
-}

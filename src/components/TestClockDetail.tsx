@@ -13,7 +13,6 @@ import { useAccountContext } from "../contexts/AccountContext";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
 import { ResourcePanel } from "./ResourcePanel";
-import { StripeCliControl } from "./StripeCliControl";
 import { ErrorBanner } from "./ErrorBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -149,11 +148,6 @@ export function TestClockDetail({
           >
             {isDeleted ? "deleted" : clock.status}
           </span>
-          <div className="ml-auto">
-            {selectedAccount && (
-              <StripeCliControl accountId={selectedAccount.id} />
-            )}
-          </div>
         </div>
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">

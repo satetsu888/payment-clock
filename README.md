@@ -11,15 +11,12 @@ Stripe Test Clocks let you simulate the passage of time to test subscription bil
 - **Advance Preview** - See which subscriptions and invoices will be affected before advancing time
 - **Resource Creation** - Create customers, attach payment methods, and set up subscriptions within test clocks
 - **Event Timeline** - View Stripe events in a unified timeline alongside your operations
-- **Stripe CLI Integration** - Start/stop `stripe listen` from the app to capture webhook events in real time
 - **Resource Snapshots** - Inspect the state of customers, subscriptions, invoices, and payment intents at any point
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/)
 - [Rust](https://www.rust-lang.org/tools/install)
-- [Stripe CLI](https://docs.stripe.com/stripe-cli) (optional, for real-time event listening)
-
 ## Getting Started
 
 ```bash
@@ -43,7 +40,7 @@ On first launch, you'll be prompted to enter a Stripe API key (secret key starti
 | Frontend | React 19, TypeScript, Tailwind CSS v4 |
 | Backend | Rust |
 | Database | SQLite (via rusqlite) |
-| Stripe communication | reqwest (HTTP), Stripe CLI (events) |
+| Stripe communication | reqwest (HTTP) |
 
 ## License
 

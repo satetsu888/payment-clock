@@ -3,7 +3,6 @@ use tauri::State;
 use crate::error::AppError;
 use crate::models::event;
 use crate::state::AppState;
-use crate::stripe;
 
 /// Resolve a stripe_test_clock_id to a local test_clock.id
 fn resolve_test_clock_id(
@@ -39,7 +38,7 @@ pub async fn fetch_events(
             .map(|dt| dt.timestamp())
     });
 
-    let events = stripe::event::fetch_events(&api_key, created_after).await?;
+    let events = crate::stripe::event::fetch_events(&api_key, created_after).await?;
 
     // Save events to DB
     {
@@ -57,7 +56,7 @@ pub async fn fetch_events(
                 .unwrap_or_default();
 
             // Resolve test clock
-            let stripe_tc_id = stripe::event::extract_test_clock_id(ev);
+            let stripe_tc_id = crate::stripe::event::extract_test_clock_id(ev);
             let local_tc_id = stripe_tc_id
                 .as_deref()
                 .and_then(|stc| resolve_test_clock_id(&db, &account_id, stc));
@@ -119,55 +118,4 @@ pub async fn get_test_clock_events(
 ) -> Result<Vec<event::Event>, AppError> {
     let db = state.db.lock().unwrap();
     event::list_by_test_clock(&db, &test_clock_id)
-}
-
-#[tauri::command]
-pub async fn start_stripe_cli(
-    state: State<'_, AppState>,
-    app_handle: tauri::AppHandle,
-    account_id: String,
-) -> Result<(), AppError> {
-    let api_key = state.get_api_key(&account_id)?;
-
-    // Check if already running
-    {
-        let cli = state.cli_process.lock().unwrap();
-        if cli.is_some() {
-            return Err(AppError::Validation(
-                "Stripe CLI is already running".to_string(),
-            ));
-        }
-    }
-
-    let db_mutex = state.db.clone();
-    let account_id_clone = account_id.clone();
-
-    stripe::cli::start_listening(
-        &api_key,
-        &account_id_clone,
-        app_handle,
-        db_mutex,
-        state.cli_process.clone(),
-    )
-    .await?;
-
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn stop_stripe_cli(state: State<'_, AppState>) -> Result<(), AppError> {
-    let child = {
-        let mut cli = state.cli_process.lock().unwrap();
-        cli.take()
-    };
-    if let Some(mut child) = child {
-        let _ = child.kill().await;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn get_stripe_cli_status(state: State<'_, AppState>) -> Result<bool, AppError> {
-    let cli = state.cli_process.lock().unwrap();
-    Ok(cli.is_some())
 }
