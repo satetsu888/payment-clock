@@ -15,6 +15,7 @@ import { UnifiedTimeline } from "./UnifiedTimeline";
 import { ResourcePanel } from "./ResourcePanel";
 import { StripeCliControl } from "./StripeCliControl";
 import { ErrorBanner } from "./ErrorBanner";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface TestClockDetailProps {
   testClockId: string;
@@ -36,6 +37,7 @@ export function TestClockDetail({
   const [error, setError] = useState<string | null>(null);
   const [showAdvance, setShowAdvance] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -94,7 +96,7 @@ export function TestClockDetail({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this test clock?")) return;
+    setConfirmDelete(false);
     setDeleting(true);
     try {
       await onDelete(testClockId);
@@ -182,7 +184,7 @@ export function TestClockDetail({
                   Advance Time
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setConfirmDelete(true)}
                   disabled={deleting}
                   className="px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50"
                 >
@@ -219,6 +221,17 @@ export function TestClockDetail({
           clock={clock}
           onSubmit={handleAdvance}
           onClose={() => setShowAdvance(false)}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Delete Test Clock"
+          message="Are you sure you want to delete this test clock? This action cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+          loading={deleting}
         />
       )}
     </div>
