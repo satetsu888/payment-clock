@@ -9,7 +9,7 @@ Stripe Test Clocks let you simulate the passage of time to test subscription bil
 - **Multi-Account Support** - Manage multiple Stripe accounts and switch between them
 - **Test Clock Management** - Create, list, advance, and delete test clocks
 - **Advance Preview** - See which subscriptions and invoices will be affected before advancing time
-- **Resource Creation** - Create customers, attach payment methods, and set up subscriptions within test clocks
+- **Resource Creation** - Create customers, manage multiple payment methods (attach, detach, set default), and set up subscriptions within test clocks
 - **Event Timeline** - View Stripe events in a unified timeline alongside your operations
 - **Resource Snapshots** - Inspect the state of customers, subscriptions, invoices, and payment intents at any point
 

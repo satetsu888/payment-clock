@@ -24,7 +24,7 @@ src-tauri/src/              # Rust backend
   commands/                 # Tauri command handlers
     account.rs              # Account CRUD
     test_clock.rs           # Test clock management + advance + preview
-    resource.rs             # Customer, subscription, payment method creation
+    resource.rs             # Customer, subscription, payment method management
     event.rs                # Event fetching (API polling)
   models/                   # Data models (account, test_clock, operation, event, resource_snapshot)
   db/
@@ -33,7 +33,7 @@ src-tauri/src/              # Rust backend
   stripe/                   # Stripe API client modules
     client.rs               # HTTP client wrapper
     compat.rs               # API version compatibility layer
-    account.rs, test_clock.rs, customer.rs, subscription.rs, event.rs, invoice.rs, payment_intent.rs, product.rs
+    account.rs, test_clock.rs, customer.rs, subscription.rs, payment_method.rs, event.rs, invoice.rs, payment_intent.rs, product.rs
   state.rs                  # AppState (DB handle)
   error.rs                  # AppError enum
 ```
