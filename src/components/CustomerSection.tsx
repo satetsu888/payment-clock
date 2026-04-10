@@ -9,12 +9,40 @@ interface CustomerSectionProps {
   ) => Promise<void>;
 }
 
-const TEST_PAYMENT_METHODS = [
-  { id: "pm_card_visa", label: "Visa (4242)" },
-  { id: "pm_card_mastercard", label: "Mastercard (5555)" },
-  { id: "pm_card_amex", label: "Amex (3782)" },
-  { id: "pm_card_visa_debit", label: "Visa Debit" },
-  { id: "pm_card_chargeDeclined", label: "Declined Card" },
+const TEST_PAYMENT_METHOD_GROUPS = [
+  {
+    label: "Success",
+    methods: [
+      { id: "pm_card_visa", label: "Visa (4242)" },
+      { id: "pm_card_mastercard", label: "Mastercard (5555)" },
+      { id: "pm_card_amex", label: "Amex (3782)" },
+      { id: "pm_card_visa_debit", label: "Visa Debit" },
+    ],
+  },
+  {
+    label: "Decline",
+    methods: [
+      { id: "pm_card_chargeDeclined", label: "Generic Decline" },
+      { id: "pm_card_chargeDeclinedInsufficientFunds", label: "Insufficient Funds" },
+      { id: "pm_card_chargeDeclinedFraudulent", label: "Fraudulent" },
+      { id: "pm_card_chargeDeclinedExpiredCard", label: "Expired Card" },
+      { id: "pm_card_chargeDeclinedProcessingError", label: "Processing Error" },
+      { id: "pm_card_chargeDeclinedIncorrectCvc", label: "Incorrect CVC" },
+    ],
+  },
+  {
+    label: "3D Secure",
+    methods: [
+      { id: "pm_card_threeDSecure2Required", label: "3DS2 Required" },
+      { id: "pm_card_threeDSecureRequired", label: "3DS Required" },
+    ],
+  },
+  {
+    label: "Dispute",
+    methods: [
+      { id: "pm_card_createDispute", label: "Dispute (Fraudulent)" },
+    ],
+  },
 ];
 
 function hasDefaultPaymentMethod(data: Record<string, unknown>): boolean {
@@ -92,16 +120,25 @@ export function CustomerSection({
               </div>
             </div>
             {attachingFor === c.stripeId && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {TEST_PAYMENT_METHODS.map((pm) => (
-                  <button
-                    key={pm.id}
-                    onClick={() => handleAttach(c.stripeId, pm.id)}
-                    disabled={loading}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50"
-                  >
-                    {pm.label}
-                  </button>
+              <div className="mt-2 space-y-1.5">
+                {TEST_PAYMENT_METHOD_GROUPS.map((group) => (
+                  <div key={group.label} className="flex items-start gap-2">
+                    <span className="text-xs text-gray-500 w-16 shrink-0 pt-1">
+                      {group.label}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {group.methods.map((pm) => (
+                        <button
+                          key={pm.id}
+                          onClick={() => handleAttach(c.stripeId, pm.id)}
+                          disabled={loading}
+                          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50"
+                        >
+                          {pm.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
