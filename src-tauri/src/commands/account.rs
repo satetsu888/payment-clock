@@ -16,24 +16,38 @@ pub async fn validate_and_save_account(
         ));
     }
 
-    let stripe_account = stripe::account::fetch_account(&api_key).await?;
+    let result = stripe::account::fetch_account(&api_key).await?;
+    let stripe_account = result.account;
+    let api_version = result.api_version;
 
-    let display_name = stripe_account
-        .business_profile
-        .and_then(|bp| bp.name);
+    let display_name = stripe_account.display_name();
 
     let db = state.db.lock().unwrap();
 
     if let Some(existing) = account::find_by_stripe_account_id(&db, &stripe_account.id)? {
         let now = chrono::Utc::now().to_rfc3339();
         account::update_last_used(&db, &existing.id, &now)?;
+        if let Some(ver) = &api_version {
+            account::update_api_version(&db, &existing.id, ver)?;
+        }
+        if let Some(name) = &display_name {
+            account::update_display_name(&db, &existing.id, name)?;
+        }
         return account::get_account(&db, &existing.id);
     }
 
     let id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
-    account::insert_account(&db, &id, &stripe_account.id, display_name.as_deref(), &api_key, &now)?;
+    account::insert_account(
+        &db,
+        &id,
+        &stripe_account.id,
+        display_name.as_deref(),
+        &api_key,
+        api_version.as_deref(),
+        &now,
+    )?;
 
     account::get_account(&db, &id)
 }

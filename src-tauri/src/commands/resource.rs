@@ -12,6 +12,7 @@ pub struct ResourceItem {
     pub stripe_id: String,
     pub resource_type: String,
     pub data: serde_json::Value,
+    pub previous_status: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -285,22 +286,34 @@ pub async fn fetch_test_clock_resources(
         }
     }
 
-    // Build response
-    let to_items = |items: &[serde_json::Value], rtype: &str| -> Vec<ResourceItem> {
+    // Build response with previous_status lookup
+    let build_items = |db: &rusqlite::Connection,
+                       items: &[serde_json::Value],
+                       rtype: &str,
+                       tc_id: &str|
+     -> Vec<ResourceItem> {
         items
             .iter()
-            .map(|v| ResourceItem {
-                stripe_id: v["id"].as_str().unwrap_or_default().to_string(),
-                resource_type: rtype.to_string(),
-                data: v.clone(),
+            .map(|v| {
+                let sid = v["id"].as_str().unwrap_or_default();
+                let prev = resource_snapshot::get_previous_status(db, tc_id, rtype, sid)
+                    .ok()
+                    .flatten();
+                ResourceItem {
+                    stripe_id: sid.to_string(),
+                    resource_type: rtype.to_string(),
+                    data: v.clone(),
+                    previous_status: prev,
+                }
             })
             .collect()
     };
 
+    let db = state.db.lock().unwrap();
     Ok(TestClockResources {
-        customers: to_items(&customers, "customer"),
-        subscriptions: to_items(&all_subscriptions, "subscription"),
-        invoices: to_items(&all_invoices, "invoice"),
-        payment_intents: to_items(&all_payment_intents, "payment_intent"),
+        customers: build_items(&db, &customers, "customer", &test_clock_id),
+        subscriptions: build_items(&db, &all_subscriptions, "subscription", &test_clock_id),
+        invoices: build_items(&db, &all_invoices, "invoice", &test_clock_id),
+        payment_intents: build_items(&db, &all_payment_intents, "payment_intent", &test_clock_id),
     })
 }

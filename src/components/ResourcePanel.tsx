@@ -13,6 +13,7 @@ import { InvoiceSection } from "./InvoiceSection";
 import { PaymentIntentSection } from "./PaymentIntentSection";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
 import { CreateSubscriptionDialog } from "./CreateSubscriptionDialog";
+import { ErrorBanner } from "./ErrorBanner";
 
 interface ResourcePanelProps {
   testClockId: string;
@@ -115,9 +116,11 @@ export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
         </p>
       )}
       {error && (
-        <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded">
-          {error}
-        </p>
+        <ErrorBanner
+          message={error}
+          onRetry={loadResources}
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {resources && (

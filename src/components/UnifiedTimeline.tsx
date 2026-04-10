@@ -5,6 +5,7 @@ import { EventItem } from "./EventItem";
 interface UnifiedTimelineProps {
   operations: Operation[];
   events: StripeEvent[];
+  stripeApiVersion: string;
 }
 
 const operationLabels: Record<string, string> = {
@@ -29,6 +30,7 @@ type FilterType = "all" | "operations" | "events";
 export function UnifiedTimeline({
   operations,
   events,
+  stripeApiVersion,
 }: UnifiedTimelineProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
@@ -159,7 +161,7 @@ export function UnifiedTimeline({
                   <div className="w-px flex-1 bg-gray-200" />
                 </div>
                 <div className="flex-1">
-                  <EventItem event={item.event} />
+                  <EventItem event={item.event} stripeApiVersion={stripeApiVersion} />
                   <div className="text-xs text-gray-400 mt-0.5">
                     {formatTime(item.event.stripeCreatedAt)}
                   </div>

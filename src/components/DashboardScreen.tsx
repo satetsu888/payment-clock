@@ -30,8 +30,11 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
           <h1 className="text-lg font-semibold text-gray-900">
             Payment Clock
           </h1>
-          <p className="text-xs text-gray-500 font-mono">
-            {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
+          <p className="text-xs text-gray-500">
+            <span className="font-mono">{selectedAccount?.displayName || selectedAccount?.stripeAccountId}</span>
+            {selectedAccount?.stripeApiVersion && (
+              <span className="ml-2 text-gray-400">API {selectedAccount.stripeApiVersion}</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">

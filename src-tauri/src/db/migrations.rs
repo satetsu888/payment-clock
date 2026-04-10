@@ -63,5 +63,8 @@ pub fn migrations() -> Migrations<'static> {
                 captured_at TEXT NOT NULL
             );",
         ),
+        M::up(
+            "ALTER TABLE accounts ADD COLUMN stripe_api_version TEXT;",
+        ),
     ])
 }

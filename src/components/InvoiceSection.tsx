@@ -21,15 +21,22 @@ export function InvoiceSection({ invoices }: InvoiceSectionProps) {
     <div className="space-y-1.5">
       {invoices.map((inv) => {
         const status = inv.data.status as string;
+        const hasChanged = inv.previousStatus != null && inv.previousStatus !== status;
         const total = inv.data.total as number;
         const currency = inv.data.currency as string;
 
         return (
           <div
             key={inv.stripeId}
-            className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded text-sm"
+            className={`flex items-center justify-between px-3 py-2 rounded text-sm ${hasChanged ? "bg-yellow-50 ring-1 ring-yellow-300" : "bg-gray-50"}`}
           >
             <div className="flex items-center gap-2">
+              {hasChanged && (
+                <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-500 line-through">
+                  {inv.previousStatus}
+                </span>
+              )}
+              {hasChanged && <span className="text-xs text-gray-400">&rarr;</span>}
               <span
                 className={`px-1.5 py-0.5 text-xs rounded ${statusColors[status] || "bg-gray-100 text-gray-600"}`}
               >

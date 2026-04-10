@@ -14,6 +14,7 @@ import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
 import { ResourcePanel } from "./ResourcePanel";
 import { StripeCliControl } from "./StripeCliControl";
+import { ErrorBanner } from "./ErrorBanner";
 
 interface TestClockDetailProps {
   testClockId: string;
@@ -192,9 +193,11 @@ export function TestClockDetail({
 
       <main className="p-6 max-w-3xl mx-auto space-y-4">
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
-            {error}
-          </p>
+          <ErrorBanner
+            message={error}
+            onRetry={handleRefresh}
+            onDismiss={() => setError(null)}
+          />
         )}
 
         <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} />
@@ -203,12 +206,13 @@ export function TestClockDetail({
           <h2 className="text-sm font-medium text-gray-700 mb-3">
             Timeline
           </h2>
-          <UnifiedTimeline operations={operations} events={events} />
+          <UnifiedTimeline operations={operations} events={events} stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""} />
         </div>
       </main>
 
       {showAdvance && (
         <AdvanceTimeDialog
+          accountId={selectedAccount!.id}
           clock={clock}
           onSubmit={handleAdvance}
           onClose={() => setShowAdvance(false)}

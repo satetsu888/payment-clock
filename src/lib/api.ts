@@ -8,6 +8,7 @@ import type {
   StripeProduct,
   StripePrice,
   StripeEvent,
+  AdvancePreview,
 } from "./types";
 
 export async function validateAndSaveAccount(
@@ -135,6 +136,14 @@ export async function fetchTestClockResources(
     accountId,
     testClockId,
   });
+}
+
+export async function previewAdvance(
+  accountId: string,
+  testClockId: string,
+  frozenTime: number,
+): Promise<AdvancePreview> {
+  return invoke<AdvancePreview>("preview_advance", { accountId, testClockId, frozenTime });
 }
 
 export async function fetchEvents(

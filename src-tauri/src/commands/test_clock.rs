@@ -2,7 +2,8 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::error::AppError;
-use crate::models::{account, operation, test_clock};
+use crate::models::{account, operation, resource_snapshot, test_clock};
+use crate::stripe::compat;
 use crate::state::AppState;
 use crate::stripe;
 
@@ -170,4 +171,118 @@ pub async fn refresh_test_clock(
     let db = state.db.lock().unwrap();
     test_clock::upsert_from_stripe(&db, &account_id, &stripe_clock)?;
     test_clock::get_by_id(&db, &test_clock_id)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancePreviewItem {
+    pub stripe_id: String,
+    pub resource_type: String,
+    pub description: String,
+    pub trigger_time: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancePreview {
+    pub affected_subscriptions: Vec<AdvancePreviewItem>,
+    pub affected_invoices: Vec<AdvancePreviewItem>,
+}
+
+#[tauri::command]
+pub async fn preview_advance(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: String,
+    frozen_time: i64,
+) -> Result<AdvancePreview, AppError> {
+    let db = state.db.lock().unwrap();
+
+    let api_version = account::get_api_version(&db, &account_id)?
+        .unwrap_or_default();
+
+    let mut affected_subscriptions = Vec::new();
+    let mut affected_invoices = Vec::new();
+
+    // Check subscriptions — show all with period_end info, mark those that will renew
+    let sub_snapshots =
+        resource_snapshot::list_latest_by_resource(&db, &test_clock_id, "subscription")?;
+    for snap in sub_snapshots {
+        let data: serde_json::Value = serde_json::from_str(&snap.data)?;
+        let status = data["status"].as_str().unwrap_or("");
+        if status != "active" && status != "trialing" {
+            continue;
+        }
+        let period_end = compat::subscription_current_period_end(&data, &api_version);
+        if let Some(period_end) = period_end {
+            let will_renew = period_end <= frozen_time;
+            let desc = if will_renew {
+                format!(
+                    "Will renew (period ends {})",
+                    chrono::DateTime::from_timestamp(period_end, 0)
+                        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                        .unwrap_or_default()
+                )
+            } else {
+                format!(
+                    "Period ends {} (not reached)",
+                    chrono::DateTime::from_timestamp(period_end, 0)
+                        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                        .unwrap_or_default()
+                )
+            };
+            affected_subscriptions.push(AdvancePreviewItem {
+                stripe_id: snap.stripe_resource_id,
+                resource_type: "subscription".to_string(),
+                description: desc,
+                trigger_time: chrono::DateTime::from_timestamp(period_end, 0)
+                    .map(|dt| dt.to_rfc3339())
+                    .unwrap_or_default(),
+            });
+        }
+    }
+
+    // Check invoices — open/draft ones that will be affected
+    let inv_snapshots =
+        resource_snapshot::list_latest_by_resource(&db, &test_clock_id, "invoice")?;
+    for snap in inv_snapshots {
+        let data: serde_json::Value = serde_json::from_str(&snap.data)?;
+        let status = data["status"].as_str().unwrap_or("");
+        if status != "open" && status != "draft" {
+            continue;
+        }
+        // Use due_date or period_end as trigger time
+        let trigger = data["due_date"]
+            .as_i64()
+            .or_else(|| data["period_end"].as_i64());
+        let desc = match trigger {
+            Some(ts) if ts <= frozen_time => format!(
+                "Due {} (will be processed)",
+                chrono::DateTime::from_timestamp(ts, 0)
+                    .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                    .unwrap_or_default()
+            ),
+            Some(ts) => format!(
+                "Due {} (not reached)",
+                chrono::DateTime::from_timestamp(ts, 0)
+                    .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                    .unwrap_or_default()
+            ),
+            None => format!("Status: {} (no due date)", status),
+        };
+        affected_invoices.push(AdvancePreviewItem {
+            stripe_id: snap.stripe_resource_id,
+            resource_type: "invoice".to_string(),
+            description: desc,
+            trigger_time: trigger
+                .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_default(),
+        });
+    }
+
+    Ok(AdvancePreview {
+        affected_subscriptions,
+        affected_invoices,
+    })
 }

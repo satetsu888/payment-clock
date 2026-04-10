@@ -26,6 +26,7 @@ export function SubscriptionSection({
     <div className="space-y-1.5">
       {subscriptions.map((s) => {
         const status = s.data.status as string;
+        const hasChanged = s.previousStatus != null && s.previousStatus !== status;
         const items = s.data.items as Record<string, unknown> | undefined;
         const itemData = (items?.data as Array<Record<string, unknown>>) || [];
         const priceInfo = itemData.length > 0
@@ -35,10 +36,16 @@ export function SubscriptionSection({
         return (
           <div
             key={s.stripeId}
-            className="px-3 py-2 bg-gray-50 rounded text-sm"
+            className={`px-3 py-2 rounded text-sm ${hasChanged ? "bg-yellow-50 ring-1 ring-yellow-300" : "bg-gray-50"}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {hasChanged && (
+                  <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-500 line-through">
+                    {s.previousStatus}
+                  </span>
+                )}
+                {hasChanged && <span className="text-xs text-gray-400">&rarr;</span>}
                 <span
                   className={`px-1.5 py-0.5 text-xs rounded ${statusColors[status] || "bg-gray-100 text-gray-600"}`}
                 >

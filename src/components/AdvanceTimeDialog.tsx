@@ -1,13 +1,16 @@
-import { useState } from "react";
-import type { TestClock } from "../lib/types";
+import { useEffect, useState } from "react";
+import { previewAdvance } from "../lib/api";
+import type { TestClock, AdvancePreview } from "../lib/types";
 
 interface AdvanceTimeDialogProps {
+  accountId: string;
   clock: TestClock;
   onSubmit: (testClockId: string, frozenTime: number) => Promise<void>;
   onClose: () => void;
 }
 
 export function AdvanceTimeDialog({
+  accountId,
   clock,
   onSubmit,
   onClose,
@@ -19,9 +22,39 @@ export function AdvanceTimeDialog({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<AdvancePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const currentFrozenTime = new Date(clock.frozenTime);
   const minDateTime = currentFrozenTime.toISOString().slice(0, 16);
+
+  // Load preview when dateTime changes
+  useEffect(() => {
+    const newTime = Math.floor(new Date(dateTime).getTime() / 1000);
+    const currentTime = Math.floor(new Date(clock.frozenTime).getTime() / 1000);
+    if (newTime <= currentTime) {
+      setPreview(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    previewAdvance(accountId, clock.id, newTime)
+      .then((p) => {
+        if (!cancelled) setPreview(p);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setPreview(null);
+          console.error("Preview error:", e);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dateTime, accountId, clock.id, clock.frozenTime]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +75,10 @@ export function AdvanceTimeDialog({
       setLoading(false);
     }
   };
+
+  const totalAffected =
+    (preview?.affectedSubscriptions.length || 0) +
+    (preview?.affectedInvoices.length || 0);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -67,6 +104,51 @@ export function AdvanceTimeDialog({
               required
             />
           </div>
+
+          {previewLoading && (
+            <p className="text-xs text-gray-500">Loading preview...</p>
+          )}
+
+          {preview && totalAffected > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm">
+              <p className="font-medium text-blue-800 mb-2">
+                Impact preview:
+              </p>
+              {preview.affectedSubscriptions.length > 0 && (
+                <div className="mb-1">
+                  <p className="text-xs font-medium text-blue-700">
+                    Subscriptions
+                  </p>
+                  {preview.affectedSubscriptions.map((s) => (
+                    <p key={s.stripeId} className="text-xs text-blue-600 ml-2">
+                      <span className="font-mono">{s.stripeId}</span>{" "}
+                      &mdash; {s.description}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {preview.affectedInvoices.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-blue-700">
+                    Invoices
+                  </p>
+                  {preview.affectedInvoices.map((i) => (
+                    <p key={i.stripeId} className="text-xs text-blue-600 ml-2">
+                      <span className="font-mono">{i.stripeId}</span>{" "}
+                      &mdash; {i.description}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {preview && totalAffected === 0 && !previewLoading && (
+            <p className="text-xs text-gray-400">
+              No tracked resources found. Open the detail page and load resources first.
+            </p>
+          )}
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
               {error}

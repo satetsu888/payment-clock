@@ -2,6 +2,7 @@ export interface Account {
   id: string;
   stripeAccountId: string;
   displayName: string | null;
+  stripeApiVersion: string | null;
   createdAt: string;
   lastUsedAt: string;
 }
@@ -10,6 +11,7 @@ export interface AccountSummary {
   id: string;
   stripeAccountId: string;
   displayName: string | null;
+  stripeApiVersion: string | null;
   lastUsedAt: string;
 }
 
@@ -43,6 +45,7 @@ export interface ResourceItem {
   stripeId: string;
   resourceType: string;
   data: Record<string, unknown>;
+  previousStatus: string | null;
 }
 
 export interface TestClockResources {
@@ -82,6 +85,18 @@ export interface StripeEvent {
   stripeCreatedAt: string;
   receivedAt: string;
   source: string;
+}
+
+export interface AdvancePreviewItem {
+  stripeId: string;
+  resourceType: string;
+  description: string;
+  triggerTime: string;
+}
+
+export interface AdvancePreview {
+  affectedSubscriptions: AdvancePreviewItem[];
+  affectedInvoices: AdvancePreviewItem[];
 }
 
 export interface UnifiedTimelineItem {

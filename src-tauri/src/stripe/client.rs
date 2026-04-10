@@ -7,6 +7,12 @@ pub struct StripeClient {
     api_key: String,
 }
 
+/// Response from a Stripe API call, including the API version used.
+pub struct StripeResponse {
+    pub body: serde_json::Value,
+    pub api_version: Option<String>,
+}
+
 impl StripeClient {
     pub fn new(api_key: &str) -> Self {
         Self {
@@ -15,7 +21,8 @@ impl StripeClient {
         }
     }
 
-    pub async fn get(&self, path: &str) -> Result<serde_json::Value, AppError> {
+    /// Make a GET request and return body + API version header.
+    pub async fn get_with_version(&self, path: &str) -> Result<StripeResponse, AppError> {
         let url = format!("{}{}", STRIPE_BASE_URL, path);
         let resp = self
             .http
@@ -24,6 +31,12 @@ impl StripeClient {
             .header("User-Agent", "PaymentClock/0.1.0")
             .send()
             .await?;
+
+        let api_version = resp
+            .headers()
+            .get("stripe-version")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
 
         let status = resp.status();
         let body: serde_json::Value = resp.json().await?;
@@ -35,7 +48,12 @@ impl StripeClient {
             return Err(AppError::Stripe(format!("{}: {}", status, message)));
         }
 
-        Ok(body)
+        Ok(StripeResponse { body, api_version })
+    }
+
+    pub async fn get(&self, path: &str) -> Result<serde_json::Value, AppError> {
+        let resp = self.get_with_version(path).await?;
+        Ok(resp.body)
     }
 
     pub async fn post(

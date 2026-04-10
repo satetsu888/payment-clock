@@ -1,6 +1,7 @@
 pub mod account;
 pub mod cli;
 pub mod client;
+pub mod compat;
 pub mod customer;
 pub mod event;
 pub mod invoice;
