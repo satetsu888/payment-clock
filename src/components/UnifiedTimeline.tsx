@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 import type { Operation, StripeEvent, UnifiedTimelineItem } from "../lib/types";
 import { EventItem } from "./EventItem";
+import { extractCustomerIdFromEvent, extractCustomerIdFromOperation } from "../lib/resource-grouping";
+import type { CustomerInfo } from "./ResourcePanel";
 
 interface UnifiedTimelineProps {
   operations: Operation[];
   events: StripeEvent[];
+  customers: CustomerInfo[];
   stripeApiVersion: string;
 }
 
@@ -30,10 +33,12 @@ type FilterType = "all" | "operations" | "events";
 export function UnifiedTimeline({
   operations,
   events,
+  customers,
   stripeApiVersion,
 }: UnifiedTimelineProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [eventTypeFilter, setEventTypeFilter] = useState<string>("");
+  const [customerFilter, setCustomerFilter] = useState<string>("");
 
   const eventTypes = useMemo(() => {
     const types = new Set(events.map((e) => e.eventType));
@@ -45,6 +50,11 @@ export function UnifiedTimeline({
 
     if (filter !== "events") {
       for (const op of operations) {
+        if (customerFilter) {
+          const cid = extractCustomerIdFromOperation(op);
+          // customer無関係のoperation(create_clock, advance_time等)は常に表示
+          if (cid !== null && cid !== customerFilter) continue;
+        }
         result.push({
           type: "operation",
           timestamp: op.createdAt,
@@ -56,6 +66,10 @@ export function UnifiedTimeline({
     if (filter !== "operations") {
       for (const ev of events) {
         if (eventTypeFilter && ev.eventType !== eventTypeFilter) continue;
+        if (customerFilter) {
+          const cid = extractCustomerIdFromEvent(ev);
+          if (cid !== customerFilter) continue;
+        }
         result.push({
           type: "event",
           timestamp: ev.stripeCreatedAt,
@@ -69,7 +83,7 @@ export function UnifiedTimeline({
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
     return result;
-  }, [operations, events, filter, eventTypeFilter]);
+  }, [operations, events, filter, eventTypeFilter, customerFilter]);
 
   return (
     <div>
@@ -99,6 +113,20 @@ export function UnifiedTimeline({
             {eventTypes.map((t) => (
               <option key={t} value={t}>
                 {t}
+              </option>
+            ))}
+          </select>
+        )}
+        {customers.length > 1 && (
+          <select
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className="px-2 py-1 text-xs border border-gray-300 rounded"
+          >
+            <option value="">All customers</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.id}
               </option>
             ))}
           </select>

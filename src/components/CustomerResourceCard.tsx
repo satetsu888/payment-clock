@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ResourceItem, PaymentMethodData } from "../lib/types";
+import type { CustomerWithResources, PaymentMethodData } from "../lib/types";
 import { listPaymentMethods } from "../lib/api";
+import { SubscriptionSection } from "./SubscriptionSection";
+import { InvoiceSection } from "./InvoiceSection";
+import { PaymentIntentSection } from "./PaymentIntentSection";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-interface CustomerSectionProps {
+interface CustomerResourceCardProps {
+  group: CustomerWithResources;
   accountId: string;
-  customers: ResourceItem[];
+  defaultExpanded: boolean;
   onAttachPaymentMethod: (
     customerId: string,
     paymentMethodId: string,
@@ -166,46 +170,45 @@ function PaymentMethodList({
   );
 }
 
-export function CustomerSection({
+export function CustomerResourceCard({
+  group,
   accountId,
-  customers,
+  defaultExpanded,
   onAttachPaymentMethod,
   onSetDefaultPaymentMethod,
   onDetachPaymentMethod,
-}: CustomerSectionProps) {
-  const [attachingFor, setAttachingFor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+}: CustomerResourceCardProps) {
+  const { customer, subscriptions, invoices, paymentIntents } = group;
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [attachingPM, setAttachingPM] = useState(false);
+  const [pmLoading, setPmLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [customerPMs, setCustomerPMs] = useState<Record<string, PaymentMethodData[]>>({});
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodData[]>([]);
 
   const loadPaymentMethods = useCallback(async () => {
-    const result: Record<string, PaymentMethodData[]> = {};
-    for (const c of customers) {
-      try {
-        const pms = await listPaymentMethods(accountId, c.stripeId);
-        result[c.stripeId] = pms;
-      } catch {
-        result[c.stripeId] = [];
-      }
+    try {
+      const pms = await listPaymentMethods(accountId, customer.stripeId);
+      setPaymentMethods(pms);
+    } catch {
+      setPaymentMethods([]);
     }
-    setCustomerPMs(result);
-  }, [accountId, customers]);
+  }, [accountId, customer.stripeId]);
 
   useEffect(() => {
     loadPaymentMethods();
   }, [loadPaymentMethods]);
 
-  const handleAttach = async (customerId: string, pmId: string) => {
-    setLoading(true);
+  const handleAttach = async (pmId: string) => {
+    setPmLoading(true);
     setError(null);
     try {
-      await onAttachPaymentMethod(customerId, pmId);
-      setAttachingFor(null);
+      await onAttachPaymentMethod(customer.stripeId, pmId);
+      setAttachingPM(false);
       await loadPaymentMethods();
     } catch (e) {
       setError(String(e));
     } finally {
-      setLoading(false);
+      setPmLoading(false);
     }
   };
 
@@ -229,69 +232,76 @@ export function CustomerSection({
     }
   };
 
-  if (customers.length === 0) {
-    return <p className="text-xs text-gray-400 py-2">No customers</p>;
-  }
+  const defaultPMId = getDefaultPaymentMethodId(customer.data);
+  const resourceCount = subscriptions.length + invoices.length + paymentIntents.length;
 
   return (
-    <div className="space-y-1.5">
-      {error && (
-        <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-          {error}
-        </p>
-      )}
-      {customers.map((c) => {
-        const defaultPMId = getDefaultPaymentMethodId(c.data);
-        const pms = customerPMs[c.stripeId] || [];
-        return (
-          <div key={c.stripeId} className="px-3 py-2 bg-gray-50 rounded text-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-medium text-gray-900">
-                  {String(c.data.name || "Unnamed")}
-                </span>
-                {c.data.email ? (
-                  <span className="text-gray-500 ml-2 text-xs">
-                    {String(c.data.email)}
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    setAttachingFor(
-                      attachingFor === c.stripeId ? null : c.stripeId,
-                    )
-                  }
-                  className="text-xs text-indigo-600 hover:text-indigo-800"
-                >
-                  + Payment Method
-                </button>
-                <span className="text-xs text-gray-400 font-mono">
-                  {c.stripeId}
-                </span>
-              </div>
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">{expanded ? "▼" : "▶"}</span>
+          <span className="font-medium text-sm text-gray-900">
+            {String(customer.data.name || "Unnamed")}
+          </span>
+          {customer.data.email ? (
+            <span className="text-xs text-gray-500">
+              {String(customer.data.email)}
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">
+            {resourceCount} resources
+          </span>
+          <span className="text-xs text-gray-400 font-mono">
+            {customer.stripeId}
+          </span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="px-3 py-3 space-y-3">
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+              {error}
+            </p>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Payment Methods ({paymentMethods.length})
+              </h4>
+              <button
+                onClick={() => setAttachingPM(!attachingPM)}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                + Payment Method
+              </button>
             </div>
             <PaymentMethodList
-              customerId={c.stripeId}
-              paymentMethods={pms}
+              customerId={customer.stripeId}
+              paymentMethods={paymentMethods}
               defaultPaymentMethodId={defaultPMId}
               onSetDefault={handleSetDefault}
               onDetach={handleDetach}
             />
-            {attachingFor === c.stripeId && (
+            {attachingPM && (
               <div className="mt-2 space-y-1.5">
-                {TEST_PAYMENT_METHOD_GROUPS.map((group) => (
-                  <div key={group.label} className="flex items-start gap-2">
+                {TEST_PAYMENT_METHOD_GROUPS.map((pmGroup) => (
+                  <div key={pmGroup.label} className="flex items-start gap-2">
                     <span className="text-xs text-gray-500 w-16 shrink-0 pt-1">
-                      {group.label}
+                      {pmGroup.label}
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {group.methods.map((pm) => (
+                      {pmGroup.methods.map((pm) => (
                         <button
                           key={pm.id}
-                          onClick={() => handleAttach(c.stripeId, pm.id)}
-                          disabled={loading}
+                          onClick={() => handleAttach(pm.id)}
+                          disabled={pmLoading}
                           className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50"
                         >
                           {pm.label}
@@ -303,8 +313,39 @@ export function CustomerSection({
               </div>
             )}
           </div>
-        );
-      })}
+
+          {subscriptions.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+                Subscriptions ({subscriptions.length})
+              </h4>
+              <SubscriptionSection subscriptions={subscriptions} />
+            </div>
+          )}
+
+          {invoices.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+                Invoices ({invoices.length})
+              </h4>
+              <InvoiceSection invoices={invoices} />
+            </div>
+          )}
+
+          {paymentIntents.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+                Payment Intents ({paymentIntents.length})
+              </h4>
+              <PaymentIntentSection paymentIntents={paymentIntents} />
+            </div>
+          )}
+
+          {resourceCount === 0 && (
+            <p className="text-xs text-gray-400 py-1">No resources yet</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

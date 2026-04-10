@@ -55,6 +55,13 @@ export interface TestClockResources {
   paymentIntents: ResourceItem[];
 }
 
+export interface CustomerWithResources {
+  customer: ResourceItem;
+  subscriptions: ResourceItem[];
+  invoices: ResourceItem[];
+  paymentIntents: ResourceItem[];
+}
+
 export interface PaymentMethodCard {
   brand: string;
   last4: string;

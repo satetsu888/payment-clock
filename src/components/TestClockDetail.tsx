@@ -12,7 +12,7 @@ import type {
 import { useAccountContext } from "../contexts/AccountContext";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
-import { ResourcePanel } from "./ResourcePanel";
+import { ResourcePanel, type CustomerInfo } from "./ResourcePanel";
 import { ErrorBanner } from "./ErrorBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -37,6 +37,7 @@ export function TestClockDetail({
   const [showAdvance, setShowAdvance] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -201,13 +202,13 @@ export function TestClockDetail({
           />
         )}
 
-        <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} />
+        <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} onCustomersLoaded={setCustomers} />
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-sm font-medium text-gray-700 mb-3">
             Timeline
           </h2>
-          <UnifiedTimeline operations={operations} events={events} stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""} />
+          <UnifiedTimeline operations={operations} events={events} customers={customers} stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""} />
         </div>
       </main>
 

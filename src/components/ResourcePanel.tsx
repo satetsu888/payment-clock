@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchTestClockResources,
   createCustomer,
@@ -9,20 +9,23 @@ import {
 } from "../lib/api";
 import type { TestClockResources } from "../lib/types";
 import { useAccountContext } from "../contexts/AccountContext";
-import { CustomerSection } from "./CustomerSection";
-import { SubscriptionSection } from "./SubscriptionSection";
-import { InvoiceSection } from "./InvoiceSection";
-import { PaymentIntentSection } from "./PaymentIntentSection";
+import { CustomerResourceCard } from "./CustomerResourceCard";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
 import { CreateSubscriptionDialog } from "./CreateSubscriptionDialog";
 import { ErrorBanner } from "./ErrorBanner";
+import { groupResourcesByCustomer } from "../lib/resource-grouping";
+
+export interface CustomerInfo {
+  id: string;
+}
 
 interface ResourcePanelProps {
   testClockId: string;
   isDeleted: boolean;
+  onCustomersLoaded?: (customers: CustomerInfo[]) => void;
 }
 
-export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
+export function ResourcePanel({ testClockId, isDeleted, onCustomersLoaded }: ResourcePanelProps) {
   const { selectedAccount } = useAccountContext();
   const [resources, setResources] = useState<TestClockResources | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +45,9 @@ export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
     try {
       const result = await fetchTestClockResources(accountId, testClockId);
       setResources(result);
+      onCustomersLoaded?.(result.customers.map((c) => ({
+        id: c.stripeId,
+      })));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -89,6 +95,11 @@ export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
     await createSubscription(accountId, testClockId, customerId, priceId);
     await loadResources();
   };
+
+  const customerGroups = useMemo(() => {
+    if (!resources) return [];
+    return groupResourcesByCustomer(resources);
+  }, [resources]);
 
   if (isDeleted) {
     return (
@@ -141,40 +152,21 @@ export function ResourcePanel({ testClockId, isDeleted }: ResourcePanelProps) {
         />
       )}
 
-      {resources && (
-        <>
-          <div>
-            <h3 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-              Customers ({resources.customers.length})
-            </h3>
-            <CustomerSection
-              accountId={accountId}
-              customers={resources.customers}
-              onAttachPaymentMethod={handleAttachPaymentMethod}
-              onSetDefaultPaymentMethod={handleSetDefaultPaymentMethod}
-              onDetachPaymentMethod={handleDetachPaymentMethod}
-            />
-          </div>
-          <div>
-            <h3 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-              Subscriptions ({resources.subscriptions.length})
-            </h3>
-            <SubscriptionSection subscriptions={resources.subscriptions} />
-          </div>
-          <div>
-            <h3 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-              Invoices ({resources.invoices.length})
-            </h3>
-            <InvoiceSection invoices={resources.invoices} />
-          </div>
-          <div>
-            <h3 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-              Payment Intents ({resources.paymentIntents.length})
-            </h3>
-            <PaymentIntentSection paymentIntents={resources.paymentIntents} />
-          </div>
-        </>
+      {resources && customerGroups.length === 0 && (
+        <p className="text-xs text-gray-400 py-2">No customers</p>
       )}
+
+      {customerGroups.map((group) => (
+        <CustomerResourceCard
+          key={group.customer.stripeId}
+          group={group}
+          accountId={accountId}
+          defaultExpanded={customerGroups.length === 1}
+          onAttachPaymentMethod={handleAttachPaymentMethod}
+          onSetDefaultPaymentMethod={handleSetDefaultPaymentMethod}
+          onDetachPaymentMethod={handleDetachPaymentMethod}
+        />
+      ))}
 
       {showCreateCustomer && (
         <CreateCustomerDialog
