@@ -33,19 +33,3 @@ pub fn subscription_current_period_end(
         subscription["current_period_end"].as_i64()
     }
 }
-
-/// Extract `current_period_start` from a subscription JSON object,
-/// using the correct field path for the given API version.
-pub fn subscription_current_period_start(
-    subscription: &serde_json::Value,
-    api_version: &str,
-) -> Option<i64> {
-    if has_item_level_period(api_version) {
-        subscription["items"]["data"]
-            .as_array()
-            .and_then(|items| items.first())
-            .and_then(|item| item["current_period_start"].as_i64())
-    } else {
-        subscription["current_period_start"].as_i64()
-    }
-}

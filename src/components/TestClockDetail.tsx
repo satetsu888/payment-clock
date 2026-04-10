@@ -54,8 +54,11 @@ export function TestClockDetail({
     try {
       const evts = await getTestClockEvents(testClockId);
       setEvents(evts);
-    } catch {
-      // Events may fail if none exist yet
+    } catch (e) {
+      const msg = String(e);
+      if (!msg.includes("no rows returned")) {
+        setError(msg);
+      }
     }
   }, [testClockId]);
 

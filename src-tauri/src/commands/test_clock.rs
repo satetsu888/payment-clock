@@ -19,11 +19,7 @@ pub async fn list_test_clocks(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<Vec<test_clock::TestClock>, AppError> {
-    // Step 1: Get API key from DB
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
 
     // Step 2: Fetch from Stripe API
     let stripe_clocks = stripe::test_clock::list_test_clocks(&api_key).await?;
@@ -45,10 +41,7 @@ pub async fn create_test_clock(
     frozen_time: i64,
     name: Option<String>,
 ) -> Result<test_clock::TestClock, AppError> {
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
 
     let stripe_clock =
         stripe::test_clock::create_test_clock(&api_key, frozen_time, name.as_deref()).await?;
@@ -80,12 +73,7 @@ pub async fn advance_test_clock(
     test_clock_id: String,
     frozen_time: i64,
 ) -> Result<test_clock::TestClock, AppError> {
-    let (api_key, stripe_clock_id) = {
-        let db = state.db.lock().unwrap();
-        let api_key = account::get_api_key(&db, &account_id)?;
-        let clock = test_clock::get_by_id(&db, &test_clock_id)?;
-        (api_key, clock.stripe_test_clock_id)
-    };
+    let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
 
     let stripe_clock =
         stripe::test_clock::advance_test_clock(&api_key, &stripe_clock_id, frozen_time).await?;
@@ -115,12 +103,7 @@ pub async fn delete_test_clock(
     account_id: String,
     test_clock_id: String,
 ) -> Result<(), AppError> {
-    let (api_key, stripe_clock_id) = {
-        let db = state.db.lock().unwrap();
-        let api_key = account::get_api_key(&db, &account_id)?;
-        let clock = test_clock::get_by_id(&db, &test_clock_id)?;
-        (api_key, clock.stripe_test_clock_id)
-    };
+    let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
 
     stripe::test_clock::delete_test_clock(&api_key, &stripe_clock_id).await?;
 
@@ -159,12 +142,7 @@ pub async fn refresh_test_clock(
     account_id: String,
     test_clock_id: String,
 ) -> Result<test_clock::TestClock, AppError> {
-    let (api_key, stripe_clock_id) = {
-        let db = state.db.lock().unwrap();
-        let api_key = account::get_api_key(&db, &account_id)?;
-        let clock = test_clock::get_by_id(&db, &test_clock_id)?;
-        (api_key, clock.stripe_test_clock_id)
-    };
+    let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
 
     let stripe_clock = stripe::test_clock::get_test_clock(&api_key, &stripe_clock_id).await?;
 

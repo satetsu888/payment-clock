@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::error::AppError;
-use crate::models::{account, operation, resource_snapshot, test_clock};
+use crate::models::{operation, resource_snapshot};
 use crate::state::AppState;
 use crate::stripe;
 
@@ -32,12 +32,7 @@ pub async fn create_customer(
     name: Option<String>,
     email: Option<String>,
 ) -> Result<serde_json::Value, AppError> {
-    let (api_key, stripe_clock_id) = {
-        let db = state.db.lock().unwrap();
-        let api_key = account::get_api_key(&db, &account_id)?;
-        let clock = test_clock::get_by_id(&db, &test_clock_id)?;
-        (api_key, clock.stripe_test_clock_id)
-    };
+    let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
 
     let customer = stripe::customer::create_customer(
         &api_key,
@@ -84,10 +79,7 @@ pub async fn attach_payment_method(
     customer_id: String,
     payment_method_id: String,
 ) -> Result<serde_json::Value, AppError> {
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
 
     let updated_customer =
         stripe::customer::attach_payment_method(&api_key, &customer_id, &payment_method_id)
@@ -129,10 +121,7 @@ pub async fn create_subscription(
     customer_id: String,
     price_id: String,
 ) -> Result<serde_json::Value, AppError> {
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
 
     let subscription =
         stripe::subscription::create_subscription(&api_key, &customer_id, &price_id).await?;
@@ -171,10 +160,7 @@ pub async fn list_products(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<Vec<serde_json::Value>, AppError> {
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
     stripe::product::list_products(&api_key).await
 }
 
@@ -184,10 +170,7 @@ pub async fn list_prices(
     account_id: String,
     product_id: Option<String>,
 ) -> Result<Vec<serde_json::Value>, AppError> {
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
     stripe::product::list_prices(&api_key, product_id.as_deref()).await
 }
 
@@ -197,12 +180,7 @@ pub async fn fetch_test_clock_resources(
     account_id: String,
     test_clock_id: String,
 ) -> Result<TestClockResources, AppError> {
-    let (api_key, stripe_clock_id) = {
-        let db = state.db.lock().unwrap();
-        let api_key = account::get_api_key(&db, &account_id)?;
-        let clock = test_clock::get_by_id(&db, &test_clock_id)?;
-        (api_key, clock.stripe_test_clock_id)
-    };
+    let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
 
     // Fetch customers for this test clock
     let customers =
@@ -236,53 +214,25 @@ pub async fn fetch_test_clock_resources(
     {
         let db = state.db.lock().unwrap();
         let now = chrono::Utc::now().to_rfc3339();
-        for c in &customers {
-            let id = c["id"].as_str().unwrap_or_default();
-            resource_snapshot::save_snapshot(
-                &db,
-                &account_id,
-                Some(&test_clock_id),
-                "customer",
-                id,
-                &c.to_string(),
-                &now,
-            )?;
-        }
-        for s in &all_subscriptions {
-            let id = s["id"].as_str().unwrap_or_default();
-            resource_snapshot::save_snapshot(
-                &db,
-                &account_id,
-                Some(&test_clock_id),
-                "subscription",
-                id,
-                &s.to_string(),
-                &now,
-            )?;
-        }
-        for i in &all_invoices {
-            let id = i["id"].as_str().unwrap_or_default();
-            resource_snapshot::save_snapshot(
-                &db,
-                &account_id,
-                Some(&test_clock_id),
-                "invoice",
-                id,
-                &i.to_string(),
-                &now,
-            )?;
-        }
-        for p in &all_payment_intents {
-            let id = p["id"].as_str().unwrap_or_default();
-            resource_snapshot::save_snapshot(
-                &db,
-                &account_id,
-                Some(&test_clock_id),
-                "payment_intent",
-                id,
-                &p.to_string(),
-                &now,
-            )?;
+        let resource_groups: &[(&[serde_json::Value], &str)] = &[
+            (&customers, "customer"),
+            (&all_subscriptions, "subscription"),
+            (&all_invoices, "invoice"),
+            (&all_payment_intents, "payment_intent"),
+        ];
+        for (items, resource_type) in resource_groups {
+            for item in *items {
+                let id = item["id"].as_str().unwrap_or_default();
+                resource_snapshot::save_snapshot(
+                    &db,
+                    &account_id,
+                    Some(&test_clock_id),
+                    resource_type,
+                    id,
+                    &item.to_string(),
+                    &now,
+                )?;
+            }
         }
     }
 

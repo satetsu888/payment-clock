@@ -1,7 +1,7 @@
 use tauri::State;
 
 use crate::error::AppError;
-use crate::models::{account, event};
+use crate::models::event;
 use crate::state::AppState;
 use crate::stripe;
 
@@ -26,11 +26,10 @@ pub async fn fetch_events(
     test_clock_id: Option<String>,
 ) -> Result<Vec<event::Event>, AppError> {
     // Get API key and latest timestamp for incremental fetch
-    let (api_key, latest_ts) = {
+    let api_key = state.get_api_key(&account_id)?;
+    let latest_ts = {
         let db = state.db.lock().unwrap();
-        let api_key = account::get_api_key(&db, &account_id)?;
-        let latest = event::get_latest_timestamp(&db, &account_id)?;
-        (api_key, latest)
+        event::get_latest_timestamp(&db, &account_id)?
     };
 
     // Parse latest timestamp to Unix epoch for Stripe API
@@ -128,10 +127,7 @@ pub async fn start_stripe_cli(
     app_handle: tauri::AppHandle,
     account_id: String,
 ) -> Result<(), AppError> {
-    let api_key = {
-        let db = state.db.lock().unwrap();
-        account::get_api_key(&db, &account_id)?
-    };
+    let api_key = state.get_api_key(&account_id)?;
 
     // Check if already running
     {
