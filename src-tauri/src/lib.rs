@@ -34,6 +34,12 @@ pub fn run() {
             commands::account::list_accounts,
             commands::account::select_account,
             commands::account::delete_account,
+            commands::test_clock::list_test_clocks,
+            commands::test_clock::create_test_clock,
+            commands::test_clock::advance_test_clock,
+            commands::test_clock::delete_test_clock,
+            commands::test_clock::get_test_clock_detail,
+            commands::test_clock::refresh_test_clock,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
