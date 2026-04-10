@@ -69,3 +69,24 @@ export interface StripePrice {
   } | null;
   nickname: string | null;
 }
+
+export interface StripeEvent {
+  id: number;
+  accountId: string;
+  testClockId: string | null;
+  stripeEventId: string;
+  eventType: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  dataSnapshot: string;
+  stripeCreatedAt: string;
+  receivedAt: string;
+  source: string;
+}
+
+export interface UnifiedTimelineItem {
+  type: "operation" | "event";
+  timestamp: string;
+  operation?: Operation;
+  event?: StripeEvent;
+}

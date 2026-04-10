@@ -1,6 +1,8 @@
 pub mod account;
+pub mod cli;
 pub mod client;
 pub mod customer;
+pub mod event;
 pub mod invoice;
 pub mod payment_intent;
 pub mod product;

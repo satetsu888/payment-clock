@@ -3,6 +3,7 @@ import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
 import { TestClockCard } from "./TestClockCard";
 import { CreateTestClockDialog } from "./CreateTestClockDialog";
+import { StripeCliControl } from "./StripeCliControl";
 
 interface DashboardScreenProps {
   onSelectTestClock: (clockId: string) => void;
@@ -33,7 +34,8 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
             {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <StripeCliControl accountId={selectedAccount!.id} />
           <button
             onClick={refresh}
             className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"

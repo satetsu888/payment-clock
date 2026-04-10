@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { getTestClockDetail, refreshTestClock } from "../lib/api";
-import type { TestClockDetail as TestClockDetailType } from "../lib/types";
+import {
+  getTestClockDetail,
+  refreshTestClock,
+  fetchEvents,
+  getTestClockEvents,
+} from "../lib/api";
+import type {
+  TestClockDetail as TestClockDetailType,
+  StripeEvent,
+} from "../lib/types";
 import { useAccountContext } from "../contexts/AccountContext";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
-import { OperationTimeline } from "./OperationTimeline";
+import { UnifiedTimeline } from "./UnifiedTimeline";
 import { ResourcePanel } from "./ResourcePanel";
+import { StripeCliControl } from "./StripeCliControl";
 
 interface TestClockDetailProps {
   testClockId: string;
@@ -21,6 +30,7 @@ export function TestClockDetail({
 }: TestClockDetailProps) {
   const { selectedAccount } = useAccountContext();
   const [detail, setDetail] = useState<TestClockDetailType | null>(null);
+  const [events, setEvents] = useState<StripeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAdvance, setShowAdvance] = useState(false);
@@ -39,15 +49,36 @@ export function TestClockDetail({
     }
   }, [testClockId]);
 
+  const loadEvents = useCallback(async () => {
+    try {
+      const evts = await getTestClockEvents(testClockId);
+      setEvents(evts);
+    } catch {
+      // Events may fail if none exist yet
+    }
+  }, [testClockId]);
+
   useEffect(() => {
     loadDetail();
-  }, [loadDetail]);
+    loadEvents();
+  }, [loadDetail, loadEvents]);
+
+  const handleFetchEvents = async () => {
+    if (!selectedAccount) return;
+    try {
+      await fetchEvents(selectedAccount.id, testClockId);
+      await loadEvents();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
 
   const handleRefresh = async () => {
     if (!selectedAccount) return;
     try {
       await refreshTestClock(selectedAccount.id, testClockId);
       await loadDetail();
+      await handleFetchEvents();
     } catch (e) {
       setError(String(e));
     }
@@ -112,6 +143,11 @@ export function TestClockDetail({
           >
             {isDeleted ? "deleted" : clock.status}
           </span>
+          <div className="ml-auto">
+            {selectedAccount && (
+              <StripeCliControl accountId={selectedAccount.id} />
+            )}
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
@@ -120,6 +156,12 @@ export function TestClockDetail({
             Frozen: {new Date(clock.frozenTime).toLocaleString()}
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={handleFetchEvents}
+              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Fetch Events
+            </button>
             <button
               onClick={handleRefresh}
               className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
@@ -159,9 +201,9 @@ export function TestClockDetail({
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-sm font-medium text-gray-700 mb-3">
-            Operation History
+            Timeline
           </h2>
-          <OperationTimeline operations={operations} />
+          <UnifiedTimeline operations={operations} events={events} />
         </div>
       </main>
 

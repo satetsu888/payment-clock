@@ -8,7 +8,7 @@ mod stripe;
 use tauri::Manager;
 
 use state::AppState;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -24,7 +24,8 @@ pub fn run() {
 
             let conn = db::connection::initialize_db(app.handle())?;
             app.manage(AppState {
-                db: Mutex::new(conn),
+                db: Arc::new(Mutex::new(conn)),
+                cli_process: Arc::new(Mutex::new(None)),
             });
 
             Ok(())
@@ -46,6 +47,11 @@ pub fn run() {
             commands::resource::list_products,
             commands::resource::list_prices,
             commands::resource::fetch_test_clock_resources,
+            commands::event::fetch_events,
+            commands::event::get_test_clock_events,
+            commands::event::start_stripe_cli,
+            commands::event::stop_stripe_cli,
+            commands::event::get_stripe_cli_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

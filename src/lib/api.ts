@@ -7,6 +7,7 @@ import type {
   TestClockResources,
   StripeProduct,
   StripePrice,
+  StripeEvent,
 } from "./types";
 
 export async function validateAndSaveAccount(
@@ -134,4 +135,29 @@ export async function fetchTestClockResources(
     accountId,
     testClockId,
   });
+}
+
+export async function fetchEvents(
+  accountId: string,
+  testClockId?: string,
+): Promise<StripeEvent[]> {
+  return invoke<StripeEvent[]>("fetch_events", { accountId, testClockId });
+}
+
+export async function getTestClockEvents(
+  testClockId: string,
+): Promise<StripeEvent[]> {
+  return invoke<StripeEvent[]>("get_test_clock_events", { testClockId });
+}
+
+export async function startStripeCli(accountId: string): Promise<void> {
+  return invoke<void>("start_stripe_cli", { accountId });
+}
+
+export async function stopStripeCli(): Promise<void> {
+  return invoke<void>("stop_stripe_cli");
+}
+
+export async function getStripeCliStatus(): Promise<boolean> {
+  return invoke<boolean>("get_stripe_cli_status");
 }
