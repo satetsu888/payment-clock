@@ -9,6 +9,7 @@ const operationLabels: Record<string, string> = {
   advance_time: "Advanced time",
   delete_clock: "Deleted test clock",
   create_customer: "Created customer",
+  attach_payment_method: "Attached payment method",
   create_subscription: "Created subscription",
 };
 

@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Account, AccountSummary, TestClock, TestClockDetail } from "./types";
+import type {
+  Account,
+  AccountSummary,
+  TestClock,
+  TestClockDetail,
+  TestClockResources,
+  StripeProduct,
+  StripePrice,
+} from "./types";
 
 export async function validateAndSaveAccount(
   apiKey: string,
@@ -61,4 +69,69 @@ export async function refreshTestClock(
   testClockId: string,
 ): Promise<TestClock> {
   return invoke<TestClock>("refresh_test_clock", { accountId, testClockId });
+}
+
+export async function attachPaymentMethod(
+  accountId: string,
+  testClockId: string,
+  customerId: string,
+  paymentMethodId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("attach_payment_method", {
+    accountId,
+    testClockId,
+    customerId,
+    paymentMethodId,
+  });
+}
+
+export async function createCustomer(
+  accountId: string,
+  testClockId: string,
+  name?: string,
+  email?: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("create_customer", {
+    accountId,
+    testClockId,
+    name,
+    email,
+  });
+}
+
+export async function createSubscription(
+  accountId: string,
+  testClockId: string,
+  customerId: string,
+  priceId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("create_subscription", {
+    accountId,
+    testClockId,
+    customerId,
+    priceId,
+  });
+}
+
+export async function listProducts(
+  accountId: string,
+): Promise<StripeProduct[]> {
+  return invoke<StripeProduct[]>("list_products", { accountId });
+}
+
+export async function listPrices(
+  accountId: string,
+  productId?: string,
+): Promise<StripePrice[]> {
+  return invoke<StripePrice[]>("list_prices", { accountId, productId });
+}
+
+export async function fetchTestClockResources(
+  accountId: string,
+  testClockId: string,
+): Promise<TestClockResources> {
+  return invoke<TestClockResources>("fetch_test_clock_resources", {
+    accountId,
+    testClockId,
+  });
 }

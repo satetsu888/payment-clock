@@ -4,6 +4,7 @@ import type { TestClockDetail as TestClockDetailType } from "../lib/types";
 import { useAccountContext } from "../contexts/AccountContext";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { OperationTimeline } from "./OperationTimeline";
+import { ResourcePanel } from "./ResourcePanel";
 
 interface TestClockDetailProps {
   testClockId: string;
@@ -147,12 +148,14 @@ export function TestClockDetail({
         </div>
       </header>
 
-      <main className="p-6 max-w-3xl mx-auto">
+      <main className="p-6 max-w-3xl mx-auto space-y-4">
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md mb-4">
+          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
             {error}
           </p>
         )}
+
+        <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} />
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-sm font-medium text-gray-700 mb-3">

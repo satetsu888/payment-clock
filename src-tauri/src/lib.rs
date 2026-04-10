@@ -40,6 +40,12 @@ pub fn run() {
             commands::test_clock::delete_test_clock,
             commands::test_clock::get_test_clock_detail,
             commands::test_clock::refresh_test_clock,
+            commands::resource::create_customer,
+            commands::resource::attach_payment_method,
+            commands::resource::create_subscription,
+            commands::resource::list_products,
+            commands::resource::list_prices,
+            commands::resource::fetch_test_clock_resources,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -38,3 +38,34 @@ export interface TestClockDetail {
   testClock: TestClock;
   operations: Operation[];
 }
+
+export interface ResourceItem {
+  stripeId: string;
+  resourceType: string;
+  data: Record<string, unknown>;
+}
+
+export interface TestClockResources {
+  customers: ResourceItem[];
+  subscriptions: ResourceItem[];
+  invoices: ResourceItem[];
+  paymentIntents: ResourceItem[];
+}
+
+export interface StripeProduct {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface StripePrice {
+  id: string;
+  product: string;
+  unit_amount: number | null;
+  currency: string;
+  recurring: {
+    interval: string;
+    interval_count: number;
+  } | null;
+  nickname: string | null;
+}
