@@ -42,6 +42,24 @@ On first launch, you'll be prompted to enter a Stripe API key (secret key starti
 | Database | SQLite (via rusqlite) |
 | Stripe communication | reqwest (HTTP) |
 
+## Roadmap
+
+### Implemented
+- Multi-account support
+- Test clock CRUD (create, list, delete)
+- Time advance with preview
+- Customer creation
+- Payment method management (attach, detach, set default)
+- Subscription creation
+- Event timeline
+- Resource snapshots (customers, subscriptions, invoices, payment intents)
+
+### Planned
+- Usage-based billing support (usage records, meters)
+- Coupon / Promotion Code support
+- Subscription modification (plan change, cancel, resume)
+- Invoice operations (pay, void, manual creation)
+
 ## License
 
 MIT
