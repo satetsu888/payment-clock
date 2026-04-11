@@ -89,19 +89,19 @@ function formatMonthShort(date: Date): string {
   return MONTH_ABBR[date.getMonth()];
 }
 
-/** Assign vertical rows to labels so nearby ones don't overlap. */
-function assignLabelRows(labels: { date: Date; x: number }[], minSpacing: number): { date: Date; x: number; row: number }[] {
-  const sorted = [...labels].sort((a, b) => a.x - b.x);
-  // Track the rightmost x extent for each row
+/** Assign vertical rows to labels so nearby ones don't overlap.
+ *  Earlier dates get row 0 (closest to track), later ones shift down. */
+function assignLabelRows(labels: { date: Date; x: number }[]): { date: Date; x: number; row: number }[] {
+  const sorted = [...labels].sort((a, b) => a.date.getTime() - b.date.getTime());
   const rowExtents: number[] = [];
   return sorted.map((label) => {
-    const labelWidth = formatDateLabel(label.date).length * 5.5 + 8; // approximate width
+    const halfWidth = formatDateLabel(label.date).length * 3;
     let row = 0;
     while (row < rowExtents.length) {
-      if (label.x - labelWidth / 2 >= rowExtents[row] + minSpacing) break;
+      if (label.x - halfWidth >= rowExtents[row]) break;
       row++;
     }
-    rowExtents[row] = label.x + labelWidth / 2;
+    rowExtents[row] = label.x + halfWidth;
     return { ...label, row };
   });
 }
@@ -213,9 +213,9 @@ export function TimeControlBar({
   for (const day of uniqueBillingDays) addLabel(day.date);
   for (const period of subscriptionPeriods) addLabel(period.end);
   addLabel(currentTime);
-  const unifiedLabels = assignLabelRows(Array.from(labelsByDay.values()), 4);
+  const unifiedLabels = assignLabelRows(Array.from(labelsByDay.values()));
   const maxLabelRow = unifiedLabels.reduce((max, l) => Math.max(max, l.row), 0);
-  const labelsTop = TRACK_TOP + 28; // labels start below track + markers
+  const labelsTop = TRACK_TOP + 8; // labels start just below track + markers
   const timelineHeight = labelsTop + (maxLabelRow + 1) * 14 + 4;
 
   // Measure container
