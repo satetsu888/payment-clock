@@ -202,7 +202,7 @@ export function TestClockDetail({
           />
         )}
 
-        <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} onCustomersLoaded={setCustomers} />
+        <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} frozenTime={clock.frozenTime} onCustomersLoaded={setCustomers} />
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-sm font-medium text-gray-700 mb-3">

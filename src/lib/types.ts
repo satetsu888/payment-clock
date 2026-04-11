@@ -93,6 +93,12 @@ export interface StripePrice {
   nickname: string | null;
 }
 
+export interface CreateSubscriptionOptions {
+  trialPeriodDays?: number;
+  trialEnd?: number;
+  trialEndBehavior?: "create_invoice" | "cancel" | "pause";
+}
+
 export interface StripeEvent {
   id: number;
   accountId: string;

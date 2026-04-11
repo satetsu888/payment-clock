@@ -1,17 +1,37 @@
 import { useCallback, useEffect, useState } from "react";
 import { listProducts, listPrices } from "../lib/api";
-import type { ResourceItem, StripeProduct, StripePrice } from "../lib/types";
+import type {
+  ResourceItem,
+  StripeProduct,
+  StripePrice,
+  CreateSubscriptionOptions,
+} from "../lib/types";
+
+type TrialMode = "days" | "end";
+type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
+
+function toDatetimeLocalValue(isoString: string): string {
+  const date = new Date(isoString);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 interface CreateSubscriptionDialogProps {
   accountId: string;
   customers: ResourceItem[];
-  onSubmit: (customerId: string, priceId: string) => Promise<void>;
+  frozenTime: string;
+  onSubmit: (
+    customerId: string,
+    priceId: string,
+    options?: CreateSubscriptionOptions,
+  ) => Promise<void>;
   onClose: () => void;
 }
 
 export function CreateSubscriptionDialog({
   accountId,
   customers,
+  frozenTime,
   onSubmit,
   onClose,
 }: CreateSubscriptionDialogProps) {
@@ -25,6 +45,20 @@ export function CreateSubscriptionDialog({
   const [loading, setLoading] = useState(false);
   const [loadingPrices, setLoadingPrices] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const frozenTimeMin = toDatetimeLocalValue(frozenTime);
+  const defaultTrialEnd = (() => {
+    const d = new Date(frozenTime);
+    d.setDate(d.getDate() + 1);
+    return toDatetimeLocalValue(d.toISOString());
+  })();
+
+  const [enableTrial, setEnableTrial] = useState(false);
+  const [trialMode, setTrialMode] = useState<TrialMode>("days");
+  const [trialDays, setTrialDays] = useState<string>("7");
+  const [trialEndDate, setTrialEndDate] = useState<string>(defaultTrialEnd);
+  const [trialEndBehavior, setTrialEndBehavior] =
+    useState<TrialEndBehavior>("create_invoice");
 
   const loadProducts = useCallback(async () => {
     try {
@@ -64,7 +98,30 @@ export function CreateSubscriptionDialog({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(customerId, selectedPriceId);
+      let options: CreateSubscriptionOptions | undefined;
+      if (enableTrial) {
+        options = {};
+        if (trialMode === "days") {
+          const days = parseInt(trialDays, 10);
+          if (isNaN(days) || days <= 0) {
+            setError("Trial days must be a positive number");
+            setLoading(false);
+            return;
+          }
+          options.trialPeriodDays = days;
+        } else {
+          if (!trialEndDate) {
+            setError("Trial end date is required");
+            setLoading(false);
+            return;
+          }
+          options.trialEnd = Math.floor(
+            new Date(trialEndDate).getTime() / 1000,
+          );
+        }
+        options.trialEndBehavior = trialEndBehavior;
+      }
+      await onSubmit(customerId, selectedPriceId, options);
       onClose();
     } catch (e) {
       setError(String(e));
@@ -103,7 +160,9 @@ export function CreateSubscriptionDialog({
             >
               {customers.map((c) => (
                 <option key={c.stripeId} value={c.data.id as string}>
-                  {(c.data.name as string) || (c.data.email as string) || c.stripeId}
+                  {(c.data.name as string) ||
+                    (c.data.email as string) ||
+                    c.stripeId}
                 </option>
               ))}
             </select>
@@ -149,6 +208,101 @@ export function CreateSubscriptionDialog({
               ))}
             </select>
           </div>
+
+          <div className="border-t border-gray-200 pt-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableTrial}
+                onChange={(e) => setEnableTrial(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={loading}
+              />
+              Trial を設定する
+            </label>
+
+            {enableTrial && (
+              <div className="mt-3 ml-6 space-y-3">
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="trialMode"
+                      value="days"
+                      checked={trialMode === "days"}
+                      onChange={() => setTrialMode("days")}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                      disabled={loading}
+                    />
+                    日数指定
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="trialMode"
+                      value="end"
+                      checked={trialMode === "end"}
+                      onChange={() => setTrialMode("end")}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                      disabled={loading}
+                    />
+                    終了日時指定
+                  </label>
+                </div>
+
+                {trialMode === "days" ? (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={trialDays}
+                        onChange={(e) => setTrialDays(e.target.value)}
+                        className="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        disabled={loading}
+                      />
+                      <span className="text-sm text-gray-600">日間</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="datetime-local"
+                      value={trialEndDate}
+                      min={frozenTimeMin}
+                      onChange={(e) => setTrialEndDate(e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Frozen time ({new Date(frozenTime).toLocaleString()}) より未来の日時を指定
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Trial 終了時の挙動 (payment method 未設定の場合)
+                  </label>
+                  <select
+                    value={trialEndBehavior}
+                    onChange={(e) =>
+                      setTrialEndBehavior(e.target.value as TrialEndBehavior)
+                    }
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={loading}
+                  >
+                    <option value="create_invoice">
+                      Create invoice (請求書を作成)
+                    </option>
+                    <option value="cancel">Cancel (サブスクリプションをキャンセル)</option>
+                    <option value="pause">Pause (一時停止)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
               {error}

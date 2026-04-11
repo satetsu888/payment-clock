@@ -234,11 +234,21 @@ pub async fn create_subscription(
     test_clock_id: String,
     customer_id: String,
     price_id: String,
+    trial_period_days: Option<u32>,
+    trial_end: Option<i64>,
+    trial_end_behavior: Option<String>,
 ) -> Result<serde_json::Value, AppError> {
     let api_key = state.get_api_key(&account_id)?;
 
-    let subscription =
-        stripe::subscription::create_subscription(&api_key, &customer_id, &price_id).await?;
+    let subscription = stripe::subscription::create_subscription(
+        &api_key,
+        &customer_id,
+        &price_id,
+        trial_period_days,
+        trial_end,
+        trial_end_behavior.as_deref(),
+    )
+    .await?;
 
     let db = state.db.lock().unwrap();
     let now = chrono::Utc::now().to_rfc3339();
@@ -255,6 +265,9 @@ pub async fn create_subscription(
     let params_json = serde_json::json!({
         "customer_id": customer_id,
         "price_id": price_id,
+        "trial_period_days": trial_period_days,
+        "trial_end": trial_end,
+        "trial_end_behavior": trial_end_behavior,
     })
     .to_string();
     operation::record(

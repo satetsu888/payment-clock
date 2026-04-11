@@ -7,7 +7,7 @@ import {
   detachPaymentMethod,
   createSubscription,
 } from "../lib/api";
-import type { TestClockResources } from "../lib/types";
+import type { TestClockResources, CreateSubscriptionOptions } from "../lib/types";
 import { useAccountContext } from "../contexts/AccountContext";
 import { CustomerResourceCard } from "./CustomerResourceCard";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
@@ -22,10 +22,11 @@ export interface CustomerInfo {
 interface ResourcePanelProps {
   testClockId: string;
   isDeleted: boolean;
+  frozenTime: string;
   onCustomersLoaded?: (customers: CustomerInfo[]) => void;
 }
 
-export function ResourcePanel({ testClockId, isDeleted, onCustomersLoaded }: ResourcePanelProps) {
+export function ResourcePanel({ testClockId, isDeleted, frozenTime, onCustomersLoaded }: ResourcePanelProps) {
   const { selectedAccount } = useAccountContext();
   const [resources, setResources] = useState<TestClockResources | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,8 +92,9 @@ export function ResourcePanel({ testClockId, isDeleted, onCustomersLoaded }: Res
   const handleCreateSubscription = async (
     customerId: string,
     priceId: string,
+    options?: CreateSubscriptionOptions,
   ) => {
-    await createSubscription(accountId, testClockId, customerId, priceId);
+    await createSubscription(accountId, testClockId, customerId, priceId, options);
     await loadResources();
   };
 
@@ -178,6 +180,7 @@ export function ResourcePanel({ testClockId, isDeleted, onCustomersLoaded }: Res
         <CreateSubscriptionDialog
           accountId={accountId}
           customers={resources.customers}
+          frozenTime={frozenTime}
           onSubmit={handleCreateSubscription}
           onClose={() => setShowCreateSubscription(false)}
         />

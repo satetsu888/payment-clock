@@ -5,13 +5,29 @@ pub async fn create_subscription(
     api_key: &str,
     customer_id: &str,
     price_id: &str,
+    trial_period_days: Option<u32>,
+    trial_end: Option<i64>,
+    trial_end_behavior: Option<&str>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
-    let params = [
-        ("customer", customer_id),
-        ("items[0][price]", price_id),
+    let mut params: Vec<(&str, String)> = vec![
+        ("customer", customer_id.to_string()),
+        ("items[0][price]", price_id.to_string()),
     ];
-    client.post("/v1/subscriptions", &params).await
+    if let Some(days) = trial_period_days {
+        params.push(("trial_period_days", days.to_string()));
+    }
+    if let Some(end) = trial_end {
+        params.push(("trial_end", end.to_string()));
+    }
+    if let Some(behavior) = trial_end_behavior {
+        params.push((
+            "trial_settings[end_behavior][missing_payment_method]",
+            behavior.to_string(),
+        ));
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    client.post("/v1/subscriptions", &str_params).await
 }
 
 pub async fn list_subscriptions_by_customer(

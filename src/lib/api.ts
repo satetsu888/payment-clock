@@ -10,6 +10,7 @@ import type {
   StripeEvent,
   AdvancePreview,
   PaymentMethodData,
+  CreateSubscriptionOptions,
 } from "./types";
 
 export async function validateAndSaveAccount(
@@ -145,12 +146,16 @@ export async function createSubscription(
   testClockId: string,
   customerId: string,
   priceId: string,
+  options?: CreateSubscriptionOptions,
 ): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("create_subscription", {
     accountId,
     testClockId,
     customerId,
     priceId,
+    trialPeriodDays: options?.trialPeriodDays ?? null,
+    trialEnd: options?.trialEnd ?? null,
+    trialEndBehavior: options?.trialEndBehavior ?? null,
   });
 }
 
