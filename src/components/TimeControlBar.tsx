@@ -81,7 +81,8 @@ function formatDateLabel(date: Date): string {
 
 const MS_PER_DAY = 86400000;
 const THREE_MONTHS_DAYS = 90;
-const PADDING_RIGHT_DAYS = 7;
+const FUTURE_PADDING_DAYS = 60;
+const TIMELINE_PADDING_PX = 40;
 
 export function TimeControlBar({
   frozenTime,
@@ -102,19 +103,19 @@ export function TimeControlBar({
   const billingEvents = extractBillingEvents(resources);
   const isAdvancing = status === "advancing";
 
-  // Timeline range
+  // Timeline range: ensure at least start+3months and now+2months
   const startTime = createdTime ?? currentTime;
   const threeMonthsEnd = new Date(startTime.getTime() + THREE_MONTHS_DAYS * MS_PER_DAY);
-  const currentPlusPad = new Date(currentTime.getTime() + PADDING_RIGHT_DAYS * MS_PER_DAY);
-  const endTime = threeMonthsEnd.getTime() > currentPlusPad.getTime() ? threeMonthsEnd : currentPlusPad;
+  const currentPlusFuture = new Date(currentTime.getTime() + FUTURE_PADDING_DAYS * MS_PER_DAY);
+  const endTime = threeMonthsEnd.getTime() > currentPlusFuture.getTime() ? threeMonthsEnd : currentPlusFuture;
 
   // Scale: 80% of container = 3 months
   const pxPerDay = containerWidth > 0 ? (containerWidth * 0.8) / THREE_MONTHS_DAYS : 8;
   const totalDays = (endTime.getTime() - startTime.getTime()) / MS_PER_DAY;
-  const timelineWidth = Math.max(totalDays * pxPerDay, 200);
+  const timelineWidth = Math.max(totalDays * pxPerDay, 200) + TIMELINE_PADDING_PX * 2;
 
   const getX = (time: Date): number => {
-    return ((time.getTime() - startTime.getTime()) / MS_PER_DAY) * pxPerDay;
+    return TIMELINE_PADDING_PX + ((time.getTime() - startTime.getTime()) / MS_PER_DAY) * pxPerDay;
   };
 
   const monthBoundaries = getMonthBoundaries(startTime, endTime);
@@ -139,6 +140,20 @@ export function TimeControlBar({
     date: evs[0].date,
     types: evs.map((e) => e.type),
   }));
+
+  // Unified date labels: collect all dates, deduplicate by day, render one label per position
+  const labelsByDay = new Map<string, { date: Date; x: number }>();
+  const addLabel = (date: Date) => {
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    if (!labelsByDay.has(key)) {
+      labelsByDay.set(key, { date, x: getX(date) });
+    }
+  };
+  if (createdTime) addLabel(createdTime);
+  for (const month of monthBoundaries) addLabel(month);
+  for (const day of uniqueBillingDays) addLabel(day.date);
+  addLabel(currentTime);
+  const unifiedLabels = Array.from(labelsByDay.values());
 
   // Measure container
   useEffect(() => {
@@ -215,7 +230,10 @@ export function TimeControlBar({
             style={{ width: `${timelineWidth}px`, height: "64px" }}
           >
             {/* Track line */}
-            <div className="absolute top-[20px] left-0 right-0 h-px bg-gray-200" />
+            <div
+              className="absolute top-5 h-px bg-gray-200"
+              style={{ left: `${TIMELINE_PADDING_PX}px`, right: `${TIMELINE_PADDING_PX}px` }}
+            />
 
             {/* Tooltip */}
             {tooltip && (
@@ -229,7 +247,7 @@ export function TimeControlBar({
               </div>
             )}
 
-            {/* Start marker + label */}
+            {/* Start marker */}
             {createdTime && (
               <div
                 className="absolute cursor-default"
@@ -237,19 +255,13 @@ export function TimeControlBar({
                 onMouseEnter={(e) => showTooltip(e, `Start: ${formatDateLabel(createdTime)}`)}
                 onMouseLeave={hideTooltip}
               >
-                <div className="absolute top-[16px] -translate-x-1/2">
+                <div className="absolute top-4 -translate-x-1/2">
                   <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
-                </div>
-                <div className="absolute top-[14px] w-px h-[12px] bg-gray-300" />
-                <div className="absolute top-[34px] whitespace-nowrap">
-                  <span className="text-[10px] text-gray-500 font-medium">
-                    {formatDateLabel(createdTime)}
-                  </span>
                 </div>
               </div>
             )}
 
-            {/* Month boundary markers */}
+            {/* Month boundary tick marks */}
             {monthBoundaries.map((month) => {
               const x = getX(month);
               return (
@@ -258,12 +270,7 @@ export function TimeControlBar({
                   className="absolute"
                   style={{ left: `${x}px` }}
                 >
-                  <div className="absolute top-[14px] w-px h-[12px] bg-gray-300" />
-                  <div className="absolute top-[34px] -translate-x-1/2 whitespace-nowrap">
-                    <span className="text-[10px] text-gray-400">
-                      {formatDateLabel(month)}
-                    </span>
-                  </div>
+                  <div className="absolute top-3.5 w-px h-3 bg-gray-300" />
                 </div>
               );
             })}
@@ -285,19 +292,12 @@ export function TimeControlBar({
                   onMouseEnter={(e) => showTooltip(e, `${label}: ${formatDateLabel(day.date)}`)}
                   onMouseLeave={hideTooltip}
                 >
-                  {/* Small diamond marker below track */}
-                  <div className="absolute top-[24px] -translate-x-1/2">
+                  <div className="absolute top-6 -translate-x-1/2">
                     <div
                       className={`w-2 h-2 rotate-45 ${
                         hasPaid ? "bg-green-500" : "bg-amber-400"
                       }`}
                     />
-                  </div>
-                  {/* Date label */}
-                  <div className="absolute top-[34px] -translate-x-1/2 whitespace-nowrap">
-                    <span className={`text-[10px] ${hasPaid ? "text-green-600" : "text-amber-500"}`}>
-                      {formatDateLabel(day.date)}
-                    </span>
                   </div>
                 </div>
               );
@@ -314,8 +314,8 @@ export function TimeControlBar({
                   onMouseEnter={(e) => showTooltip(e, `Advanced to: ${formatDateLabel(point)}`)}
                   onMouseLeave={hideTooltip}
                 >
-                  <div className="absolute top-[16px] -translate-x-1/2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                  <div className="absolute top-4 -translate-x-1/2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
                   </div>
                 </div>
               );
@@ -326,15 +326,25 @@ export function TimeControlBar({
               className="absolute"
               style={{ left: `${getX(currentTime)}px` }}
             >
-              <div className="absolute top-[14px] -translate-x-1/2">
+              <div className="absolute top-3.5 -translate-x-1/2">
                 <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 ring-2 ring-indigo-200" />
               </div>
-              <div className="absolute top-[36px] -translate-x-1/2 whitespace-nowrap">
-                <span className="text-[10px] font-semibold text-indigo-600">
-                  now
-                </span>
-              </div>
             </div>
+
+            {/* Unified date labels (one per day, no duplicates) */}
+            {unifiedLabels.map((label) => (
+              <div
+                key={`label-${label.date.toISOString()}`}
+                className="absolute"
+                style={{ left: `${label.x}px` }}
+              >
+                <div className="absolute top-9 -translate-x-1/2 whitespace-nowrap">
+                  <span className="text-[10px] text-gray-500">
+                    {formatDateLabel(label.date)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
