@@ -6,6 +6,7 @@ use crate::models::{account, operation, resource_snapshot, test_clock};
 use crate::stripe::compat;
 use crate::state::AppState;
 use crate::stripe;
+use crate::timestamp::{unix_to_rfc3339, unix_to_display};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -211,27 +212,15 @@ pub async fn preview_advance(
         if let Some(period_end) = period_end {
             let will_renew = period_end <= frozen_time;
             let desc = if will_renew {
-                format!(
-                    "Will renew (period ends {})",
-                    chrono::DateTime::from_timestamp(period_end, 0)
-                        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
-                        .unwrap_or_default()
-                )
+                format!("Will renew (period ends {})", unix_to_display(period_end))
             } else {
-                format!(
-                    "Period ends {} (not reached)",
-                    chrono::DateTime::from_timestamp(period_end, 0)
-                        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
-                        .unwrap_or_default()
-                )
+                format!("Period ends {} (not reached)", unix_to_display(period_end))
             };
             affected_subscriptions.push(AdvancePreviewItem {
                 stripe_id: snap.stripe_resource_id,
                 resource_type: "subscription".to_string(),
                 description: desc,
-                trigger_time: chrono::DateTime::from_timestamp(period_end, 0)
-                    .map(|dt| dt.to_rfc3339())
-                    .unwrap_or_default(),
+                trigger_time: unix_to_rfc3339(period_end),
             });
         }
     }
@@ -250,28 +239,17 @@ pub async fn preview_advance(
             .as_i64()
             .or_else(|| data["period_end"].as_i64());
         let desc = match trigger {
-            Some(ts) if ts <= frozen_time => format!(
-                "Due {} (will be processed)",
-                chrono::DateTime::from_timestamp(ts, 0)
-                    .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
-                    .unwrap_or_default()
-            ),
-            Some(ts) => format!(
-                "Due {} (not reached)",
-                chrono::DateTime::from_timestamp(ts, 0)
-                    .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
-                    .unwrap_or_default()
-            ),
+            Some(ts) if ts <= frozen_time => {
+                format!("Due {} (will be processed)", unix_to_display(ts))
+            }
+            Some(ts) => format!("Due {} (not reached)", unix_to_display(ts)),
             None => format!("Status: {} (no due date)", status),
         };
         affected_invoices.push(AdvancePreviewItem {
             stripe_id: snap.stripe_resource_id,
             resource_type: "invoice".to_string(),
             description: desc,
-            trigger_time: trigger
-                .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default(),
+            trigger_time: trigger.map(unix_to_rfc3339).unwrap_or_default(),
         });
     }
 

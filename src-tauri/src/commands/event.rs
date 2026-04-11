@@ -51,9 +51,7 @@ pub async fn fetch_events(
         let resource_type = ev["data"]["object"]["object"].as_str();
         let resource_id = ev["data"]["object"]["id"].as_str();
         let created = ev["created"].as_i64().unwrap_or(0);
-        let stripe_created_at = chrono::DateTime::from_timestamp(created, 0)
-            .map(|dt| dt.to_rfc3339())
-            .unwrap_or_default();
+        let stripe_created_at = crate::timestamp::unix_to_rfc3339(created);
 
         // Resolve test clock
         let stripe_tc_id = crate::stripe::event::extract_test_clock_id(ev);

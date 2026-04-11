@@ -3,6 +3,7 @@ use serde::Serialize;
 
 use crate::error::AppError;
 use crate::stripe::test_clock::StripeTestClock;
+use crate::timestamp::unix_to_rfc3339;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,14 +23,8 @@ pub fn upsert_from_stripe(
     account_id: &str,
     stripe_clock: &StripeTestClock,
 ) -> Result<String, AppError> {
-    let frozen_time =
-        chrono::DateTime::from_timestamp(stripe_clock.frozen_time, 0)
-            .map(|dt| dt.to_rfc3339())
-            .unwrap_or_default();
-    let created_at =
-        chrono::DateTime::from_timestamp(stripe_clock.created, 0)
-            .map(|dt| dt.to_rfc3339())
-            .unwrap_or_default();
+    let frozen_time = unix_to_rfc3339(stripe_clock.frozen_time);
+    let created_at = unix_to_rfc3339(stripe_clock.created);
 
     // Check if already exists
     let existing: Option<String> = conn

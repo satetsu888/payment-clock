@@ -4,6 +4,7 @@ mod error;
 mod models;
 mod state;
 mod stripe;
+mod timestamp;
 
 use tauri::Manager;
 
