@@ -34,8 +34,6 @@ src/                        # React frontend
     AccountList.tsx          # Account list
     AccountCard.tsx          # Account card
     ApiKeyInput.tsx          # API key input (sk_test_ validation)
-    ResourcePanel.tsx        # (legacy, unused - replaced by CustomerTabs)
-    CustomerResourceCard.tsx # (legacy, unused - replaced by CustomerTabs)
   hooks/                    # Custom hooks
     useAccounts.ts          # Account list + CRUD
     useTestClocks.ts        # Test clock list + create/advance/delete/purge
