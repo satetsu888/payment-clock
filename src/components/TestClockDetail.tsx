@@ -12,7 +12,8 @@ import type {
 import { useAccountContext } from "../contexts/AccountContext";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
-import { ResourcePanel, type CustomerInfo } from "./ResourcePanel";
+import { CustomerTabs, type CustomerInfo } from "./CustomerTabs";
+import { TimeControlBar } from "./TimeControlBar";
 import { ErrorBanner } from "./ErrorBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -123,77 +124,61 @@ export function TestClockDetail({
 
   const { testClock: clock, operations } = detail;
   const isDeleted = !!clock.deletedAt;
-  const isAdvancing = clock.status === "advancing";
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-3 mb-2">
-          <button
-            onClick={onBack}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            &larr; Back
-          </button>
-          <h1 className="text-lg font-semibold text-gray-900">
-            {clock.name || clock.stripeTestClockId}
-          </h1>
-          <span
-            className={`px-2 py-0.5 text-xs rounded-full ${
-              isDeleted
-                ? "bg-gray-100 text-gray-500"
-                : clock.status === "ready"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-yellow-100 text-yellow-700"
-            }`}
-          >
-            {isDeleted ? "deleted" : clock.status}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            <span className="font-mono text-xs">{clock.stripeTestClockId}</span>
-            <span className="mx-2">&middot;</span>
-            Frozen: {new Date(clock.frozenTime).toLocaleString()}
-          </div>
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleFetchEvents}
-              disabled={isDeleted}
-              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onBack}
+              className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Fetch Events
+              &larr; Back
             </button>
-            <button
-              onClick={handleRefresh}
-              disabled={isDeleted}
-              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            <h1 className="text-lg font-semibold text-gray-900">
+              {clock.name || clock.stripeTestClockId}
+            </h1>
+            <span
+              className={`px-2 py-0.5 text-xs rounded-full ${
+                isDeleted
+                  ? "bg-gray-100 text-gray-500"
+                  : clock.status === "ready"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+              }`}
             >
-              Refresh
-            </button>
-            {!isDeleted && (
-              <>
-                <button
-                  onClick={() => setShowAdvance(true)}
-                  disabled={isAdvancing}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  Advance Time
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={deleting}
-                  className="px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50"
-                >
-                  {deleting ? "Deleting..." : "Delete"}
-                </button>
-              </>
-            )}
+              {isDeleted ? "deleted" : clock.status}
+            </span>
+            <span className="font-mono text-xs text-gray-400">
+              {clock.stripeTestClockId}
+            </span>
           </div>
+          {!isDeleted && (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={deleting}
+              className="px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="p-6 max-w-3xl mx-auto space-y-4">
+      {/* Time Control Bar */}
+      <TimeControlBar
+        frozenTime={clock.frozenTime}
+        status={clock.status}
+        operations={operations}
+        isDeleted={isDeleted}
+        onAdvance={() => setShowAdvance(true)}
+        onRefresh={handleRefresh}
+      />
+
+      {/* Main content */}
+      <main className="p-6 max-w-4xl mx-auto space-y-4">
         {error && (
           <ErrorBanner
             message={error}
@@ -202,13 +187,25 @@ export function TestClockDetail({
           />
         )}
 
-        <ResourcePanel testClockId={testClockId} isDeleted={isDeleted} frozenTime={clock.frozenTime} onCustomersLoaded={setCustomers} />
+        {/* Customer Tabs */}
+        <CustomerTabs
+          testClockId={testClockId}
+          isDeleted={isDeleted}
+          frozenTime={clock.frozenTime}
+          onCustomersLoaded={setCustomers}
+        />
 
+        {/* Event Log */}
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-sm font-medium text-gray-700 mb-3">
-            Timeline
+            Event Log
           </h2>
-          <UnifiedTimeline operations={operations} events={events} customers={customers} stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""} />
+          <UnifiedTimeline
+            operations={operations}
+            events={events}
+            customers={customers}
+            stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
+          />
         </div>
       </main>
 

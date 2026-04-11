@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import type { Operation, StripeEvent, UnifiedTimelineItem } from "../lib/types";
 import { EventItem } from "./EventItem";
 import { extractCustomerIdFromEvent, extractCustomerIdFromOperation } from "../lib/resource-grouping";
-import type { CustomerInfo } from "./ResourcePanel";
+import type { CustomerInfo } from "./CustomerTabs";
 
 interface UnifiedTimelineProps {
   operations: Operation[];
