@@ -13,11 +13,34 @@ Stripe Test Clock を管理するための Tauri デスクトップアプリケ�
 ```
 src/                        # React frontend
   components/               # UI components
+    TestClockDetail.tsx      # Test clock detail page (main layout)
+    TimeControlBar.tsx       # Sticky time control bar with visual timeline
+    CustomerTabs.tsx         # Tab-based customer management (replaces ResourcePanel)
+    BillingHistory.tsx       # Per-customer invoice billing history table
+    UnifiedTimeline.tsx      # Event log (operations + Stripe events)
+    SubscriptionSection.tsx  # Subscription list display
+    InvoiceSection.tsx       # Invoice list display
+    PaymentIntentSection.tsx # Payment intent list display
+    EventItem.tsx            # Single event display with expandable detail
+    AdvanceTimeDialog.tsx    # Time advance dialog with preview
+    CreateCustomerDialog.tsx # Customer creation dialog
+    CreateSubscriptionDialog.tsx # Subscription creation dialog
+    ConfirmDialog.tsx        # Generic confirmation dialog
+    ErrorBanner.tsx          # Error display with retry/dismiss
+    DashboardScreen.tsx      # Test clock list view
+    TestClockCard.tsx        # Test clock card in dashboard
+    AccountSelectScreen.tsx  # Account selection/creation
+    AccountList.tsx          # Account list
+    AccountCard.tsx          # Account card
+    ApiKeyInput.tsx          # API key input
+    ResourcePanel.tsx        # (legacy, replaced by CustomerTabs)
+    CustomerResourceCard.tsx # (legacy, replaced by CustomerTabs)
   hooks/                    # Custom hooks (useAccounts, useTestClocks)
   contexts/                 # React Context (AccountContext)
   lib/
     api.ts                  # Tauri command invocations
     types.ts                # TypeScript type definitions
+    resource-grouping.ts    # Group resources by customer + extract customer IDs
     stripe-compat.ts        # Stripe API version compatibility helpers
 
 src-tauri/src/              # Rust backend
@@ -64,3 +87,15 @@ npm run tauri build
 - Stripe API keys are stored in SQLite, not in environment variables - users enter them via the UI
 - Events are fetched via Stripe API polling (incremental, using latest timestamp)
 - API version compatibility is handled in `stripe/compat.rs` and `lib/stripe-compat.ts` to support field changes across Stripe API versions (e.g., v2025-03-31.basil)
+
+## Test Clock Detail Page Layout
+
+The detail page is structured as:
+
+1. **Header**: Clock name, status badge, Stripe ID, delete button
+2. **TimeControlBar** (sticky): Current simulation time display, visual timeline showing advance history as dots, "Advance Time" button, refresh
+3. **CustomerTabs**: Tab-based per-customer view. [+] tab creates a new customer. Each tab contains:
+   - Payment Methods (attach/detach/set default)
+   - Subscriptions (create/view status)
+   - Billing History (invoice table with billed date, paid date, amount, status + totals)
+4. **Event Log**: UnifiedTimeline showing operations and Stripe events with filters
