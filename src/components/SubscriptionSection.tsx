@@ -32,6 +32,8 @@ export function SubscriptionSection({
         const priceInfo = itemData.length > 0
           ? (itemData[0].price as Record<string, unknown>)
           : null;
+        const metadata = s.data.metadata as Record<string, string> | undefined;
+        const label = metadata?.payment_clock_label;
 
         return (
           <div
@@ -40,6 +42,11 @@ export function SubscriptionSection({
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {label && (
+                  <span className="text-xs font-medium text-gray-700">
+                    {label}
+                  </span>
+                )}
                 {hasChanged && (
                   <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-500 line-through">
                     {s.previousStatus}
