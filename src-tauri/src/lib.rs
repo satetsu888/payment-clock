@@ -6,7 +6,10 @@ mod state;
 mod stripe;
 mod timestamp;
 
-use tauri::Manager;
+use tauri::{
+    menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder},
+    Emitter, Manager,
+};
 
 use state::AppState;
 use std::sync::{Arc, Mutex};
@@ -14,6 +17,8 @@ use std::sync::{Arc, Mutex};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -22,6 +27,37 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Build application menu
+            let check_update = MenuItemBuilder::with_id("check_update", "更新を確認...")
+                .build(app)?;
+            let app_submenu = SubmenuBuilder::new(app, "Payment Clock")
+                .about(None)
+                .separator()
+                .item(&check_update)
+                .separator()
+                .quit()
+                .build()?;
+            let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
+            let menu = MenuBuilder::new(app)
+                .item(&app_submenu)
+                .item(&edit_submenu)
+                .build()?;
+            app.set_menu(menu)?;
+
+            app.on_menu_event(move |app_handle, event| {
+                if event.id() == "check_update" {
+                    let _ = app_handle.emit("menu-check-update", ());
+                }
+            });
 
             let conn = db::connection::initialize_db(app.handle())?;
             app.manage(AppState {
