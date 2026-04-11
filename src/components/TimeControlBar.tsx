@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Operation, TestClockResources } from "../lib/types";
 import {
-  subscriptionCurrentPeriodStart,
-  subscriptionCurrentPeriodEnd,
-} from "../lib/stripe-compat";
+  buildTimelineLanes,
+  getClockCreatedTime,
+  getMonthBoundaries,
+  formatDateLabel,
+  formatMonthShort,
+  assignLabelRows,
+  type TimelineMarker,
+} from "../lib/timeline-data";
 
 interface TimeControlBarProps {
   frozenTime: string;
@@ -16,131 +21,109 @@ interface TimeControlBarProps {
   onRefresh: () => void;
 }
 
-function parseAdvanceTimestamps(operations: Operation[]): Date[] {
-  const timestamps: Date[] = [];
-  for (const op of operations) {
-    if (op.operationType === "advance_time" && op.requestParams) {
-      try {
-        const params = JSON.parse(op.requestParams);
-        if (params.frozen_time) {
-          timestamps.push(new Date(params.frozen_time * 1000));
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }
-  timestamps.sort((a, b) => a.getTime() - b.getTime());
-  return timestamps;
-}
-
-function getClockCreatedTime(operations: Operation[]): Date | null {
-  for (const op of operations) {
-    if (op.operationType === "create_clock") {
-      return new Date(op.createdAt);
-    }
-  }
-  return null;
-}
-
-interface BillingEvent {
-  date: Date;
-  type: "billed" | "paid";
-}
-
-function extractBillingEvents(resources: TestClockResources | null): BillingEvent[] {
-  if (!resources) return [];
-  const events: BillingEvent[] = [];
-  for (const inv of resources.invoices) {
-    const created = inv.data.created as number | undefined;
-    if (created) {
-      events.push({ date: new Date(created * 1000), type: "billed" });
-    }
-    const transitions = inv.data.status_transitions as Record<string, unknown> | undefined;
-    const paidAt = transitions?.paid_at as number | null | undefined;
-    if (paidAt) {
-      events.push({ date: new Date(paidAt * 1000), type: "paid" });
-    }
-  }
-  events.sort((a, b) => a.date.getTime() - b.date.getTime());
-  return events;
-}
-
-/** Get the first day of each month between start (exclusive) and end (inclusive) */
-function getMonthBoundaries(start: Date, end: Date): Date[] {
-  const boundaries: Date[] = [];
-  const cursor = new Date(start.getFullYear(), start.getMonth() + 1, 1);
-  while (cursor.getTime() <= end.getTime()) {
-    boundaries.push(new Date(cursor));
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-  return boundaries;
-}
-
-function formatDateLabel(date: Date): string {
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  return `${m}/${d}`;
-}
-
-const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function formatMonthShort(date: Date): string {
-  return MONTH_ABBR[date.getMonth()];
-}
-
-/** Assign vertical rows to labels so nearby ones don't overlap.
- *  Earlier dates get row 0 (closest to track), later ones shift down. */
-function assignLabelRows(labels: { date: Date; x: number }[]): { date: Date; x: number; row: number }[] {
-  const sorted = [...labels].sort((a, b) => a.date.getTime() - b.date.getTime());
-  const rowExtents: number[] = [];
-  return sorted.map((label) => {
-    const halfWidth = formatDateLabel(label.date).length * 3;
-    let row = 0;
-    while (row < rowExtents.length) {
-      if (label.x - halfWidth >= rowExtents[row]) break;
-      row++;
-    }
-    rowExtents[row] = label.x + halfWidth;
-    return { ...label, row };
-  });
-}
-
-interface SubscriptionPeriod {
-  subscriptionId: string;
-  start: Date;
-  end: Date;
-  status: string;
-}
-
-function extractSubscriptionPeriods(
-  resources: TestClockResources | null,
-  apiVersion: string,
-): SubscriptionPeriod[] {
-  if (!resources) return [];
-  const periods: SubscriptionPeriod[] = [];
-  for (const sub of resources.subscriptions) {
-    const status = sub.data.status as string;
-    if (status === "canceled" || status === "incomplete_expired") continue;
-    const start = subscriptionCurrentPeriodStart(sub.data, apiVersion);
-    const end = subscriptionCurrentPeriodEnd(sub.data, apiVersion);
-    if (start && end) {
-      periods.push({
-        subscriptionId: sub.stripeId,
-        start: new Date(start * 1000),
-        end: new Date(end * 1000),
-        status,
-      });
-    }
-  }
-  return periods;
-}
-
 const MS_PER_DAY = 86400000;
 const THREE_MONTHS_DAYS = 90;
 const FUTURE_PADDING_DAYS = 60;
-const TIMELINE_PADDING_PX = 40;
-const TRACK_TOP = 36; // px from top of timeline container to the track line
+const TIMELINE_PADDING_PX = 110;
+const MONTH_AREA_HEIGHT = 24;
+const LANE_HEIGHT = 20;
+const LANE_GAP = 4;
+
+// --- Marker rendering ---
+
+function MarkerDot({
+  x,
+  trackY,
+  marker,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  x: number;
+  trackY: number;
+  marker: TimelineMarker;
+  onMouseEnter: (e: React.MouseEvent) => void;
+  onMouseLeave: () => void;
+}) {
+  switch (marker.type) {
+    case "current":
+      return (
+        <div className="absolute" style={{ left: `${x}px` }}>
+          <div
+            className="absolute -translate-x-1/2"
+            style={{ top: `${trackY - 6}px` }}
+          >
+            <div className="w-3.5 h-3.5 rounded-full bg-white border-2 border-indigo-600 ring-2 ring-indigo-200" />
+          </div>
+        </div>
+      );
+    case "start":
+      return (
+        <div
+          className="absolute cursor-default"
+          style={{ left: `${x}px` }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div
+            className="absolute -translate-x-1/2"
+            style={{ top: `${trackY - 4}px` }}
+          >
+            <div className="w-2 h-2 rounded-full bg-gray-400" />
+          </div>
+        </div>
+      );
+    case "advance":
+      return (
+        <div
+          className="absolute cursor-default"
+          style={{ left: `${x}px` }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div
+            className="absolute -translate-x-1/2"
+            style={{ top: `${trackY - 4}px` }}
+          >
+            <div className="w-2 h-2 rounded-full bg-gray-300" />
+          </div>
+        </div>
+      );
+    case "billed":
+      return (
+        <div
+          className="absolute cursor-default"
+          style={{ left: `${x}px` }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div
+            className="absolute -translate-x-1/2"
+            style={{ top: `${trackY - 4}px` }}
+          >
+            <div className="w-2 h-2 rotate-45 bg-amber-400" />
+          </div>
+        </div>
+      );
+    case "paid":
+      return (
+        <div
+          className="absolute cursor-default"
+          style={{ left: `${x}px` }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div
+            className="absolute -translate-x-1/2"
+            style={{ top: `${trackY - 4}px` }}
+          >
+            <div className="w-2 h-2 rotate-45 bg-green-500" />
+          </div>
+        </div>
+      );
+  }
+}
+
+// --- Main component ---
 
 export function TimeControlBar({
   frozenTime,
@@ -154,54 +137,61 @@ export function TimeControlBar({
 }: TimeControlBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [tooltip, setTooltip] = useState<{ x: number; label: string } | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    label: string;
+  } | null>(null);
 
   const currentTime = new Date(frozenTime);
-  const advanceTimestamps = parseAdvanceTimestamps(operations);
   const createdTime = getClockCreatedTime(operations);
-  const billingEvents = extractBillingEvents(resources);
-  const subscriptionPeriods = extractSubscriptionPeriods(resources, stripeApiVersion);
   const isAdvancing = status === "advancing";
 
-  // Timeline range: ensure at least start+3months and now+2months
-  const startTime = createdTime ?? currentTime;
-  const threeMonthsEnd = new Date(startTime.getTime() + THREE_MONTHS_DAYS * MS_PER_DAY);
-  const currentPlusFuture = new Date(currentTime.getTime() + FUTURE_PADDING_DAYS * MS_PER_DAY);
-  const endTime = threeMonthsEnd.getTime() > currentPlusFuture.getTime() ? threeMonthsEnd : currentPlusFuture;
-
-  // Scale: 80% of container = 3 months
-  const pxPerDay = containerWidth > 0 ? (containerWidth * 0.8) / THREE_MONTHS_DAYS : 8;
-  const totalDays = (endTime.getTime() - startTime.getTime()) / MS_PER_DAY;
-  const timelineWidth = Math.max(totalDays * pxPerDay, 200) + TIMELINE_PADDING_PX * 2;
-
-  const getX = (time: Date): number => {
-    return TIMELINE_PADDING_PX + ((time.getTime() - startTime.getTime()) / MS_PER_DAY) * pxPerDay;
-  };
-
-  const monthBoundaries = getMonthBoundaries(startTime, endTime);
-  const advancePoints = advanceTimestamps.filter(
-    (t) => !createdTime || t.getTime() !== createdTime.getTime(),
+  // Build lane data
+  const lanes = useMemo(
+    () =>
+      buildTimelineLanes(operations, resources, stripeApiVersion, currentTime),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [operations, resources, stripeApiVersion, frozenTime],
   );
 
-  // Deduplicate billing events that fall on the same day
-  const billingEventsByDay = new Map<string, BillingEvent[]>();
-  for (const ev of billingEvents) {
-    const key = `${ev.date.getFullYear()}-${ev.date.getMonth()}-${ev.date.getDate()}`;
-    const existing = billingEventsByDay.get(key);
-    if (existing) {
-      if (!existing.some((e) => e.type === ev.type)) {
-        existing.push(ev);
-      }
-    } else {
-      billingEventsByDay.set(key, [ev]);
-    }
-  }
-  const uniqueBillingDays = Array.from(billingEventsByDay.values()).map((evs) => ({
-    date: evs[0].date,
-    types: evs.map((e) => e.type),
-  }));
+  // Timeline range
+  const startTime = createdTime ?? currentTime;
+  const threeMonthsEnd = new Date(
+    startTime.getTime() + THREE_MONTHS_DAYS * MS_PER_DAY,
+  );
+  const currentPlusFuture = new Date(
+    currentTime.getTime() + FUTURE_PADDING_DAYS * MS_PER_DAY,
+  );
+  const endTime =
+    threeMonthsEnd.getTime() > currentPlusFuture.getTime()
+      ? threeMonthsEnd
+      : currentPlusFuture;
 
-  // Unified date labels: collect all dates, deduplicate by day, render one label per position
+  // Scale: 80% of container = 3 months
+  const pxPerDay =
+    containerWidth > 0 ? (containerWidth * 0.8) / THREE_MONTHS_DAYS : 8;
+  const totalDays =
+    (endTime.getTime() - startTime.getTime()) / MS_PER_DAY;
+  const timelineWidth =
+    Math.max(totalDays * pxPerDay, 200) + TIMELINE_PADDING_PX * 2;
+
+  const getX = (time: Date): number => {
+    return (
+      TIMELINE_PADDING_PX +
+      ((time.getTime() - startTime.getTime()) / MS_PER_DAY) * pxPerDay
+    );
+  };
+
+  // Lane Y positions
+  const laneY = (index: number) =>
+    MONTH_AREA_HEIGHT + index * (LANE_HEIGHT + LANE_GAP);
+  const trackYForLane = (index: number) => laneY(index) + LANE_HEIGHT / 2;
+  const lanesBottom = laneY(lanes.length);
+
+  // Month boundaries
+  const monthBoundaries = getMonthBoundaries(startTime, endTime);
+
+  // Collect all marker dates + period ends for date labels
   const labelsByDay = new Map<string, { date: Date; x: number }>();
   const addLabel = (date: Date) => {
     const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -209,13 +199,16 @@ export function TimeControlBar({
       labelsByDay.set(key, { date, x: getX(date) });
     }
   };
-  if (createdTime) addLabel(createdTime);
-  for (const day of uniqueBillingDays) addLabel(day.date);
-  for (const period of subscriptionPeriods) addLabel(period.end);
-  addLabel(currentTime);
+  for (const lane of lanes) {
+    for (const marker of lane.markers) addLabel(marker.date);
+    if (lane.periodBar) addLabel(lane.periodBar.end);
+  }
   const unifiedLabels = assignLabelRows(Array.from(labelsByDay.values()));
-  const maxLabelRow = unifiedLabels.reduce((max, l) => Math.max(max, l.row), 0);
-  const labelsTop = TRACK_TOP + 8; // labels start just below track + markers
+  const maxLabelRow = unifiedLabels.reduce(
+    (max, l) => Math.max(max, l.row),
+    0,
+  );
+  const labelsTop = lanesBottom + 4;
   const timelineHeight = labelsTop + (maxLabelRow + 1) * 14 + 4;
 
   // Measure container
@@ -239,15 +232,22 @@ export function TimeControlBar({
     const currentX = getX(currentTime);
     const visibleWidth = el.clientWidth;
     el.scrollLeft = currentX - visibleWidth * 0.6;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frozenTime, containerWidth]);
 
   const showTooltip = (e: React.MouseEvent, label: string) => {
     const rect = scrollRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setTooltip({ x: e.clientX - rect.left + (scrollRef.current?.scrollLeft ?? 0), label });
+    setTooltip({
+      x: e.clientX - rect.left + (scrollRef.current?.scrollLeft ?? 0),
+      label,
+    });
   };
-
   const hideTooltip = () => setTooltip(null);
+
+  // Whether to show "now" vertical line across all lanes (multi-lane only)
+  const showNowLine = lanes.length > 1;
+  const nowX = getX(currentTime);
 
   return (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 pb-4 pt-3 shadow-sm">
@@ -290,37 +290,127 @@ export function TimeControlBar({
         >
           <div
             className="relative mx-auto"
-            style={{ width: `${timelineWidth}px`, height: `${timelineHeight}px` }}
+            style={{
+              width: `${timelineWidth}px`,
+              height: `${timelineHeight}px`,
+            }}
           >
-            {/* Track line */}
-            <div
-              className="absolute h-px bg-gray-200"
-              style={{ top: `${TRACK_TOP}px`, left: `${TIMELINE_PADDING_PX}px`, right: `${TIMELINE_PADDING_PX}px` }}
-            />
-
-            {/* Subscription current period bars */}
-            {subscriptionPeriods.map((period, i) => {
-              const x1 = getX(period.start);
-              const x2 = getX(period.end);
-              const width = x2 - x1;
+            {/* Month boundary dividers */}
+            {monthBoundaries.map((month) => {
+              const x = getX(month);
+              const showYear = month.getMonth() === 0;
               return (
                 <div
-                  key={`period-${period.subscriptionId}-${i}`}
-                  className="absolute cursor-default"
-                  style={{ left: `${x1}px`, width: `${width}px`, top: `${TRACK_TOP - 4}px`, height: "8px" }}
-                  onMouseEnter={(e) =>
-                    showTooltip(
-                      e,
-                      `Current period: ${formatDateLabel(period.start)} – ${formatDateLabel(period.end)}`,
-                    )
-                  }
-                  onMouseLeave={hideTooltip}
+                  key={month.toISOString()}
+                  className="absolute"
+                  style={{ left: `${x}px` }}
                 >
-                  <div className="w-full h-full bg-indigo-100 rounded-sm border border-indigo-200" />
-                  {/* Period end marker (next billing) */}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2">
-                    <div className="w-2 h-2 rounded-full bg-indigo-300 ring-1 ring-indigo-200" />
+                  <div
+                    className="absolute w-px bg-gray-200"
+                    style={{ top: "0px", height: `${lanesBottom}px` }}
+                  />
+                  <div
+                    className="absolute left-1.5 whitespace-nowrap"
+                    style={{ top: showYear ? "2px" : "8px" }}
+                  >
+                    {showYear && (
+                      <div className="text-[10px] font-medium text-gray-400 leading-none">
+                        {month.getFullYear()}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-gray-400 leading-snug">
+                      {formatMonthShort(month)}
+                    </div>
                   </div>
+                </div>
+              );
+            })}
+
+            {/* "Now" vertical line across all lanes (multi-lane only) */}
+            {showNowLine && (
+              <div
+                className="absolute w-px bg-indigo-300"
+                style={{
+                  left: `${nowX}px`,
+                  top: `${MONTH_AREA_HEIGHT}px`,
+                  height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
+                }}
+              />
+            )}
+
+            {/* Lanes */}
+            {lanes.map((lane, laneIndex) => {
+              const ty = trackYForLane(laneIndex);
+              return (
+                <div key={lane.id}>
+                  {/* Lane label */}
+                  {lane.label && (
+                    <div
+                      className="absolute flex items-center z-10"
+                      style={{
+                        left: "4px",
+                        top: `${laneY(laneIndex)}px`,
+                        height: `${LANE_HEIGHT}px`,
+                      }}
+                    >
+                      <span className="text-[9px] text-gray-400 truncate max-w-[100px] bg-white px-0.5">
+                        {lane.label}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Track line */}
+                  <div
+                    className="absolute h-px bg-gray-200"
+                    style={{
+                      top: `${ty}px`,
+                      left: `${TIMELINE_PADDING_PX}px`,
+                      right: `${TIMELINE_PADDING_PX}px`,
+                    }}
+                  />
+
+                  {/* Period bar */}
+                  {lane.periodBar && (() => {
+                    const x1 = getX(lane.periodBar.start);
+                    const x2 = getX(lane.periodBar.end);
+                    const barWidth = x2 - x1;
+                    return (
+                      <div
+                        className="absolute cursor-default"
+                        style={{
+                          left: `${x1}px`,
+                          width: `${barWidth}px`,
+                          top: `${ty - 3}px`,
+                          height: "6px",
+                        }}
+                        onMouseEnter={(e) =>
+                          showTooltip(
+                            e,
+                            `Current period: ${formatDateLabel(lane.periodBar!.start)} – ${formatDateLabel(lane.periodBar!.end)}`,
+                          )
+                        }
+                        onMouseLeave={hideTooltip}
+                      >
+                        <div className="w-full h-full bg-indigo-100 rounded-sm border border-indigo-200" />
+                        {/* Period end marker */}
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 ring-1 ring-indigo-200" />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Markers */}
+                  {lane.markers.map((marker, mi) => (
+                    <MarkerDot
+                      key={`${lane.id}-m-${mi}`}
+                      marker={marker}
+                      x={getX(marker.date)}
+                      trackY={ty}
+                      onMouseEnter={(e) => showTooltip(e, marker.tooltip)}
+                      onMouseLeave={hideTooltip}
+                    />
+                  ))}
                 </div>
               );
             })}
@@ -337,105 +427,7 @@ export function TimeControlBar({
               </div>
             )}
 
-            {/* Start marker */}
-            {createdTime && (
-              <div
-                className="absolute cursor-default"
-                style={{ left: `${getX(createdTime)}px` }}
-                onMouseEnter={(e) => showTooltip(e, `Start: ${formatDateLabel(createdTime)}`)}
-                onMouseLeave={hideTooltip}
-              >
-                <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP - 4}px` }}>
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
-                </div>
-              </div>
-            )}
-
-            {/* Month boundary dividers (vertical line + label at top) */}
-            {monthBoundaries.map((month) => {
-              const x = getX(month);
-              const showYear = month.getMonth() === 0;
-              return (
-                <div
-                  key={month.toISOString()}
-                  className="absolute"
-                  style={{ left: `${x}px` }}
-                >
-                  <div
-                    className="absolute w-px bg-gray-200"
-                    style={{ top: "0px", height: `${TRACK_TOP}px` }}
-                  />
-                  <div className="absolute left-1.5 whitespace-nowrap" style={{ top: showYear ? "2px" : "8px" }}>
-                    {showYear && (
-                      <div className="text-[10px] font-medium text-gray-400 leading-none">
-                        {month.getFullYear()}
-                      </div>
-                    )}
-                    <div className="text-[11px] text-gray-400 leading-snug">
-                      {formatMonthShort(month)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Billing event markers */}
-            {uniqueBillingDays.map((day, i) => {
-              const x = getX(day.date);
-              const hasBilled = day.types.includes("billed");
-              const hasPaid = day.types.includes("paid");
-              const label = [
-                hasBilled ? "Billed" : null,
-                hasPaid ? "Paid" : null,
-              ].filter(Boolean).join(" / ");
-              return (
-                <div
-                  key={`billing-${i}`}
-                  className="absolute cursor-default"
-                  style={{ left: `${x}px` }}
-                  onMouseEnter={(e) => showTooltip(e, `${label}: ${formatDateLabel(day.date)}`)}
-                  onMouseLeave={hideTooltip}
-                >
-                  <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP + 6}px` }}>
-                    <div
-                      className={`w-2 h-2 rotate-45 ${
-                        hasPaid ? "bg-green-500" : "bg-amber-400"
-                      }`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Advance points */}
-            {advancePoints.map((point, i) => {
-              const x = getX(point);
-              return (
-                <div
-                  key={`adv-${i}`}
-                  className="absolute cursor-default"
-                  style={{ left: `${x}px` }}
-                  onMouseEnter={(e) => showTooltip(e, `Advanced to: ${formatDateLabel(point)}`)}
-                  onMouseLeave={hideTooltip}
-                >
-                  <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP - 4}px` }}>
-                    <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Current time marker */}
-            <div
-              className="absolute"
-              style={{ left: `${getX(currentTime)}px` }}
-            >
-              <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP - 6}px` }}>
-                <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 ring-2 ring-indigo-200" />
-              </div>
-            </div>
-
-            {/* Unified date labels (one per day, staggered to avoid overlap) */}
+            {/* Date labels */}
             {unifiedLabels.map((label) => (
               <div
                 key={`label-${label.date.toISOString()}`}

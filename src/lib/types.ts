@@ -97,6 +97,7 @@ export interface CreateSubscriptionOptions {
   trialPeriodDays?: number;
   trialEnd?: number;
   trialEndBehavior?: "create_invoice" | "cancel" | "pause";
+  metadata?: Record<string, string>;
 }
 
 export interface StripeEvent {

@@ -8,6 +8,7 @@ pub async fn create_subscription(
     trial_period_days: Option<u32>,
     trial_end: Option<i64>,
     trial_end_behavior: Option<&str>,
+    metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
     let mut params: Vec<(&str, String)> = vec![
@@ -25,6 +26,15 @@ pub async fn create_subscription(
             "trial_settings[end_behavior][missing_payment_method]",
             behavior.to_string(),
         ));
+    }
+    if let Some(meta) = metadata {
+        for (key, value) in meta {
+            params.push((
+                // leak is fine here — small number of short-lived params
+                Box::leak(format!("metadata[{}]", key).into_boxed_str()),
+                value.clone(),
+            ));
+        }
     }
     let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
     client.post("/v1/subscriptions", &str_params).await

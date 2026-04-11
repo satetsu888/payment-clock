@@ -20,6 +20,7 @@ interface CreateSubscriptionDialogProps {
   accountId: string;
   customers: ResourceItem[];
   frozenTime: string;
+  defaultLabel: string;
   onSubmit: (
     customerId: string,
     priceId: string,
@@ -32,6 +33,7 @@ export function CreateSubscriptionDialog({
   accountId,
   customers,
   frozenTime,
+  defaultLabel,
   onSubmit,
   onClose,
 }: CreateSubscriptionDialogProps) {
@@ -98,9 +100,10 @@ export function CreateSubscriptionDialog({
     setLoading(true);
     setError(null);
     try {
-      let options: CreateSubscriptionOptions | undefined;
+      const options: CreateSubscriptionOptions = {
+        metadata: { payment_clock_label: defaultLabel },
+      };
       if (enableTrial) {
-        options = {};
         if (trialMode === "days") {
           const days = parseInt(trialDays, 10);
           if (isNaN(days) || days <= 0) {

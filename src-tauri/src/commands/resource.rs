@@ -237,6 +237,7 @@ pub async fn create_subscription(
     trial_period_days: Option<u32>,
     trial_end: Option<i64>,
     trial_end_behavior: Option<String>,
+    metadata: Option<std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let api_key = state.get_api_key(&account_id)?;
 
@@ -247,6 +248,7 @@ pub async fn create_subscription(
         trial_period_days,
         trial_end,
         trial_end_behavior.as_deref(),
+        metadata.as_ref(),
     )
     .await?;
 

@@ -182,6 +182,7 @@ export function ResourcePanel({ testClockId, isDeleted, frozenTime, onCustomersL
           accountId={accountId}
           customers={resources.customers}
           frozenTime={frozenTime}
+          defaultLabel={`Subscription ${(resources.subscriptions.length ?? 0) + 1}`}
           onSubmit={handleCreateSubscription}
           onClose={() => setShowCreateSubscription(false)}
         />

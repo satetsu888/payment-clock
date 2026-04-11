@@ -188,6 +188,7 @@ function CustomerTabContent({
   group,
   accountId,
   frozenTime,
+  totalSubscriptionCount,
   onAttachPaymentMethod,
   onSetDefaultPaymentMethod,
   onDetachPaymentMethod,
@@ -196,6 +197,7 @@ function CustomerTabContent({
   group: CustomerWithResources;
   accountId: string;
   frozenTime: string;
+  totalSubscriptionCount: number;
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
@@ -363,6 +365,7 @@ function CustomerTabContent({
           accountId={accountId}
           customers={[customer]}
           frozenTime={frozenTime}
+          defaultLabel={`Subscription ${totalSubscriptionCount + 1}`}
           onSubmit={handleCreateSubscription}
           onClose={() => setShowCreateSubscription(false)}
         />
@@ -487,6 +490,7 @@ export function CustomerTabs({
               group={customerGroups[activeTabIndex]}
               accountId={accountId}
               frozenTime={frozenTime}
+              totalSubscriptionCount={customerGroups.reduce((sum, g) => sum + g.subscriptions.length, 0)}
               onAttachPaymentMethod={onAttachPaymentMethod}
               onSetDefaultPaymentMethod={onSetDefaultPaymentMethod}
               onDetachPaymentMethod={onDetachPaymentMethod}

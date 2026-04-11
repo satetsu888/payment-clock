@@ -162,6 +162,7 @@ export async function createSubscription(
     trialPeriodDays: options?.trialPeriodDays ?? null,
     trialEnd: options?.trialEnd ?? null,
     trialEndBehavior: options?.trialEndBehavior ?? null,
+    metadata: options?.metadata ?? null,
   });
 }
 
