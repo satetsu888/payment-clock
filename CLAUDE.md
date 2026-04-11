@@ -77,6 +77,7 @@ src-tauri/src/              # Rust backend
     invoice.rs              # Invoice list
     payment_intent.rs       # Payment intent list
     product.rs              # Product/price list
+  timestamp.rs              # Unix timestamp conversion utilities (unix_to_rfc3339, unix_to_display)
   state.rs                  # AppState (Arc<Mutex<Connection>>, API key helpers)
   error.rs                  # AppError enum (Db, Stripe, Validation, Io, Json, Http)
 ```
