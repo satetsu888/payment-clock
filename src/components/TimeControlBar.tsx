@@ -78,10 +78,32 @@ function getMonthBoundaries(start: Date, end: Date): Date[] {
 }
 
 function formatDateLabel(date: Date): string {
-  const y = date.getFullYear();
   const m = date.getMonth() + 1;
   const d = date.getDate();
-  return `${y}/${m}/${d}`;
+  return `${m}/${d}`;
+}
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatMonthShort(date: Date): string {
+  return MONTH_ABBR[date.getMonth()];
+}
+
+/** Assign vertical rows to labels so nearby ones don't overlap. */
+function assignLabelRows(labels: { date: Date; x: number }[], minSpacing: number): { date: Date; x: number; row: number }[] {
+  const sorted = [...labels].sort((a, b) => a.x - b.x);
+  // Track the rightmost x extent for each row
+  const rowExtents: number[] = [];
+  return sorted.map((label) => {
+    const labelWidth = formatDateLabel(label.date).length * 5.5 + 8; // approximate width
+    let row = 0;
+    while (row < rowExtents.length) {
+      if (label.x - labelWidth / 2 >= rowExtents[row] + minSpacing) break;
+      row++;
+    }
+    rowExtents[row] = label.x + labelWidth / 2;
+    return { ...label, row };
+  });
 }
 
 interface SubscriptionPeriod {
@@ -118,6 +140,7 @@ const MS_PER_DAY = 86400000;
 const THREE_MONTHS_DAYS = 90;
 const FUTURE_PADDING_DAYS = 60;
 const TIMELINE_PADDING_PX = 40;
+const TRACK_TOP = 36; // px from top of timeline container to the track line
 
 export function TimeControlBar({
   frozenTime,
@@ -187,11 +210,13 @@ export function TimeControlBar({
     }
   };
   if (createdTime) addLabel(createdTime);
-  for (const month of monthBoundaries) addLabel(month);
   for (const day of uniqueBillingDays) addLabel(day.date);
   for (const period of subscriptionPeriods) addLabel(period.end);
   addLabel(currentTime);
-  const unifiedLabels = Array.from(labelsByDay.values());
+  const unifiedLabels = assignLabelRows(Array.from(labelsByDay.values()), 4);
+  const maxLabelRow = unifiedLabels.reduce((max, l) => Math.max(max, l.row), 0);
+  const labelsTop = TRACK_TOP + 28; // labels start below track + markers
+  const timelineHeight = labelsTop + (maxLabelRow + 1) * 14 + 4;
 
   // Measure container
   useEffect(() => {
@@ -265,12 +290,12 @@ export function TimeControlBar({
         >
           <div
             className="relative mx-auto"
-            style={{ width: `${timelineWidth}px`, height: "64px" }}
+            style={{ width: `${timelineWidth}px`, height: `${timelineHeight}px` }}
           >
             {/* Track line */}
             <div
-              className="absolute top-5 h-px bg-gray-200"
-              style={{ left: `${TIMELINE_PADDING_PX}px`, right: `${TIMELINE_PADDING_PX}px` }}
+              className="absolute h-px bg-gray-200"
+              style={{ top: `${TRACK_TOP}px`, left: `${TIMELINE_PADDING_PX}px`, right: `${TIMELINE_PADDING_PX}px` }}
             />
 
             {/* Subscription current period bars */}
@@ -282,7 +307,7 @@ export function TimeControlBar({
                 <div
                   key={`period-${period.subscriptionId}-${i}`}
                   className="absolute cursor-default"
-                  style={{ left: `${x1}px`, width: `${width}px`, top: "16px", height: "8px" }}
+                  style={{ left: `${x1}px`, width: `${width}px`, top: `${TRACK_TOP - 4}px`, height: "8px" }}
                   onMouseEnter={(e) =>
                     showTooltip(
                       e,
@@ -320,22 +345,36 @@ export function TimeControlBar({
                 onMouseEnter={(e) => showTooltip(e, `Start: ${formatDateLabel(createdTime)}`)}
                 onMouseLeave={hideTooltip}
               >
-                <div className="absolute top-4 -translate-x-1/2">
+                <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP - 4}px` }}>
                   <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
                 </div>
               </div>
             )}
 
-            {/* Month boundary tick marks */}
+            {/* Month boundary dividers (vertical line + label at top) */}
             {monthBoundaries.map((month) => {
               const x = getX(month);
+              const showYear = month.getMonth() === 0;
               return (
                 <div
                   key={month.toISOString()}
                   className="absolute"
                   style={{ left: `${x}px` }}
                 >
-                  <div className="absolute top-3.5 w-px h-3 bg-gray-300" />
+                  <div
+                    className="absolute w-px bg-gray-200"
+                    style={{ top: "0px", height: `${TRACK_TOP}px` }}
+                  />
+                  <div className="absolute left-1.5 whitespace-nowrap" style={{ top: showYear ? "2px" : "8px" }}>
+                    {showYear && (
+                      <div className="text-[10px] font-medium text-gray-400 leading-none">
+                        {month.getFullYear()}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-gray-400 leading-snug">
+                      {formatMonthShort(month)}
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -357,7 +396,7 @@ export function TimeControlBar({
                   onMouseEnter={(e) => showTooltip(e, `${label}: ${formatDateLabel(day.date)}`)}
                   onMouseLeave={hideTooltip}
                 >
-                  <div className="absolute top-6 -translate-x-1/2">
+                  <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP + 6}px` }}>
                     <div
                       className={`w-2 h-2 rotate-45 ${
                         hasPaid ? "bg-green-500" : "bg-amber-400"
@@ -379,7 +418,7 @@ export function TimeControlBar({
                   onMouseEnter={(e) => showTooltip(e, `Advanced to: ${formatDateLabel(point)}`)}
                   onMouseLeave={hideTooltip}
                 >
-                  <div className="absolute top-4 -translate-x-1/2">
+                  <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP - 4}px` }}>
                     <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
                   </div>
                 </div>
@@ -391,19 +430,22 @@ export function TimeControlBar({
               className="absolute"
               style={{ left: `${getX(currentTime)}px` }}
             >
-              <div className="absolute top-3.5 -translate-x-1/2">
+              <div className="absolute -translate-x-1/2" style={{ top: `${TRACK_TOP - 6}px` }}>
                 <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 ring-2 ring-indigo-200" />
               </div>
             </div>
 
-            {/* Unified date labels (one per day, no duplicates) */}
+            {/* Unified date labels (one per day, staggered to avoid overlap) */}
             {unifiedLabels.map((label) => (
               <div
                 key={`label-${label.date.toISOString()}`}
                 className="absolute"
                 style={{ left: `${label.x}px` }}
               >
-                <div className="absolute top-9 -translate-x-1/2 whitespace-nowrap">
+                <div
+                  className="absolute -translate-x-1/2 whitespace-nowrap"
+                  style={{ top: `${labelsTop + label.row * 14}px` }}
+                >
                   <span className="text-[10px] text-gray-500">
                     {formatDateLabel(label.date)}
                   </span>
