@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
+import { createCustomer, attachPaymentMethod } from "../lib/api";
 import { TestClockCard } from "./TestClockCard";
 import { CreateTestClockDialog } from "./CreateTestClockDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -20,8 +21,26 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  const handleCreate = async (frozenTime: number, name?: string) => {
-    await create(frozenTime, name);
+  const handleCreate = async (
+    frozenTime: number,
+    name?: string,
+    options?: { createCustomer: boolean; attachPaymentMethod: boolean },
+  ) => {
+    const clock = await create(frozenTime, name);
+
+    if (options?.createCustomer) {
+      const customer = await createCustomer(selectedAccount!.id, clock.id);
+      const customerId = (customer as { id: string }).id;
+
+      if (options.attachPaymentMethod) {
+        await attachPaymentMethod(
+          selectedAccount!.id,
+          clock.id,
+          customerId,
+          "pm_card_visa",
+        );
+      }
+    }
   };
 
   const handleConfirm = async () => {

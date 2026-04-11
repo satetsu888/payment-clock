@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface CreateTestClockDialogProps {
-  onSubmit: (frozenTime: number, name?: string) => Promise<void>;
+  onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; attachPaymentMethod: boolean }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -14,6 +14,8 @@ export function CreateTestClockDialog({
     const now = new Date();
     return now.toISOString().slice(0, 16);
   });
+  const [createCustomer, setCreateCustomer] = useState(true);
+  const [attachPM, setAttachPM] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +25,7 @@ export function CreateTestClockDialog({
     setError(null);
     try {
       const frozenTime = Math.floor(new Date(dateTime).getTime() / 1000);
-      await onSubmit(frozenTime, name || undefined);
+      await onSubmit(frozenTime, name || undefined, { createCustomer, attachPaymentMethod: attachPM });
       onClose();
     } catch (e) {
       setError(String(e));
@@ -64,6 +66,33 @@ export function CreateTestClockDialog({
               disabled={loading}
               required
             />
+          </div>
+          <div className="border-t border-gray-200 pt-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={createCustomer}
+                onChange={(e) => {
+                  setCreateCustomer(e.target.checked);
+                  if (!e.target.checked) setAttachPM(false);
+                }}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={loading}
+              />
+              Create a customer
+            </label>
+            <label className={`flex items-center gap-2 text-sm font-medium cursor-pointer ml-6 ${
+              createCustomer ? "text-gray-700" : "text-gray-400"
+            }`}>
+              <input
+                type="checkbox"
+                checked={attachPM}
+                onChange={(e) => setAttachPM(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={loading || !createCustomer}
+              />
+              Attach a payment method (Visa 4242)
+            </label>
           </div>
           {error && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
