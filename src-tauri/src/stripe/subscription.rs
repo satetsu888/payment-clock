@@ -11,32 +11,28 @@ pub async fn create_subscription(
     metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
-    let mut params: Vec<(&str, String)> = vec![
-        ("customer", customer_id.to_string()),
-        ("items[0][price]", price_id.to_string()),
+    let mut params: Vec<(String, String)> = vec![
+        ("customer".into(), customer_id.to_string()),
+        ("items[0][price]".into(), price_id.to_string()),
     ];
     if let Some(days) = trial_period_days {
-        params.push(("trial_period_days", days.to_string()));
+        params.push(("trial_period_days".into(), days.to_string()));
     }
     if let Some(end) = trial_end {
-        params.push(("trial_end", end.to_string()));
+        params.push(("trial_end".into(), end.to_string()));
     }
     if let Some(behavior) = trial_end_behavior {
         params.push((
-            "trial_settings[end_behavior][missing_payment_method]",
+            "trial_settings[end_behavior][missing_payment_method]".into(),
             behavior.to_string(),
         ));
     }
     if let Some(meta) = metadata {
         for (key, value) in meta {
-            params.push((
-                // leak is fine here — small number of short-lived params
-                Box::leak(format!("metadata[{}]", key).into_boxed_str()),
-                value.clone(),
-            ));
+            params.push((format!("metadata[{}]", key), value.clone()));
         }
     }
-    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
     client.post("/v1/subscriptions", &str_params).await
 }
 
