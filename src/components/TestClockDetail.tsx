@@ -29,7 +29,6 @@ export function TestClockDetail({
   // --- Hooks for test clock data ---
   const {
     detail,
-    loading: detailLoading,
     error: detailError,
     reload: reloadDetail,
     refreshFromStripe,
@@ -38,6 +37,7 @@ export function TestClockDetail({
 
   const {
     events,
+    loading: eventsLoading,
     error: eventsError,
     fetchFromStripe: fetchEventsFromStripe,
     clearError: clearEventsError,
@@ -109,15 +109,24 @@ export function TestClockDetail({
   };
 
   // --- Loading / error states ---
-  if (detailLoading && !detail) {
-    return (
-      <div className="p-6 text-center text-sm text-gray-500">Loading...</div>
-    );
-  }
+  const initialLoading =
+    !detail ||
+    (resourcesLoading && !resources) ||
+    (eventsLoading && events.length === 0);
 
-  if (error && !detail) {
+  if (initialLoading) {
+    if (error) {
+      return (
+        <div className="p-6 text-center text-sm text-red-600">{error}</div>
+      );
+    }
     return (
-      <div className="p-6 text-center text-sm text-red-600">{error}</div>
+      <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+          <span className="text-sm text-gray-500">Loading...</span>
+        </div>
+      </div>
     );
   }
 

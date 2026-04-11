@@ -4,9 +4,11 @@ import type { StripeEvent } from "../lib/types";
 
 export function useTestClockEvents(accountId: string, testClockId: string) {
   const [events, setEvents] = useState<StripeEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const evts = await getTestClockEvents(testClockId);
       setEvents(evts);
@@ -15,6 +17,8 @@ export function useTestClockEvents(accountId: string, testClockId: string) {
       if (!msg.includes("no rows returned")) {
         setError(msg);
       }
+    } finally {
+      setLoading(false);
     }
   }, [testClockId]);
 
@@ -29,5 +33,5 @@ export function useTestClockEvents(accountId: string, testClockId: string) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { events, error, reload: load, fetchFromStripe, clearError };
+  return { events, loading, error, reload: load, fetchFromStripe, clearError };
 }
