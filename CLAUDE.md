@@ -40,6 +40,7 @@ src/                        # React frontend
     useTestClockDetail.ts   # Single test clock detail + operations
     useTestClockEvents.ts   # Stripe events for a test clock
     useTestClockResources.ts # Resources (customers, subscriptions, invoices, paymentIntents) + mutations + customer grouping
+    useAdvancePolling.ts    # Advance completion polling (2s interval, auto-fetch on ready)
   contexts/                 # React Context
     AccountContext.tsx       # Selected account state (AccountProvider, useAccountContext)
   lib/
@@ -61,10 +62,10 @@ src-tauri/src/              # Rust backend
     test_clock.rs           # TestClock + upsert/list/mark_deleted/purge
     operation.rs            # Operation (audit log) + record/list
     event.rs                # Event + record/list/get_latest_timestamp
-    resource_snapshot.rs    # ResourceSnapshot + save/list_latest/get_previous_status
+    resource_snapshot.rs    # ResourceSnapshot + save(upsert)/list_latest
   db/
     connection.rs           # DB initialization (WAL mode, foreign keys)
-    migrations.rs           # Schema definitions (6 migrations)
+    migrations.rs           # Schema definitions (7 migrations)
   stripe/                   # Stripe API client modules
     client.rs               # HTTP client wrapper (get/post/delete with auth)
     compat.rs               # API version compatibility (subscription period field migration)
@@ -109,9 +110,23 @@ npm run tauri build
 - Events are fetched via Stripe API polling (incremental, using latest timestamp)
 - API version compatibility is handled in `stripe/compat.rs` and `lib/stripe-compat.ts` to support field changes across Stripe API versions (e.g., v2025-03-31.basil)
 
+### Advance flow
+
+- Advance API call returns immediately with `status: "advancing"`
+- `useAdvancePolling` polls `refresh_test_clock` every 2s until `status: "ready"`
+- On ready: auto-fetches events and resources
+- If the user navigates away and back while advancing, polling auto-resumes
+- Timeout: 120s, with error after 3 consecutive polling failures
+
+### ResourceSnapshot
+
+- Stores the latest state of each Stripe resource per test clock (UPSERT, one row per resource)
+- Used as a cache for `preview_advance` (predicting what will happen when advancing time)
+- Not used for tracking historical changes — that role belongs to Stripe Events
+
 ### Frontend data flow
 
-- **Hooks** (`useTestClockDetail`, `useTestClockEvents`, `useTestClockResources`) own data fetching, state, and mutations
+- **Hooks** (`useTestClockDetail`, `useTestClockEvents`, `useTestClockResources`, `useAdvancePolling`) own data fetching, state, and mutations
 - **TestClockDetail** (page component) orchestrates hooks and passes data down to child components
 - Stripe resources (customers, subscriptions, invoices, paymentIntents) are test clock-level data managed by `useTestClockResources`, not by individual UI components
 - **Components** (CustomerTabs, TimeControlBar, etc.) are presentation-focused and receive data via props
