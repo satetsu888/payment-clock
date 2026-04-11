@@ -38,6 +38,7 @@ pub fn run() {
             commands::test_clock::create_test_clock,
             commands::test_clock::advance_test_clock,
             commands::test_clock::delete_test_clock,
+            commands::test_clock::purge_test_clock,
             commands::test_clock::get_test_clock_detail,
             commands::test_clock::refresh_test_clock,
             commands::test_clock::preview_advance,

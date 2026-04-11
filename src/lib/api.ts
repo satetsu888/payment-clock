@@ -62,6 +62,12 @@ export async function deleteTestClock(
   return invoke<void>("delete_test_clock", { accountId, testClockId });
 }
 
+export async function purgeTestClock(
+  testClockId: string,
+): Promise<void> {
+  return invoke<void>("purge_test_clock", { testClockId });
+}
+
 export async function getTestClockDetail(
   testClockId: string,
 ): Promise<TestClockDetail> {

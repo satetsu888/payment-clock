@@ -4,6 +4,7 @@ import {
   createTestClock as apiCreateTestClock,
   advanceTestClock as apiAdvanceTestClock,
   deleteTestClock as apiDeleteTestClock,
+  purgeTestClock as apiPurgeTestClock,
 } from "../lib/api";
 import type { TestClock } from "../lib/types";
 
@@ -55,5 +56,13 @@ export function useTestClocks(accountId: string) {
     [accountId, refresh],
   );
 
-  return { testClocks, loading, error, refresh, create, advance, remove };
+  const purge = useCallback(
+    async (testClockId: string) => {
+      await apiPurgeTestClock(testClockId);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { testClocks, loading, error, refresh, create, advance, remove, purge };
 }

@@ -117,3 +117,20 @@ pub fn mark_deleted(conn: &Connection, id: &str, now: &str) -> Result<(), AppErr
     )?;
     Ok(())
 }
+
+pub fn purge(conn: &Connection, id: &str) -> Result<(), AppError> {
+    conn.execute(
+        "DELETE FROM resource_snapshots WHERE test_clock_id = ?1",
+        params![id],
+    )?;
+    conn.execute(
+        "DELETE FROM events WHERE test_clock_id = ?1",
+        params![id],
+    )?;
+    conn.execute(
+        "DELETE FROM operations WHERE test_clock_id = ?1",
+        params![id],
+    )?;
+    conn.execute("DELETE FROM test_clocks WHERE id = ?1", params![id])?;
+    Ok(())
+}

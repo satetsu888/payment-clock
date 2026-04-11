@@ -3,6 +3,7 @@ import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
 import { TestClockCard } from "./TestClockCard";
 import { CreateTestClockDialog } from "./CreateTestClockDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface DashboardScreenProps {
   onSelectTestClock: (clockId: string) => void;
@@ -10,13 +11,32 @@ interface DashboardScreenProps {
 
 export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   const { selectedAccount, setSelectedAccount } = useAccountContext();
-  const { testClocks, loading, error, refresh, create } = useTestClocks(
-    selectedAccount!.id,
-  );
+  const { testClocks, loading, error, refresh, create, remove, purge } =
+    useTestClocks(selectedAccount!.id);
   const [showCreate, setShowCreate] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{
+    type: "delete" | "purge";
+    testClockId: string;
+  } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const handleCreate = async (frozenTime: number, name?: string) => {
     await create(frozenTime, name);
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmTarget) return;
+    setConfirmLoading(true);
+    try {
+      if (confirmTarget.type === "delete") {
+        await remove(confirmTarget.testClockId);
+      } else {
+        await purge(confirmTarget.testClockId);
+      }
+    } finally {
+      setConfirmLoading(false);
+      setConfirmTarget(null);
+    }
   };
 
   const activeClocks = testClocks.filter((c) => !c.deletedAt);
@@ -25,29 +45,32 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">
+        <button
+          onClick={() => setSelectedAccount(null)}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="font-mono text-xs">
+            {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
+          </span>
+        </button>
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-semibold text-gray-900">
             Payment Clock
           </h1>
-          <p className="text-xs text-gray-500">
-            <span className="font-mono">{selectedAccount?.displayName || selectedAccount?.stripeAccountId}</span>
-            {selectedAccount?.stripeApiVersion && (
-              <span className="ml-2 text-gray-400">API {selectedAccount.stripeApiVersion}</span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+          {selectedAccount?.stripeApiVersion && (
+            <span className="text-xs text-gray-400">API {selectedAccount.stripeApiVersion}</span>
+          )}
           <button
             onClick={refresh}
-            className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+            title="Refresh"
           >
-            Refresh
-          </button>
-          <button
-            onClick={() => setSelectedAccount(null)}
-            className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
-          >
-            Switch Account
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4.05 11A8 8 0 0118.36 5.64L20 4M19.95 13A8 8 0 015.64 18.36L4 20" />
+            </svg>
           </button>
         </div>
       </header>
@@ -84,6 +107,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
               key={clock.id}
               clock={clock}
               onSelect={onSelectTestClock}
+              onDelete={(id) => setConfirmTarget({ type: "delete", testClockId: id })}
             />
           ))}
         </div>
@@ -99,6 +123,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
                   key={clock.id}
                   clock={clock}
                   onSelect={onSelectTestClock}
+                  onPurge={(id) => setConfirmTarget({ type: "purge", testClockId: id })}
                 />
               ))}
             </div>
@@ -110,6 +135,21 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
         <CreateTestClockDialog
           onSubmit={handleCreate}
           onClose={() => setShowCreate(false)}
+        />
+      )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title={confirmTarget.type === "delete" ? "Delete Test Clock" : "Purge Local Data"}
+          message={
+            confirmTarget.type === "delete"
+              ? "This test clock will be deleted from Stripe. This action cannot be undone."
+              : "All local data (operations, events, snapshots) for this test clock will be permanently removed."
+          }
+          confirmLabel={confirmTarget.type === "delete" ? "Delete" : "Purge"}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmTarget(null)}
+          loading={confirmLoading}
         />
       )}
     </div>

@@ -123,6 +123,22 @@ pub async fn delete_test_clock(
 }
 
 #[tauri::command]
+pub async fn purge_test_clock(
+    state: State<'_, AppState>,
+    test_clock_id: String,
+) -> Result<(), AppError> {
+    let db = state.db.lock().unwrap();
+    let clock = test_clock::get_by_id(&db, &test_clock_id)?;
+    if clock.deleted_at.is_none() {
+        return Err(AppError::Validation(
+            "Only deleted test clocks can be purged".to_string(),
+        ));
+    }
+    test_clock::purge(&db, &test_clock_id)?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn get_test_clock_detail(
     state: State<'_, AppState>,
     test_clock_id: String,
