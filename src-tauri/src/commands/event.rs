@@ -40,45 +40,44 @@ pub async fn fetch_events(
 
     let events = crate::stripe::event::fetch_events(&api_key, created_after).await?;
 
-    // Save events to DB
-    {
-        let db = state.db.lock().unwrap();
-        let now = chrono::Utc::now().to_rfc3339();
+    // Save events to DB in a transaction, then read in the same lock
+    let mut db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
 
-        for ev in &events {
-            let stripe_event_id = ev["id"].as_str().unwrap_or_default();
-            let event_type = ev["type"].as_str().unwrap_or_default();
-            let resource_type = ev["data"]["object"]["object"].as_str();
-            let resource_id = ev["data"]["object"]["id"].as_str();
-            let created = ev["created"].as_i64().unwrap_or(0);
-            let stripe_created_at = chrono::DateTime::from_timestamp(created, 0)
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default();
+    let tx = db.transaction()?;
+    for ev in &events {
+        let stripe_event_id = ev["id"].as_str().unwrap_or_default();
+        let event_type = ev["type"].as_str().unwrap_or_default();
+        let resource_type = ev["data"]["object"]["object"].as_str();
+        let resource_id = ev["data"]["object"]["id"].as_str();
+        let created = ev["created"].as_i64().unwrap_or(0);
+        let stripe_created_at = chrono::DateTime::from_timestamp(created, 0)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_default();
 
-            // Resolve test clock
-            let stripe_tc_id = crate::stripe::event::extract_test_clock_id(ev);
-            let local_tc_id = stripe_tc_id
-                .as_deref()
-                .and_then(|stc| resolve_test_clock_id(&db, &account_id, stc));
+        // Resolve test clock
+        let stripe_tc_id = crate::stripe::event::extract_test_clock_id(ev);
+        let local_tc_id = stripe_tc_id
+            .as_deref()
+            .and_then(|stc| resolve_test_clock_id(&tx, &account_id, stc));
 
-            event::record_event(
-                &db,
-                &account_id,
-                local_tc_id.as_deref(),
-                stripe_event_id,
-                event_type,
-                resource_type,
-                resource_id,
-                &ev.to_string(),
-                &stripe_created_at,
-                &now,
-                "api",
-            )?;
-        }
+        event::record_event(
+            &tx,
+            &account_id,
+            local_tc_id.as_deref(),
+            stripe_event_id,
+            event_type,
+            resource_type,
+            resource_id,
+            &ev.to_string(),
+            &stripe_created_at,
+            &now,
+            "api",
+        )?;
     }
+    tx.commit()?;
 
     // Return events for the requested test clock (or all)
-    let db = state.db.lock().unwrap();
     match test_clock_id {
         Some(tc_id) => event::list_by_test_clock(&db, &tc_id),
         None => {

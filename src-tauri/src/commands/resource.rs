@@ -339,31 +339,32 @@ pub async fn fetch_test_clock_resources(
         all_payment_intents.extend(pis);
     }
 
-    // Save snapshots
-    {
-        let db = state.db.lock().unwrap();
-        let now = chrono::Utc::now().to_rfc3339();
-        let resource_groups: &[(&[serde_json::Value], &str)] = &[
-            (&customers, "customer"),
-            (&all_subscriptions, "subscription"),
-            (&all_invoices, "invoice"),
-            (&all_payment_intents, "payment_intent"),
-        ];
-        for (items, resource_type) in resource_groups {
-            for item in *items {
-                let id = item["id"].as_str().unwrap_or_default();
-                resource_snapshot::save_snapshot(
-                    &db,
-                    &account_id,
-                    Some(&test_clock_id),
-                    resource_type,
-                    id,
-                    &item.to_string(),
-                    &now,
-                )?;
-            }
+    // Save snapshots in a transaction, then build response in the same lock
+    let mut db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+
+    let tx = db.transaction()?;
+    let resource_groups: &[(&[serde_json::Value], &str)] = &[
+        (&customers, "customer"),
+        (&all_subscriptions, "subscription"),
+        (&all_invoices, "invoice"),
+        (&all_payment_intents, "payment_intent"),
+    ];
+    for (items, resource_type) in resource_groups {
+        for item in *items {
+            let id = item["id"].as_str().unwrap_or_default();
+            resource_snapshot::save_snapshot(
+                &tx,
+                &account_id,
+                Some(&test_clock_id),
+                resource_type,
+                id,
+                &item.to_string(),
+                &now,
+            )?;
         }
     }
+    tx.commit()?;
 
     // Build response with previous_status lookup
     let build_items = |db: &rusqlite::Connection,
@@ -388,7 +389,6 @@ pub async fn fetch_test_clock_resources(
             .collect()
     };
 
-    let db = state.db.lock().unwrap();
     Ok(TestClockResources {
         customers: build_items(&db, &customers, "customer", &test_clock_id),
         subscriptions: build_items(&db, &all_subscriptions, "subscription", &test_clock_id),
