@@ -1,4 +1,5 @@
 import type { ResourceItem } from "../lib/types";
+import { formatCurrency } from "../lib/format";
 
 interface PaymentIntentSectionProps {
   paymentIntents: ResourceItem[];
@@ -47,7 +48,7 @@ export function PaymentIntentSection({
                 {status}
               </span>
               <span className="text-gray-700">
-                {(amount / 100).toFixed(2)} {currency?.toUpperCase()}
+                {formatCurrency(amount, currency)}
               </span>
             </div>
             <span className="text-xs text-gray-400 font-mono">

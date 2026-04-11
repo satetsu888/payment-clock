@@ -6,6 +6,7 @@ import type {
   StripePrice,
   CreateSubscriptionOptions,
 } from "../lib/types";
+import { formatPrice } from "../lib/format";
 
 type TrialMode = "days" | "end";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
@@ -131,17 +132,6 @@ export function CreateSubscriptionDialog({
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatPrice = (price: StripePrice) => {
-    const amount = price.unit_amount
-      ? `${(price.unit_amount / 100).toFixed(2)} ${price.currency.toUpperCase()}`
-      : "Usage-based";
-    const interval = price.recurring
-      ? `/${price.recurring.interval}`
-      : " (one-time)";
-    const label = price.nickname ? `${price.nickname} - ` : "";
-    return `${label}${amount}${interval}`;
   };
 
   return (

@@ -1,4 +1,5 @@
 import type { ResourceItem } from "../lib/types";
+import { formatCurrency } from "../lib/format";
 
 interface BillingHistoryProps {
   invoices: ResourceItem[];
@@ -22,14 +23,6 @@ const statusColors: Record<string, string> = {
   void: "text-gray-500 bg-gray-100",
   uncollectible: "text-red-700 bg-red-100",
 };
-
-function formatCurrency(amount: number, currency: string): string {
-  const formatted = (amount / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${formatted} ${currency.toUpperCase()}`;
-}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString(undefined, {

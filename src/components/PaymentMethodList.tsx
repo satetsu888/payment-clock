@@ -1,19 +1,7 @@
 import { useState } from "react";
 import type { PaymentMethodData } from "../lib/types";
 import { ConfirmDialog } from "./ConfirmDialog";
-
-function formatBrand(brand: string): string {
-  const brands: Record<string, string> = {
-    visa: "Visa",
-    mastercard: "Mastercard",
-    amex: "Amex",
-    discover: "Discover",
-    diners: "Diners",
-    jcb: "JCB",
-    unionpay: "UnionPay",
-  };
-  return brands[brand] || brand;
-}
+import { formatBrand } from "../lib/format";
 
 export function PaymentMethodList({
   customerId,
