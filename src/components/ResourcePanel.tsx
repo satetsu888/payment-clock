@@ -174,6 +174,7 @@ export function ResourcePanel({ testClockId, isDeleted, frozenTime, onCustomersL
         <CreateCustomerDialog
           onSubmit={handleCreateCustomer}
           onClose={() => setShowCreateCustomer(false)}
+          customerCount={resources?.customers.length ?? 0}
         />
       )}
       {showCreateSubscription && resources && (

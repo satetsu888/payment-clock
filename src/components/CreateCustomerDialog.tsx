@@ -3,13 +3,15 @@ import { useState } from "react";
 interface CreateCustomerDialogProps {
   onSubmit: (name?: string, email?: string) => Promise<void>;
   onClose: () => void;
+  customerCount: number;
 }
 
 export function CreateCustomerDialog({
   onSubmit,
   onClose,
+  customerCount,
 }: CreateCustomerDialogProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(`customer${customerCount + 1}`);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
