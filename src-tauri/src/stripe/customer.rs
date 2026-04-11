@@ -41,9 +41,5 @@ pub async fn list_customers_by_test_clock(
         "/v1/customers?test_clock={}&limit=100",
         test_clock_id
     );
-    let resp = client.get(&path).await?;
-    let data = resp["data"]
-        .as_array()
-        .ok_or_else(|| AppError::Stripe("Invalid response format".to_string()))?;
-    Ok(data.clone())
+    client.get_list(&path).await
 }

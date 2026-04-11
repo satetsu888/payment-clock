@@ -10,11 +10,7 @@ pub async fn fetch_events(
         Some(ts) => format!("/v1/events?limit=100&created[gt]={}", ts),
         None => "/v1/events?limit=100".to_string(),
     };
-    let resp = client.get(&path).await?;
-    let data = resp["data"]
-        .as_array()
-        .ok_or_else(|| AppError::Stripe("Invalid response format".to_string()))?;
-    Ok(data.clone())
+    client.get_list(&path).await
 }
 
 /// Extract the test_clock stripe ID from an event's data.object

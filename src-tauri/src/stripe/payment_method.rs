@@ -28,9 +28,5 @@ pub async fn list_payment_methods(
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
     let path = format!("/v1/customers/{}/payment_methods?limit=100", customer_id);
-    let resp = client.get(&path).await?;
-    let data = resp["data"]
-        .as_array()
-        .ok_or_else(|| AppError::Stripe("Invalid response format".to_string()))?;
-    Ok(data.clone())
+    client.get_list(&path).await
 }

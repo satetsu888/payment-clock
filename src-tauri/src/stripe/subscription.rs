@@ -49,9 +49,5 @@ pub async fn list_subscriptions_by_customer(
         "/v1/subscriptions?customer={}&limit=100&status=all",
         customer_id
     );
-    let resp = client.get(&path).await?;
-    let data = resp["data"]
-        .as_array()
-        .ok_or_else(|| AppError::Stripe("Invalid response format".to_string()))?;
-    Ok(data.clone())
+    client.get_list(&path).await
 }

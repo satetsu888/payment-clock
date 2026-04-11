@@ -14,13 +14,10 @@ pub struct StripeTestClock {
 
 pub async fn list_test_clocks(api_key: &str) -> Result<Vec<StripeTestClock>, AppError> {
     let client = StripeClient::new(api_key);
-    let resp = client.get("/v1/test_helpers/test_clocks?limit=100").await?;
-    let data = resp["data"]
-        .as_array()
-        .ok_or_else(|| AppError::Stripe("Invalid response format".to_string()))?;
+    let data = client.get_list("/v1/test_helpers/test_clocks?limit=100").await?;
     let clocks: Vec<StripeTestClock> = data
-        .iter()
-        .map(|v| serde_json::from_value(v.clone()))
+        .into_iter()
+        .map(serde_json::from_value)
         .collect::<Result<Vec<_>, _>>()?;
     Ok(clocks)
 }

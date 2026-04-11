@@ -56,6 +56,14 @@ impl StripeClient {
         Ok(resp.body)
     }
 
+    pub async fn get_list(&self, path: &str) -> Result<Vec<serde_json::Value>, AppError> {
+        let resp = self.get(path).await?;
+        resp["data"]
+            .as_array()
+            .cloned()
+            .ok_or_else(|| AppError::Stripe("Invalid response format".into()))
+    }
+
     pub async fn post(
         &self,
         path: &str,
