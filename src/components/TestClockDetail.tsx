@@ -95,6 +95,7 @@ export function TestClockDetail({
     await onAdvance(clockId, frozenTime);
     await reloadDetail();
     await reloadResources();
+    await fetchEventsFromStripe();
   };
 
   const handleDelete = async () => {
