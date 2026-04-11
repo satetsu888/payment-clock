@@ -10,6 +10,16 @@ import {
 import type { TestClockResources, CustomerWithResources, CreateSubscriptionOptions } from "../lib/types";
 import { groupResourcesByCustomer } from "../lib/resource-grouping";
 
+/** Stripe APIは作成日降順（新しい順）で返すので、reverseして昇順（古い順）にする */
+function toChronologicalOrder(raw: TestClockResources): TestClockResources {
+  return {
+    customers: [...raw.customers].reverse(),
+    subscriptions: [...raw.subscriptions].reverse(),
+    invoices: [...raw.invoices].reverse(),
+    paymentIntents: [...raw.paymentIntents].reverse(),
+  };
+}
+
 export function useTestClockResources(
   accountId: string,
   testClockId: string,
@@ -28,7 +38,7 @@ export function useTestClockResources(
     setError(null);
     try {
       const result = await fetchTestClockResources(accountId, testClockId);
-      setResources(result);
+      setResources(toChronologicalOrder(result));
     } catch (e) {
       setError(String(e));
     } finally {
