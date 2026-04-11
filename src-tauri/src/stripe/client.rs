@@ -56,12 +56,46 @@ impl StripeClient {
         Ok(resp.body)
     }
 
-    pub async fn get_list(&self, path: &str) -> Result<Vec<serde_json::Value>, AppError> {
-        let resp = self.get(path).await?;
-        resp["data"]
-            .as_array()
-            .cloned()
-            .ok_or_else(|| AppError::Stripe("Invalid response format".into()))
+    /// Fetch all items from a paginated Stripe list endpoint.
+    /// Automatically follows `has_more` / `starting_after` up to MAX_PAGES pages.
+    pub async fn get_all_list(
+        &self,
+        path: &str,
+        params: &[(&str, &str)],
+    ) -> Result<Vec<serde_json::Value>, AppError> {
+        const MAX_PAGES: usize = 10;
+        let mut all = Vec::new();
+        let mut starting_after: Option<String> = None;
+
+        for _ in 0..MAX_PAGES {
+            let mut query_parts: Vec<String> = params
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect();
+            query_parts.push("limit=100".to_string());
+            if let Some(ref cursor) = starting_after {
+                query_parts.push(format!("starting_after={}", cursor));
+            }
+
+            let full_path = format!("{}?{}", path, query_parts.join("&"));
+            let resp = self.get(&full_path).await?;
+
+            let data = resp["data"]
+                .as_array()
+                .ok_or_else(|| AppError::Stripe("Invalid list response format".to_string()))?;
+            let has_more = resp["has_more"].as_bool().unwrap_or(false);
+
+            if let Some(last) = data.last() {
+                starting_after = last["id"].as_str().map(|s| s.to_string());
+            }
+            all.extend(data.clone());
+
+            if !has_more {
+                break;
+            }
+        }
+
+        Ok(all)
     }
 
     pub async fn post(

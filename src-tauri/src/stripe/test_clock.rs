@@ -14,7 +14,7 @@ pub struct StripeTestClock {
 
 pub async fn list_test_clocks(api_key: &str) -> Result<Vec<StripeTestClock>, AppError> {
     let client = StripeClient::new(api_key);
-    let data = client.get_list("/v1/test_helpers/test_clocks?limit=100").await?;
+    let data = client.get_all_list("/v1/test_helpers/test_clocks", &[]).await?;
     let clocks: Vec<StripeTestClock> = data
         .into_iter()
         .map(serde_json::from_value)

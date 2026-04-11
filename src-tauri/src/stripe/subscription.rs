@@ -41,9 +41,10 @@ pub async fn list_subscriptions_by_customer(
     customer_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
-    let path = format!(
-        "/v1/subscriptions?customer={}&limit=100&status=all",
-        customer_id
-    );
-    client.get_list(&path).await
+    client
+        .get_all_list(
+            "/v1/subscriptions",
+            &[("customer", customer_id), ("status", "all")],
+        )
+        .await
 }

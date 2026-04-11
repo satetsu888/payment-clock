@@ -27,6 +27,6 @@ pub async fn list_payment_methods(
     customer_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
-    let path = format!("/v1/customers/{}/payment_methods?limit=100", customer_id);
-    client.get_list(&path).await
+    let path = format!("/v1/customers/{}/payment_methods", customer_id);
+    client.get_all_list(&path, &[]).await
 }

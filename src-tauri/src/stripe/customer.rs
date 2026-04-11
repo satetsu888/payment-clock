@@ -37,9 +37,7 @@ pub async fn list_customers_by_test_clock(
     test_clock_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
-    let path = format!(
-        "/v1/customers?test_clock={}&limit=100",
-        test_clock_id
-    );
-    client.get_list(&path).await
+    client
+        .get_all_list("/v1/customers", &[("test_clock", test_clock_id)])
+        .await
 }

@@ -6,11 +6,13 @@ pub async fn fetch_events(
     created_after: Option<i64>,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
-    let path = match created_after {
-        Some(ts) => format!("/v1/events?limit=100&created[gt]={}", ts),
-        None => "/v1/events?limit=100".to_string(),
-    };
-    client.get_list(&path).await
+    let ts_str;
+    let mut params: Vec<(&str, &str)> = Vec::new();
+    if let Some(ts) = created_after {
+        ts_str = ts.to_string();
+        params.push(("created[gt]", &ts_str));
+    }
+    client.get_all_list("/v1/events", &params).await
 }
 
 /// Extract the test_clock stripe ID from an event's data.object

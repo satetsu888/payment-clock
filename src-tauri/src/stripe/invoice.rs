@@ -6,6 +6,7 @@ pub async fn list_invoices_by_customer(
     customer_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
-    let path = format!("/v1/invoices?customer={}&limit=100", customer_id);
-    client.get_list(&path).await
+    client
+        .get_all_list("/v1/invoices", &[("customer", customer_id)])
+        .await
 }

@@ -6,9 +6,7 @@ pub async fn list_payment_intents_by_customer(
     customer_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let client = StripeClient::new(api_key);
-    let path = format!(
-        "/v1/payment_intents?customer={}&limit=100",
-        customer_id
-    );
-    client.get_list(&path).await
+    client
+        .get_all_list("/v1/payment_intents", &[("customer", customer_id)])
+        .await
 }
