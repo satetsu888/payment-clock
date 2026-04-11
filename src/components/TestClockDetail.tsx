@@ -1,18 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  getTestClockDetail,
-  refreshTestClock,
-  fetchEvents,
-  getTestClockEvents,
-} from "../lib/api";
-import type {
-  TestClockDetail as TestClockDetailType,
-  StripeEvent,
-} from "../lib/types";
+import { useMemo, useState } from "react";
 import { useAccountContext } from "../contexts/AccountContext";
+import { useTestClockDetail as useDetail } from "../hooks/useTestClockDetail";
+import { useTestClockEvents } from "../hooks/useTestClockEvents";
+import { useTestClockResources } from "../hooks/useTestClockResources";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
-import { CustomerTabs, type CustomerInfo } from "./CustomerTabs";
+import { CustomerTabs } from "./CustomerTabs";
 import { TimeControlBar } from "./TimeControlBar";
 import { ErrorBanner } from "./ErrorBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -31,69 +24,77 @@ export function TestClockDetail({
   onDelete,
 }: TestClockDetailProps) {
   const { selectedAccount } = useAccountContext();
-  const [detail, setDetail] = useState<TestClockDetailType | null>(null);
-  const [events, setEvents] = useState<StripeEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const accountId = selectedAccount!.id;
+
+  // --- Hooks for test clock data ---
+  const {
+    detail,
+    loading: detailLoading,
+    error: detailError,
+    reload: reloadDetail,
+    refreshFromStripe,
+    clearError: clearDetailError,
+  } = useDetail(accountId, testClockId);
+
+  const {
+    events,
+    error: eventsError,
+    fetchFromStripe: fetchEventsFromStripe,
+    clearError: clearEventsError,
+  } = useTestClockEvents(accountId, testClockId);
+
+  const clock = detail?.testClock ?? null;
+  const operations = detail?.operations ?? [];
+  const isDeleted = !!clock?.deletedAt;
+
+  const {
+    resources,
+    customerGroups,
+    loading: resourcesLoading,
+    error: resourcesError,
+    reload: reloadResources,
+    clearError: clearResourcesError,
+    createCustomer,
+    attachPaymentMethod,
+    setDefaultPaymentMethod,
+    detachPaymentMethod,
+    createSubscription,
+  } = useTestClockResources(accountId, testClockId, isDeleted);
+
+  // --- Local UI state ---
   const [showAdvance, setShowAdvance] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
 
-  const loadDetail = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getTestClockDetail(testClockId);
-      setDetail(result);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [testClockId]);
-
-  const loadEvents = useCallback(async () => {
-    try {
-      const evts = await getTestClockEvents(testClockId);
-      setEvents(evts);
-    } catch (e) {
-      const msg = String(e);
-      if (!msg.includes("no rows returned")) {
-        setError(msg);
-      }
-    }
-  }, [testClockId]);
-
-  useEffect(() => {
-    loadDetail();
-    loadEvents();
-  }, [loadDetail, loadEvents]);
-
-  const handleFetchEvents = async () => {
-    if (!selectedAccount) return;
-    try {
-      await fetchEvents(selectedAccount.id, testClockId);
-      await loadEvents();
-    } catch (e) {
-      setError(String(e));
-    }
+  // --- Aggregate error ---
+  const error = detailError || eventsError || resourcesError;
+  const clearError = () => {
+    clearDetailError();
+    clearEventsError();
+    clearResourcesError();
   };
 
+  // --- Customer IDs for timeline filtering ---
+  const customers = useMemo(
+    () => (resources?.customers ?? []).map((c) => ({ id: c.stripeId })),
+    [resources],
+  );
+
+  // --- Actions ---
   const handleRefresh = async () => {
-    if (!selectedAccount) return;
     try {
-      await refreshTestClock(selectedAccount.id, testClockId);
-      await loadDetail();
-      await handleFetchEvents();
+      await refreshFromStripe();
+      await fetchEventsFromStripe();
+      await reloadResources();
     } catch (e) {
-      setError(String(e));
+      // errors are captured by individual hooks
     }
   };
 
   const handleAdvance = async (clockId: string, frozenTime: number) => {
     await onAdvance(clockId, frozenTime);
-    await loadDetail();
+    await reloadDetail();
+    await reloadResources();
   };
 
   const handleDelete = async () => {
@@ -102,13 +103,13 @@ export function TestClockDetail({
     try {
       await onDelete(testClockId);
       onBack();
-    } catch (e) {
-      setError(String(e));
+    } catch {
       setDeleting(false);
     }
   };
 
-  if (loading && !detail) {
+  // --- Loading / error states ---
+  if (detailLoading && !detail) {
     return (
       <div className="p-6 text-center text-sm text-gray-500">Loading...</div>
     );
@@ -120,10 +121,7 @@ export function TestClockDetail({
     );
   }
 
-  if (!detail) return null;
-
-  const { testClock: clock, operations } = detail;
-  const isDeleted = !!clock.deletedAt;
+  if (!clock) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,6 +170,7 @@ export function TestClockDetail({
         frozenTime={clock.frozenTime}
         status={clock.status}
         operations={operations}
+        resources={resources}
         isDeleted={isDeleted}
         onAdvance={() => setShowAdvance(true)}
         onRefresh={handleRefresh}
@@ -183,16 +182,25 @@ export function TestClockDetail({
           <ErrorBanner
             message={error}
             onRetry={handleRefresh}
-            onDismiss={() => setError(null)}
+            onDismiss={clearError}
           />
         )}
 
         {/* Customer Tabs */}
         <CustomerTabs
-          testClockId={testClockId}
+          customerGroups={customerGroups}
+          customerCount={resources?.customers.length ?? 0}
+          loading={resourcesLoading}
+          error={resourcesError}
           isDeleted={isDeleted}
           frozenTime={clock.frozenTime}
-          onCustomersLoaded={setCustomers}
+          onCreateCustomer={createCustomer}
+          onAttachPaymentMethod={attachPaymentMethod}
+          onSetDefaultPaymentMethod={setDefaultPaymentMethod}
+          onDetachPaymentMethod={detachPaymentMethod}
+          onCreateSubscription={createSubscription}
+          onReload={reloadResources}
+          onClearError={clearResourcesError}
         />
 
         {/* Event Log */}
@@ -211,7 +219,7 @@ export function TestClockDetail({
 
       {showAdvance && (
         <AdvanceTimeDialog
-          accountId={selectedAccount!.id}
+          accountId={accountId}
           clock={clock}
           onSubmit={handleAdvance}
           onClose={() => setShowAdvance(false)}

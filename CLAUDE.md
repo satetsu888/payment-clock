@@ -35,7 +35,12 @@ src/                        # React frontend
     ApiKeyInput.tsx          # API key input
     ResourcePanel.tsx        # (legacy, replaced by CustomerTabs)
     CustomerResourceCard.tsx # (legacy, replaced by CustomerTabs)
-  hooks/                    # Custom hooks (useAccounts, useTestClocks)
+  hooks/                    # Custom hooks
+    useAccounts.ts          # Account list + CRUD
+    useTestClocks.ts        # Test clock list + create/advance/delete
+    useTestClockDetail.ts   # Single test clock detail + operations
+    useTestClockEvents.ts   # Stripe events for a test clock
+    useTestClockResources.ts # Stripe resources (customers, subscriptions, invoices, paymentIntents) + mutations
   contexts/                 # React Context (AccountContext)
   lib/
     api.ts                  # Tauri command invocations
@@ -88,12 +93,17 @@ npm run tauri build
 - Events are fetched via Stripe API polling (incremental, using latest timestamp)
 - API version compatibility is handled in `stripe/compat.rs` and `lib/stripe-compat.ts` to support field changes across Stripe API versions (e.g., v2025-03-31.basil)
 
+### Frontend data flow
+
+- **Hooks** (`useTestClockDetail`, `useTestClockEvents`, `useTestClockResources`) own data fetching, state, and mutations
+- **TestClockDetail** (page component) orchestrates hooks and passes data down to child components
+- Stripe resources (customers, subscriptions, invoices, paymentIntents) are test clock-level data managed by `useTestClockResources`, not by individual UI components
+- **Components** (CustomerTabs, TimeControlBar, etc.) are presentation-focused and receive data via props
+
 ## Test Clock Detail Page Layout
 
-The detail page is structured as:
-
 1. **Header**: Clock name, status badge, Stripe ID, delete button
-2. **TimeControlBar** (sticky): Current simulation time display, visual timeline showing advance history as dots, "Advance Time" button, refresh
+2. **TimeControlBar** (sticky): Current simulation time, visual timeline (advance points + billing event markers), "Advance Time" button, refresh
 3. **CustomerTabs**: Tab-based per-customer view. [+] tab creates a new customer. Each tab contains:
    - Payment Methods (attach/detach/set default)
    - Subscriptions (create/view status)

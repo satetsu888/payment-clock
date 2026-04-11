@@ -1,21 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  fetchTestClockResources,
-  createCustomer,
-  attachPaymentMethod,
-  setDefaultPaymentMethod,
-  detachPaymentMethod,
-  createSubscription,
-  listPaymentMethods,
-} from "../lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { listPaymentMethods } from "../lib/api";
 import type {
-  TestClockResources,
   CustomerWithResources,
   PaymentMethodData,
   CreateSubscriptionOptions,
 } from "../lib/types";
 import { useAccountContext } from "../contexts/AccountContext";
-import { groupResourcesByCustomer } from "../lib/resource-grouping";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
 import { CreateSubscriptionDialog } from "./CreateSubscriptionDialog";
 import { SubscriptionSection } from "./SubscriptionSection";
@@ -23,15 +13,20 @@ import { BillingHistory } from "./BillingHistory";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ErrorBanner } from "./ErrorBanner";
 
-export interface CustomerInfo {
-  id: string;
-}
-
 interface CustomerTabsProps {
-  testClockId: string;
+  customerGroups: CustomerWithResources[];
+  customerCount: number;
+  loading: boolean;
+  error: string | null;
   isDeleted: boolean;
   frozenTime: string;
-  onCustomersLoaded?: (customers: CustomerInfo[]) => void;
+  onCreateCustomer: (name?: string, email?: string) => Promise<void>;
+  onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
+  onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
+  onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
+  onCreateSubscription: (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => Promise<void>;
+  onReload: () => void;
+  onClearError: () => void;
 }
 
 // --- Test payment method options ---
@@ -85,7 +80,7 @@ function formatBrand(brand: string): string {
   return brands[brand] || brand;
 }
 
-// --- PaymentMethodList (moved from CustomerResourceCard) ---
+// --- PaymentMethodList ---
 function PaymentMethodList({
   customerId,
   paymentMethods,
@@ -100,9 +95,7 @@ function PaymentMethodList({
   onDetach: (customerId: string, pmId: string) => Promise<void>;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
-  const [detachTarget, setDetachTarget] = useState<PaymentMethodData | null>(
-    null,
-  );
+  const [detachTarget, setDetachTarget] = useState<PaymentMethodData | null>(null);
   const [detachLoading, setDetachLoading] = useState(false);
 
   const handleSetDefault = async (pmId: string) => {
@@ -203,23 +196,10 @@ function CustomerTabContent({
   group: CustomerWithResources;
   accountId: string;
   frozenTime: string;
-  onAttachPaymentMethod: (
-    customerId: string,
-    paymentMethodId: string,
-  ) => Promise<void>;
-  onSetDefaultPaymentMethod: (
-    customerId: string,
-    paymentMethodId: string,
-  ) => Promise<void>;
-  onDetachPaymentMethod: (
-    customerId: string,
-    paymentMethodId: string,
-  ) => Promise<void>;
-  onCreateSubscription: (
-    customerId: string,
-    priceId: string,
-    options?: CreateSubscriptionOptions,
-  ) => Promise<void>;
+  onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
+  onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
+  onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
+  onCreateSubscription: (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => Promise<void>;
 }) {
   const { customer, subscriptions, invoices } = group;
   const [attachingPM, setAttachingPM] = useState(false);
@@ -393,50 +373,25 @@ function CustomerTabContent({
 
 // --- Main CustomerTabs component ---
 export function CustomerTabs({
-  testClockId,
+  customerGroups,
+  customerCount,
+  loading,
+  error,
   isDeleted,
   frozenTime,
-  onCustomersLoaded,
+  onCreateCustomer,
+  onAttachPaymentMethod,
+  onSetDefaultPaymentMethod,
+  onDetachPaymentMethod,
+  onCreateSubscription,
+  onReload,
+  onClearError,
 }: CustomerTabsProps) {
   const { selectedAccount } = useAccountContext();
-  const [resources, setResources] = useState<TestClockResources | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showCreateCustomer, setShowCreateCustomer] = useState(false);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   const accountId = selectedAccount!.id;
-
-  const loadResources = useCallback(async () => {
-    if (isDeleted) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchTestClockResources(accountId, testClockId);
-      setResources(result);
-      onCustomersLoaded?.(
-        result.customers.map((c) => ({
-          id: c.stripeId,
-        })),
-      );
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [accountId, testClockId, isDeleted]);
-
-  useEffect(() => {
-    loadResources();
-  }, [loadResources]);
-
-  const customerGroups = useMemo(() => {
-    if (!resources) return [];
-    return groupResourcesByCustomer(resources);
-  }, [resources]);
 
   // Keep active tab in bounds
   useEffect(() => {
@@ -446,64 +401,8 @@ export function CustomerTabs({
   }, [customerGroups.length, activeTabIndex]);
 
   const handleCreateCustomer = async (name?: string, email?: string) => {
-    await createCustomer(accountId, testClockId, name, email);
-    await loadResources();
-    // Select the newly created customer tab
+    await onCreateCustomer(name, email);
     setActiveTabIndex(customerGroups.length); // will be the new last index
-  };
-
-  const handleAttachPaymentMethod = async (
-    customerId: string,
-    paymentMethodId: string,
-  ) => {
-    await attachPaymentMethod(
-      accountId,
-      testClockId,
-      customerId,
-      paymentMethodId,
-    );
-    await loadResources();
-  };
-
-  const handleSetDefaultPaymentMethod = async (
-    customerId: string,
-    paymentMethodId: string,
-  ) => {
-    await setDefaultPaymentMethod(
-      accountId,
-      testClockId,
-      customerId,
-      paymentMethodId,
-    );
-    await loadResources();
-  };
-
-  const handleDetachPaymentMethod = async (
-    customerId: string,
-    paymentMethodId: string,
-  ) => {
-    await detachPaymentMethod(
-      accountId,
-      testClockId,
-      customerId,
-      paymentMethodId,
-    );
-    await loadResources();
-  };
-
-  const handleCreateSubscription = async (
-    customerId: string,
-    priceId: string,
-    options?: CreateSubscriptionOptions,
-  ) => {
-    await createSubscription(
-      accountId,
-      testClockId,
-      customerId,
-      priceId,
-      options,
-    );
-    await loadResources();
   };
 
   if (isDeleted) {
@@ -522,8 +421,7 @@ export function CustomerTabs({
       <div className="flex border-b border-gray-200 bg-gray-50">
         {customerGroups.map((group, index) => {
           const isActive = index === activeTabIndex;
-          const name =
-            String(group.customer.data.name || "Unnamed");
+          const name = String(group.customer.data.name || "Unnamed");
           return (
             <button
               key={group.customer.stripeId}
@@ -538,7 +436,6 @@ export function CustomerTabs({
             </button>
           );
         })}
-        {/* Add customer tab */}
         <button
           onClick={() => setShowCreateCustomer(true)}
           className="px-3 py-2 text-sm text-gray-400 hover:text-indigo-600 hover:bg-gray-100 transition-colors border-b-2 border-transparent"
@@ -546,10 +443,9 @@ export function CustomerTabs({
         >
           +
         </button>
-        {/* Refresh button at end */}
         <div className="ml-auto flex items-center pr-2">
           <button
-            onClick={loadResources}
+            onClick={onReload}
             disabled={loading}
             className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50"
             title="Refresh resources"
@@ -564,12 +460,12 @@ export function CustomerTabs({
         {error && (
           <ErrorBanner
             message={error}
-            onRetry={loadResources}
-            onDismiss={() => setError(null)}
+            onRetry={onReload}
+            onDismiss={onClearError}
           />
         )}
 
-        {loading && !resources && (
+        {loading && customerGroups.length === 0 && (
           <p className="text-xs text-gray-500 text-center py-4">
             Loading resources...
           </p>
@@ -577,9 +473,7 @@ export function CustomerTabs({
 
         {customerGroups.length === 0 && !loading && (
           <div className="text-center py-8">
-            <p className="text-sm text-gray-400 mb-2">
-              No customers yet
-            </p>
+            <p className="text-sm text-gray-400 mb-2">No customers yet</p>
             <p className="text-xs text-gray-400">
               Click the + tab to create a customer and start simulating
             </p>
@@ -593,10 +487,10 @@ export function CustomerTabs({
               group={customerGroups[activeTabIndex]}
               accountId={accountId}
               frozenTime={frozenTime}
-              onAttachPaymentMethod={handleAttachPaymentMethod}
-              onSetDefaultPaymentMethod={handleSetDefaultPaymentMethod}
-              onDetachPaymentMethod={handleDetachPaymentMethod}
-              onCreateSubscription={handleCreateSubscription}
+              onAttachPaymentMethod={onAttachPaymentMethod}
+              onSetDefaultPaymentMethod={onSetDefaultPaymentMethod}
+              onDetachPaymentMethod={onDetachPaymentMethod}
+              onCreateSubscription={onCreateSubscription}
             />
           )}
       </div>
@@ -605,7 +499,7 @@ export function CustomerTabs({
         <CreateCustomerDialog
           onSubmit={handleCreateCustomer}
           onClose={() => setShowCreateCustomer(false)}
-          customerCount={resources?.customers.length ?? 0}
+          customerCount={customerCount}
         />
       )}
     </div>
