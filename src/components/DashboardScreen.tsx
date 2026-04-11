@@ -44,47 +44,55 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => setSelectedAccount(null)}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span className="font-mono text-xs">
-            {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
-          </span>
-        </button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-gray-900">
-            Payment Clock
-          </h1>
-          {selectedAccount?.stripeApiVersion && (
-            <span className="text-xs text-gray-400">API {selectedAccount.stripeApiVersion}</span>
-          )}
-          <button
-            onClick={refresh}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
-            title="Refresh"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4.05 11A8 8 0 0118.36 5.64L20 4M19.95 13A8 8 0 015.64 18.36L4 20" />
-            </svg>
-          </button>
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-semibold text-gray-900">
+                  {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
+                </span>
+                {selectedAccount?.stripeApiVersion && (
+                  <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                    API {selectedAccount.stripeApiVersion}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-gray-400 font-mono">
+                {selectedAccount?.stripeAccountId}
+              </span>
+            </div>
+            <button
+              onClick={() => setSelectedAccount(null)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 self-center"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Switch
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refresh}
+              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+              title="Refresh"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4.05 11A8 8 0 0118.36 5.64L20 4M19.95 13A8 8 0 015.64 18.36L4 20" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+            >
+              + New Clock
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="p-6 max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-medium text-gray-700">Test Clocks</h2>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-          >
-            + Create Test Clock
-          </button>
-        </div>
 
         {loading && (
           <p className="text-sm text-gray-500 text-center py-8">Loading...</p>
