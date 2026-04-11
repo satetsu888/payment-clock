@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { Operation, TestClockResources } from "../lib/types";
+import {
+  subscriptionCurrentPeriodStart,
+  subscriptionCurrentPeriodEnd,
+} from "../lib/stripe-compat";
 
 interface TimeControlBarProps {
   frozenTime: string;
   status: string;
   operations: Operation[];
   resources: TestClockResources | null;
+  stripeApiVersion: string;
   isDeleted: boolean;
   onAdvance: () => void;
   onRefresh: () => void;
@@ -79,6 +84,36 @@ function formatDateLabel(date: Date): string {
   return `${y}/${m}/${d}`;
 }
 
+interface SubscriptionPeriod {
+  subscriptionId: string;
+  start: Date;
+  end: Date;
+  status: string;
+}
+
+function extractSubscriptionPeriods(
+  resources: TestClockResources | null,
+  apiVersion: string,
+): SubscriptionPeriod[] {
+  if (!resources) return [];
+  const periods: SubscriptionPeriod[] = [];
+  for (const sub of resources.subscriptions) {
+    const status = sub.data.status as string;
+    if (status === "canceled" || status === "incomplete_expired") continue;
+    const start = subscriptionCurrentPeriodStart(sub.data, apiVersion);
+    const end = subscriptionCurrentPeriodEnd(sub.data, apiVersion);
+    if (start && end) {
+      periods.push({
+        subscriptionId: sub.stripeId,
+        start: new Date(start * 1000),
+        end: new Date(end * 1000),
+        status,
+      });
+    }
+  }
+  return periods;
+}
+
 const MS_PER_DAY = 86400000;
 const THREE_MONTHS_DAYS = 90;
 const FUTURE_PADDING_DAYS = 60;
@@ -89,6 +124,7 @@ export function TimeControlBar({
   status,
   operations,
   resources,
+  stripeApiVersion,
   isDeleted,
   onAdvance,
   onRefresh,
@@ -101,6 +137,7 @@ export function TimeControlBar({
   const advanceTimestamps = parseAdvanceTimestamps(operations);
   const createdTime = getClockCreatedTime(operations);
   const billingEvents = extractBillingEvents(resources);
+  const subscriptionPeriods = extractSubscriptionPeriods(resources, stripeApiVersion);
   const isAdvancing = status === "advancing";
 
   // Timeline range: ensure at least start+3months and now+2months
@@ -152,6 +189,7 @@ export function TimeControlBar({
   if (createdTime) addLabel(createdTime);
   for (const month of monthBoundaries) addLabel(month);
   for (const day of uniqueBillingDays) addLabel(day.date);
+  for (const period of subscriptionPeriods) addLabel(period.end);
   addLabel(currentTime);
   const unifiedLabels = Array.from(labelsByDay.values());
 
@@ -234,6 +272,33 @@ export function TimeControlBar({
               className="absolute top-5 h-px bg-gray-200"
               style={{ left: `${TIMELINE_PADDING_PX}px`, right: `${TIMELINE_PADDING_PX}px` }}
             />
+
+            {/* Subscription current period bars */}
+            {subscriptionPeriods.map((period, i) => {
+              const x1 = getX(period.start);
+              const x2 = getX(period.end);
+              const width = x2 - x1;
+              return (
+                <div
+                  key={`period-${period.subscriptionId}-${i}`}
+                  className="absolute cursor-default"
+                  style={{ left: `${x1}px`, width: `${width}px`, top: "16px", height: "8px" }}
+                  onMouseEnter={(e) =>
+                    showTooltip(
+                      e,
+                      `Current period: ${formatDateLabel(period.start)} – ${formatDateLabel(period.end)}`,
+                    )
+                  }
+                  onMouseLeave={hideTooltip}
+                >
+                  <div className="w-full h-full bg-indigo-100 rounded-sm border border-indigo-200" />
+                  {/* Period end marker (next billing) */}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2">
+                    <div className="w-2 h-2 rounded-full bg-indigo-300 ring-1 ring-indigo-200" />
+                  </div>
+                </div>
+              );
+            })}
 
             {/* Tooltip */}
             {tooltip && (

@@ -171,6 +171,7 @@ export function TestClockDetail({
         status={clock.status}
         operations={operations}
         resources={resources}
+        stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
         isDeleted={isDeleted}
         onAdvance={() => setShowAdvance(true)}
         onRefresh={handleRefresh}

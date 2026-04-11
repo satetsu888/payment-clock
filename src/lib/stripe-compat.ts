@@ -12,6 +12,18 @@ function hasItemLevelPeriod(apiVersion: string): boolean {
   return apiVersion >= SUBSCRIPTION_PERIOD_MOVED_VERSION;
 }
 
+export function subscriptionCurrentPeriodStart(
+  subscription: Record<string, unknown>,
+  apiVersion: string,
+): number | null {
+  if (hasItemLevelPeriod(apiVersion)) {
+    const items = subscription.items as Record<string, unknown> | undefined;
+    const data = (items?.data as Array<Record<string, unknown>>) || [];
+    return data.length > 0 ? (data[0].current_period_start as number) ?? null : null;
+  }
+  return (subscription.current_period_start as number) ?? null;
+}
+
 export function subscriptionCurrentPeriodEnd(
   subscription: Record<string, unknown>,
   apiVersion: string,
