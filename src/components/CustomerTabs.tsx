@@ -12,6 +12,7 @@ import { SubscriptionSection } from "./SubscriptionSection";
 import { BillingHistory } from "./BillingHistory";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ErrorBanner } from "./ErrorBanner";
+import { TEST_PAYMENT_METHOD_GROUPS } from "../lib/payment-methods";
 
 interface CustomerTabsProps {
   customerGroups: CustomerWithResources[];
@@ -29,24 +30,6 @@ interface CustomerTabsProps {
   onClearError: () => void;
 }
 
-// --- Test payment method options ---
-const TEST_PAYMENT_METHOD_GROUPS = [
-  {
-    label: "Success",
-    methods: [
-      { id: "pm_card_visa", label: "Visa (4242)" },
-      { id: "pm_card_mastercard", label: "Mastercard (5555)" },
-      { id: "pm_card_amex", label: "Amex (3782)" },
-      { id: "pm_card_visa_debit", label: "Visa Debit" },
-    ],
-  },
-  {
-    label: "Decline",
-    methods: [
-      { id: "pm_card_chargeCustomerFail", label: "Charge Fail" },
-    ],
-  },
-];
 
 function getDefaultPaymentMethodId(
   data: Record<string, unknown>,

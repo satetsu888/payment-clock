@@ -5,6 +5,7 @@ import { SubscriptionSection } from "./SubscriptionSection";
 import { InvoiceSection } from "./InvoiceSection";
 import { PaymentIntentSection } from "./PaymentIntentSection";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { TEST_PAYMENT_METHOD_GROUPS } from "../lib/payment-methods";
 
 interface CustomerResourceCardProps {
   group: CustomerWithResources;
@@ -24,23 +25,7 @@ interface CustomerResourceCardProps {
   ) => Promise<void>;
 }
 
-const TEST_PAYMENT_METHOD_GROUPS = [
-  {
-    label: "Success",
-    methods: [
-      { id: "pm_card_visa", label: "Visa (4242)" },
-      { id: "pm_card_mastercard", label: "Mastercard (5555)" },
-      { id: "pm_card_amex", label: "Amex (3782)" },
-      { id: "pm_card_visa_debit", label: "Visa Debit" },
-    ],
-  },
-  {
-    label: "Decline",
-    methods: [
-      { id: "pm_card_chargeCustomerFail", label: "Charge Fail" },
-    ],
-  },
-];
+
 
 function getDefaultPaymentMethodId(data: Record<string, unknown>): string | null {
   const invoiceSettings = data.invoice_settings as

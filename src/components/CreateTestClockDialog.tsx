@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { PM_VISA, PM_CHARGE_FAIL } from "../lib/payment-methods";
 
 interface CreateTestClockDialogProps {
-  onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; attachPaymentMethod: boolean }) => Promise<void>;
+  onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; paymentMethodIds: string[] }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -15,7 +16,8 @@ export function CreateTestClockDialog({
     return now.toISOString().slice(0, 16);
   });
   const [createCustomer, setCreateCustomer] = useState(true);
-  const [attachPM, setAttachPM] = useState(true);
+  const [attachSuccess, setAttachSuccess] = useState(true);
+  const [attachDecline, setAttachDecline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +27,15 @@ export function CreateTestClockDialog({
     setError(null);
     try {
       const frozenTime = Math.floor(new Date(dateTime).getTime() / 1000);
-      await onSubmit(frozenTime, name || undefined, { createCustomer, attachPaymentMethod: attachPM });
+      const paymentMethodIds: string[] = [];
+      if (createCustomer) {
+        if (attachSuccess) paymentMethodIds.push(PM_VISA.id);
+        if (attachDecline) paymentMethodIds.push(PM_CHARGE_FAIL.id);
+      }
+      await onSubmit(frozenTime, name || undefined, {
+        createCustomer,
+        paymentMethodIds,
+      });
       onClose();
     } catch (e) {
       setError(String(e));
@@ -74,7 +84,10 @@ export function CreateTestClockDialog({
                 checked={createCustomer}
                 onChange={(e) => {
                   setCreateCustomer(e.target.checked);
-                  if (!e.target.checked) setAttachPM(false);
+                  if (!e.target.checked) {
+                    setAttachSuccess(false);
+                    setAttachDecline(false);
+                  }
                 }}
                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 disabled={loading}
@@ -86,12 +99,24 @@ export function CreateTestClockDialog({
             }`}>
               <input
                 type="checkbox"
-                checked={attachPM}
-                onChange={(e) => setAttachPM(e.target.checked)}
+                checked={attachSuccess}
+                onChange={(e) => setAttachSuccess(e.target.checked)}
                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 disabled={loading || !createCustomer}
               />
-              Attach a payment method (Visa 4242)
+              Attach a payment method ({PM_VISA.label})
+            </label>
+            <label className={`flex items-center gap-2 text-sm font-medium cursor-pointer ml-6 ${
+              createCustomer ? "text-gray-700" : "text-gray-400"
+            }`}>
+              <input
+                type="checkbox"
+                checked={attachDecline}
+                onChange={(e) => setAttachDecline(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={loading || !createCustomer}
+              />
+              Attach a declining card ({PM_CHARGE_FAIL.label})
             </label>
           </div>
           {error && (

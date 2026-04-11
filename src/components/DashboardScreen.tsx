@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
-import { createCustomer, attachPaymentMethod } from "../lib/api";
+import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../lib/api";
 import { TestClockCard } from "./TestClockCard";
 import { CreateTestClockDialog } from "./CreateTestClockDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -24,20 +24,20 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   const handleCreate = async (
     frozenTime: number,
     name?: string,
-    options?: { createCustomer: boolean; attachPaymentMethod: boolean },
+    options?: { createCustomer: boolean; paymentMethodIds: string[] },
   ) => {
     const clock = await create(frozenTime, name);
 
     if (options?.createCustomer) {
-      const customer = await createCustomer(selectedAccount!.id, clock.id);
+      const customer = await apiCreateCustomer(selectedAccount!.id, clock.id);
       const customerId = (customer as { id: string }).id;
 
-      if (options.attachPaymentMethod) {
+      for (const pmId of options.paymentMethodIds) {
         await attachPaymentMethod(
           selectedAccount!.id,
           clock.id,
           customerId,
-          "pm_card_visa",
+          pmId,
         );
       }
     }
