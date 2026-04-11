@@ -17,6 +17,7 @@ interface TimeControlBarProps {
   resources: TestClockResources | null;
   stripeApiVersion: string;
   isDeleted: boolean;
+  advanceElapsedSeconds?: number;
   onAdvance: () => void;
   onRefresh: () => void;
 }
@@ -132,6 +133,7 @@ export function TimeControlBar({
   resources,
   stripeApiVersion,
   isDeleted,
+  advanceElapsedSeconds,
   onAdvance,
   onRefresh,
 }: TimeControlBarProps) {
@@ -264,7 +266,7 @@ export function TimeControlBar({
         <div className="flex items-center gap-2">
           <button
             onClick={onRefresh}
-            disabled={isDeleted}
+            disabled={isDeleted || isAdvancing}
             className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Refresh
@@ -275,7 +277,9 @@ export function TimeControlBar({
               disabled={isAdvancing}
               className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
-              {isAdvancing ? "Advancing..." : "Advance Time"}
+              {isAdvancing
+                ? `Advancing...${advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}`
+                : "Advance Time"}
               {!isAdvancing && <span aria-hidden="true">&rarr;</span>}
             </button>
           )}

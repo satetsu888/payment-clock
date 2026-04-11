@@ -26,22 +26,15 @@ export function PaymentIntentSection({
     <div className="space-y-1.5">
       {paymentIntents.map((pi) => {
         const status = pi.data.status as string;
-        const hasChanged = pi.previousStatus != null && pi.previousStatus !== status;
         const amount = pi.data.amount as number;
         const currency = pi.data.currency as string;
 
         return (
           <div
             key={pi.stripeId}
-            className={`flex items-center justify-between px-3 py-2 rounded text-sm ${hasChanged ? "bg-yellow-50 ring-1 ring-yellow-300" : "bg-gray-50"}`}
+            className="flex items-center justify-between px-3 py-2 rounded text-sm bg-gray-50"
           >
             <div className="flex items-center gap-2">
-              {hasChanged && (
-                <span className="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-500 line-through">
-                  {pi.previousStatus}
-                </span>
-              )}
-              {hasChanged && <span className="text-xs text-gray-400">&rarr;</span>}
               <span
                 className={`px-1.5 py-0.5 text-xs rounded ${statusColors[status] || "bg-gray-100 text-gray-600"}`}
               >

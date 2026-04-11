@@ -12,7 +12,6 @@ pub struct ResourceItem {
     pub stripe_id: String,
     pub resource_type: String,
     pub data: serde_json::Value,
-    pub previous_status: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -366,33 +365,24 @@ pub async fn fetch_test_clock_resources(
     }
     tx.commit()?;
 
-    // Build response with previous_status lookup
-    let build_items = |db: &rusqlite::Connection,
-                       items: &[serde_json::Value],
-                       rtype: &str,
-                       tc_id: &str|
-     -> Vec<ResourceItem> {
+    let build_items = |items: &[serde_json::Value], rtype: &str| -> Vec<ResourceItem> {
         items
             .iter()
             .map(|v| {
                 let sid = v["id"].as_str().unwrap_or_default();
-                let prev = resource_snapshot::get_previous_status(db, tc_id, rtype, sid)
-                    .ok()
-                    .flatten();
                 ResourceItem {
                     stripe_id: sid.to_string(),
                     resource_type: rtype.to_string(),
                     data: v.clone(),
-                    previous_status: prev,
                 }
             })
             .collect()
     };
 
     Ok(TestClockResources {
-        customers: build_items(&db, &customers, "customer", &test_clock_id),
-        subscriptions: build_items(&db, &all_subscriptions, "subscription", &test_clock_id),
-        invoices: build_items(&db, &all_invoices, "invoice", &test_clock_id),
-        payment_intents: build_items(&db, &all_payment_intents, "payment_intent", &test_clock_id),
+        customers: build_items(&customers, "customer"),
+        subscriptions: build_items(&all_subscriptions, "subscription"),
+        invoices: build_items(&all_invoices, "invoice"),
+        payment_intents: build_items(&all_payment_intents, "payment_intent"),
     })
 }

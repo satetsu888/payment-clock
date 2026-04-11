@@ -66,5 +66,30 @@ pub fn migrations() -> Migrations<'static> {
         M::up(
             "ALTER TABLE accounts ADD COLUMN stripe_api_version TEXT;",
         ),
+        M::up(
+            "CREATE TABLE resource_snapshots_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id TEXT NOT NULL REFERENCES accounts(id),
+                test_clock_id TEXT REFERENCES test_clocks(id),
+                resource_type TEXT NOT NULL,
+                stripe_resource_id TEXT NOT NULL,
+                data TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                UNIQUE(test_clock_id, resource_type, stripe_resource_id)
+            );
+            INSERT INTO resource_snapshots_new (account_id, test_clock_id, resource_type, stripe_resource_id, data, captured_at)
+                SELECT rs.account_id, rs.test_clock_id, rs.resource_type, rs.stripe_resource_id, rs.data, rs.captured_at
+                FROM resource_snapshots rs
+                INNER JOIN (
+                    SELECT test_clock_id, resource_type, stripe_resource_id, MAX(captured_at) AS max_captured_at
+                    FROM resource_snapshots
+                    GROUP BY test_clock_id, resource_type, stripe_resource_id
+                ) latest ON rs.test_clock_id IS latest.test_clock_id
+                    AND rs.resource_type = latest.resource_type
+                    AND rs.stripe_resource_id = latest.stripe_resource_id
+                    AND rs.captured_at = latest.max_captured_at;
+            DROP TABLE resource_snapshots;
+            ALTER TABLE resource_snapshots_new RENAME TO resource_snapshots;",
+        ),
     ])
 }

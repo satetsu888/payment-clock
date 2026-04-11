@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTestClockDetail, refreshTestClock as apiRefreshTestClock } from "../lib/api";
-import type { TestClockDetail } from "../lib/types";
+import type { TestClock, TestClockDetail } from "../lib/types";
 
 export function useTestClockDetail(accountId: string, testClockId: string) {
   const [detail, setDetail] = useState<TestClockDetail | null>(null);
@@ -24,9 +24,10 @@ export function useTestClockDetail(accountId: string, testClockId: string) {
     load();
   }, [load]);
 
-  const refreshFromStripe = useCallback(async () => {
-    await apiRefreshTestClock(accountId, testClockId);
+  const refreshFromStripe = useCallback(async (): Promise<TestClock> => {
+    const clock = await apiRefreshTestClock(accountId, testClockId);
     await load();
+    return clock;
   }, [accountId, testClockId, load]);
 
   const clearError = useCallback(() => setError(null), []);

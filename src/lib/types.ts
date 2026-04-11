@@ -45,7 +45,6 @@ export interface ResourceItem {
   stripeId: string;
   resourceType: string;
   data: Record<string, unknown>;
-  previousStatus: string | null;
 }
 
 export interface TestClockResources {

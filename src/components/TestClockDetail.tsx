@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClockDetail as useDetail } from "../hooks/useTestClockDetail";
 import { useTestClockEvents } from "../hooks/useTestClockEvents";
 import { useTestClockResources } from "../hooks/useTestClockResources";
+import { useAdvancePolling } from "../hooks/useAdvancePolling";
 import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
 import { CustomerTabs } from "./CustomerTabs";
@@ -61,17 +62,45 @@ export function TestClockDetail({
     createSubscription,
   } = useTestClockResources(accountId, testClockId, isDeleted);
 
+  // --- Advance polling ---
+  const onAdvanceReady = useCallback(async () => {
+    await reloadDetail();
+    await fetchEventsFromStripe();
+    await reloadResources();
+  }, [reloadDetail, fetchEventsFromStripe, reloadResources]);
+
+  const {
+    isPolling: isAdvancePolling,
+    elapsedSeconds: advanceElapsedSeconds,
+    error: advanceError,
+    startPolling: startAdvancePolling,
+    clearError: clearAdvanceError,
+  } = useAdvancePolling({ refreshFromStripe, onReady: onAdvanceReady });
+
+  // Auto-start polling if we load a clock that is already advancing
+  const hasAutoStartedRef = useRef(false);
+  useEffect(() => {
+    if (clock?.status === "advancing" && !isAdvancePolling && !hasAutoStartedRef.current) {
+      hasAutoStartedRef.current = true;
+      startAdvancePolling();
+    }
+    if (clock?.status !== "advancing") {
+      hasAutoStartedRef.current = false;
+    }
+  }, [clock?.status, isAdvancePolling, startAdvancePolling]);
+
   // --- Local UI state ---
   const [showAdvance, setShowAdvance] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // --- Aggregate error ---
-  const error = detailError || eventsError || resourcesError;
+  const error = detailError || eventsError || resourcesError || advanceError;
   const clearError = () => {
     clearDetailError();
     clearEventsError();
     clearResourcesError();
+    clearAdvanceError();
   };
 
   // --- Customer IDs for timeline filtering ---
@@ -94,8 +123,7 @@ export function TestClockDetail({
   const handleAdvance = async (clockId: string, frozenTime: number) => {
     await onAdvance(clockId, frozenTime);
     await reloadDetail();
-    await reloadResources();
-    await fetchEventsFromStripe();
+    startAdvancePolling();
   };
 
   const handleDelete = async () => {
@@ -183,6 +211,7 @@ export function TestClockDetail({
         resources={resources}
         stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
         isDeleted={isDeleted}
+        advanceElapsedSeconds={isAdvancePolling ? advanceElapsedSeconds : undefined}
         onAdvance={() => setShowAdvance(true)}
         onRefresh={handleRefresh}
       />

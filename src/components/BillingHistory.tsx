@@ -12,8 +12,6 @@ interface BillingRow {
   amount: number;
   currency: string;
   status: string;
-  previousStatus: string | null;
-  hasChanged: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -55,8 +53,6 @@ export function BillingHistory({ invoices }: BillingHistoryProps) {
       amount: (inv.data.total as number) ?? 0,
       currency: (inv.data.currency as string) ?? "usd",
       status,
-      previousStatus: inv.previousStatus,
-      hasChanged: inv.previousStatus != null && inv.previousStatus !== status,
     });
   }
 
@@ -97,9 +93,7 @@ export function BillingHistory({ invoices }: BillingHistoryProps) {
             {rows.map((row) => (
               <tr
                 key={row.id}
-                className={
-                  row.hasChanged ? "bg-yellow-50" : "hover:bg-gray-50"
-                }
+                className="hover:bg-gray-50"
               >
                 <td className="px-3 py-1.5 text-gray-600">
                   {formatDate(row.createdAt)}
@@ -113,21 +107,11 @@ export function BillingHistory({ invoices }: BillingHistoryProps) {
                   {formatCurrency(row.amount, row.currency)}
                 </td>
                 <td className="px-3 py-1.5">
-                  <div className="flex items-center gap-1">
-                    {row.hasChanged && row.previousStatus && (
-                      <>
-                        <span className="px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 line-through">
-                          {row.previousStatus}
-                        </span>
-                        <span className="text-gray-400">&rarr;</span>
-                      </>
-                    )}
-                    <span
-                      className={`px-1.5 py-0.5 rounded ${statusColors[row.status] || "bg-gray-100 text-gray-600"}`}
-                    >
-                      {row.status}
-                    </span>
-                  </div>
+                  <span
+                    className={`px-1.5 py-0.5 rounded ${statusColors[row.status] || "bg-gray-100 text-gray-600"}`}
+                  >
+                    {row.status}
+                  </span>
                 </td>
               </tr>
             ))}
