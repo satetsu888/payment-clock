@@ -1,11 +1,10 @@
+import { useState } from "react";
 import type { ResourceItem } from "../lib/types";
 import { formatDateTime } from "../lib/format";
 import {
   subscriptionCurrentPeriodStart,
   subscriptionCurrentPeriodEnd,
 } from "../lib/stripe-compat";
-import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
-
 interface SubscriptionSectionProps {
   subscriptions: ResourceItem[];
   stripeApiVersion: string;
@@ -46,6 +45,18 @@ export function SubscriptionSection({
   onPause,
   onResume,
 }: SubscriptionSectionProps) {
+  // Track which subscription is being operated on and which action
+  const [loadingAction, setLoadingAction] = useState<{ id: string; action: string } | null>(null);
+
+  const handleAction = async (id: string, action: string, fn: (id: string) => Promise<void>) => {
+    setLoadingAction({ id, action });
+    try {
+      await fn(id);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   if (subscriptions.length === 0) {
     return <p className="text-xs text-gray-400 py-2">No subscriptions</p>;
   }
@@ -72,33 +83,16 @@ export function SubscriptionSection({
         const isDimmed = status === "canceled" || status === "incomplete_expired";
         const borderColor = isPaused ? "border-l-amber-400" : (borderColors[status] || "border-l-gray-300");
 
-        const menuItems: DropdownMenuItem[] = [];
-        if (status === "active" || status === "trialing" || status === "past_due") {
-          menuItems.push({
-            label: "Cancel",
-            onClick: () => onCancel(s.stripeId),
-            danger: true,
-          });
-        }
-        if (status === "active" && !isPaused) {
-          menuItems.push({
-            label: "Pause",
-            onClick: () => onPause(s.stripeId),
-          });
-        }
-        if (isPaused && status !== "canceled") {
-          menuItems.push({
-            label: "Resume",
-            onClick: () => onResume(s.stripeId),
-          });
-        }
+        const canCancel = status === "active" || status === "trialing" || status === "past_due";
+        const canPause = status === "active" && !isPaused;
+        const canResume = isPaused && status !== "canceled";
 
         return (
           <div
             key={s.stripeId}
             className={`border-l-2 ${borderColor} rounded bg-gray-50 px-3 py-2.5 ${isDimmed ? "opacity-60" : ""}`}
           >
-            {/* Row 1: label + status + amount + menu */}
+            {/* Row 1: label + status + amount + actions */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {label && (
@@ -127,15 +121,12 @@ export function SubscriptionSection({
                   <span className="text-xs text-amber-600">cancels at period end</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 font-mono">
-                  {s.stripeId}
-                </span>
-                <DropdownMenu items={menuItems} />
-              </div>
+              <span className="text-xs text-gray-400 font-mono">
+                {s.stripeId}
+              </span>
             </div>
 
-            {/* Row 3: period info (conditional) */}
+            {/* Row 2: period info (conditional) */}
             <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
               {(status === "active" || status === "trialing" || status === "past_due") &&
                 periodStart && periodEnd && (
@@ -154,6 +145,44 @@ export function SubscriptionSection({
                 </span>
               )}
             </div>
+
+            {/* Row 3: actions */}
+            {(canResume || canPause || canCancel) && (() => {
+              const isThisLoading = loadingAction?.id === s.stripeId;
+              const activeAction = isThisLoading ? loadingAction.action : null;
+              const disabled = loadingAction !== null;
+              return (
+                <div className="flex items-center justify-end gap-1.5 mt-2">
+                  {canResume && (
+                    <button
+                      onClick={() => handleAction(s.stripeId, "resume", onResume)}
+                      disabled={disabled}
+                      className="px-2 py-0.5 text-xs font-medium rounded border border-indigo-300 text-indigo-600 bg-white hover:bg-indigo-50 disabled:opacity-50 transition-colors"
+                    >
+                      {activeAction === "resume" ? "Resuming..." : "Resume"}
+                    </button>
+                  )}
+                  {canPause && (
+                    <button
+                      onClick={() => handleAction(s.stripeId, "pause", onPause)}
+                      disabled={disabled}
+                      className="px-2 py-0.5 text-xs font-medium rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                      {activeAction === "pause" ? "Pausing..." : "Pause"}
+                    </button>
+                  )}
+                  {canCancel && (
+                    <button
+                      onClick={() => handleAction(s.stripeId, "cancel", onCancel)}
+                      disabled={disabled}
+                      className="px-2 py-0.5 text-xs font-medium rounded border border-red-300 text-red-600 bg-white hover:bg-red-50 disabled:opacity-50 transition-colors"
+                    >
+                      {activeAction === "cancel" ? "Canceling..." : "Cancel"}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         );
       })}
