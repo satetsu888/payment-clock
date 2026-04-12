@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PM_VISA, PM_CHARGE_FAIL } from "../lib/payment-methods";
 import { toDatetimeLocalUTC } from "../lib/format";
+import { generateTestClockName } from "../lib/name-generator";
 
 interface CreateTestClockDialogProps {
   onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; customerName?: string; paymentMethodIds: string[] }) => Promise<void>;
@@ -11,7 +12,7 @@ export function CreateTestClockDialog({
   onSubmit,
   onClose,
 }: CreateTestClockDialogProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => generateTestClockName());
   const [dateTime, setDateTime] = useState(() => toDatetimeLocalUTC(new Date()));
   const [createCustomer, setCreateCustomer] = useState(true);
   const [customerName, setCustomerName] = useState("customer1");
@@ -55,14 +56,25 @@ export function CreateTestClockDialog({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Name (optional)
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My test clock"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={loading}
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="My test clock"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setName(generateTestClockName())}
+                className="px-2 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md text-sm"
+                disabled={loading}
+                title="Regenerate name"
+              >
+                ↻
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
