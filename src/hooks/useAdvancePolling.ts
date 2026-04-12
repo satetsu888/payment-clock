@@ -26,13 +26,17 @@ export function useAdvancePolling({
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
 
-  const stopPolling = useCallback(() => {
+  const clearInterval_ = useCallback(() => {
     if (intervalRef.current != null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    setIsPolling(false);
   }, []);
+
+  const stopPolling = useCallback(() => {
+    clearInterval_();
+    setIsPolling(false);
+  }, [clearInterval_]);
 
   const startPolling = useCallback(() => {
     // Clear any existing interval
@@ -62,8 +66,9 @@ export function useAdvancePolling({
         consecutiveErrorsRef.current = 0;
 
         if (clock.status === "ready") {
-          stopPolling();
+          clearInterval_();
           await onReadyRef.current();
+          setIsPolling(false);
         }
       } catch {
         consecutiveErrorsRef.current += 1;
@@ -79,12 +84,8 @@ export function useAdvancePolling({
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (intervalRef.current != null) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
+    return () => clearInterval_();
+  }, [clearInterval_]);
 
   return { isPolling, elapsedSeconds, error, startPolling, stopPolling, clearError };
 }

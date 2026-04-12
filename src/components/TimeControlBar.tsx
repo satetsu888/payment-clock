@@ -359,22 +359,25 @@ export function TimeControlBar({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {isAdvancing && (
-            <span className="text-sm text-indigo-600 font-medium flex items-center gap-1.5">
-              <span className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-              Advancing...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
-            </span>
-          )}
           <button
             type="button"
             onClick={handleAdvanceClick}
             disabled={!canInteract || !pinned}
             className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="shrink-0">
-              <polygon points="2,1 9,5 2,9" />
-            </svg>
-            {pinned ? `Advance to ${formatShortDateTime(pinned.time)}` : "Advance"}
+            {isAdvancing ? (
+              <>
+                <span className="w-3 h-3 border-2 border-indigo-300 border-t-white rounded-full animate-spin shrink-0" />
+                Advancing...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
+              </>
+            ) : (
+              <>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="shrink-0">
+                  <polygon points="2,1 9,5 2,9" />
+                </svg>
+                {pinned ? `Advance to ${formatShortDateTime(pinned.time)}` : "Advance"}
+              </>
+            )}
           </button>
           <button
             onClick={onRefresh}
