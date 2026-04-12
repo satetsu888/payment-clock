@@ -27,7 +27,8 @@ interface TimeControlBarProps {
 const MS_PER_DAY = 86400000;
 const THREE_MONTHS_DAYS = 90;
 const FUTURE_PADDING_DAYS = 60;
-const TIMELINE_PADDING_PX = 110;
+const LABEL_COLUMN_WIDTH = 110;
+const TIMELINE_PADDING_PX = 40;
 const MONTH_AREA_HEIGHT = 24;
 const LANE_HEIGHT = 20;
 const LANE_GAP = 8;
@@ -144,6 +145,7 @@ export function TimeControlBar({
   const [containerWidth, setContainerWidth] = useState(0);
   const [tooltip, setTooltip] = useState<{
     x: number;
+    y: number;
     label: string;
   } | null>(null);
 
@@ -333,6 +335,7 @@ export function TimeControlBar({
     if (!rect) return;
     setTooltip({
       x: e.clientX - rect.left + (scrollRef.current?.scrollLeft ?? 0),
+      y: e.clientY - rect.top,
       label,
     });
   };
@@ -369,17 +372,47 @@ export function TimeControlBar({
         </div>
       </div>
 
-      {/* Visual Timeline */}
-      <div className="flex justify-center">
+      {/* Visual Timeline: fixed label column + scrollable timeline */}
+      <div className="flex">
+        {/* Fixed label column */}
+        <div
+          className="shrink-0 relative"
+          style={{
+            width: `${LABEL_COLUMN_WIDTH}px`,
+            height: `${timelineHeight}px`,
+          }}
+        >
+          {lanes.map((lane, laneIndex) => {
+            const laneTop = laneYPositions[laneIndex];
+            return lane.label ? (
+              <div
+                key={lane.id}
+                className="absolute flex items-center"
+                style={{
+                  left: "4px",
+                  right: "4px",
+                  top: `${laneTop}px`,
+                  height: `${LANE_HEIGHT}px`,
+                }}
+              >
+                <span className="text-[9px] text-gray-400 truncate block">
+                  {lane.label}
+                </span>
+              </div>
+            ) : null;
+          })}
+        </div>
+
+        {/* Scrollable timeline */}
         <div
           ref={scrollRef}
-          className={`overflow-x-auto w-full${canInteract ? " cursor-crosshair" : ""}`}
+          className={`overflow-x-auto overflow-y-hidden flex-1 min-w-0${canInteract ? " cursor-crosshair" : ""}`}
           onMouseMove={handleTimelineMouseMove}
           onMouseLeave={handleTimelineMouseLeave}
           onClick={handleTimelineClick}
         >
           <div
-            className="relative mx-auto"
+            className="relative"
             style={{
               width: `${timelineWidth}px`,
               height: `${timelineHeight}px`,
@@ -436,22 +469,6 @@ export function TimeControlBar({
               const labelsTop = ty + LABEL_OFFSET_FROM_TRACK;
               return (
                 <div key={lane.id}>
-                  {/* Lane label */}
-                  {lane.label && (
-                    <div
-                      className="absolute flex items-center z-10"
-                      style={{
-                        left: "4px",
-                        top: `${laneTop}px`,
-                        height: `${LANE_HEIGHT}px`,
-                      }}
-                    >
-                      <span className="text-[9px] text-gray-400 truncate max-w-[100px] bg-white px-0.5">
-                        {lane.label}
-                      </span>
-                    </div>
-                  )}
-
                   {/* Track line */}
                   <div
                     className="absolute h-px bg-gray-200"
@@ -526,13 +543,16 @@ export function TimeControlBar({
               );
             })}
 
-            {/* Tooltip */}
+            {/* Tooltip – follows mouse position */}
             {tooltip && (
               <div
-                className="absolute z-20 pointer-events-none"
-                style={{ left: `${tooltip.x}px`, top: "0px" }}
+                className="absolute z-20 pointer-events-none -translate-x-1/2"
+                style={{
+                  left: `${tooltip.x}px`,
+                  top: `${tooltip.y - 32}px`,
+                }}
               >
-                <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap -translate-x-1/2">
+                <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                   {tooltip.label}
                 </div>
               </div>
@@ -550,10 +570,13 @@ export function TimeControlBar({
                     height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
                   }}
                 >
-                  {/* Hover time tooltip */}
+                  {/* Hover time tooltip – same height as the advance button */}
                   <div
-                    className="absolute -translate-x-1/2 whitespace-nowrap"
-                    style={{ top: "-20px", left: "0px" }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                    style={{
+                      top: `${(laneYPositions[0] ?? MONTH_AREA_HEIGHT) + LANE_HEIGHT / 2 - MONTH_AREA_HEIGHT}px`,
+                      left: "0px",
+                    }}
                   >
                     <span className={`text-white text-[10px] px-1.5 py-0.5 rounded ${isFuture ? "bg-indigo-600" : "bg-gray-400"}`}>
                       {formatShortDateTime(getTimeFromX(hoverX))}

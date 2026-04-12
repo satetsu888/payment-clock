@@ -3,6 +3,7 @@ import {
   subscriptionCurrentPeriodStart,
   subscriptionCurrentPeriodEnd,
 } from "./stripe-compat";
+import { formatCurrency } from "./format";
 
 // --- Types ---
 
@@ -34,6 +35,8 @@ interface BillingEvent {
   date: Date;
   type: "billed" | "paid";
   subscriptionId: string | null;
+  amount: number | null;
+  currency: string | null;
 }
 
 interface SubscriptionPeriod {
@@ -105,12 +108,17 @@ function extractBillingEvents(
   const events: BillingEvent[] = [];
   for (const inv of resources.invoices) {
     const subscriptionId = getInvoiceSubscriptionId(inv.data);
+    const currency = (inv.data.currency as string) ?? null;
+    const amountDue = (inv.data.amount_due as number) ?? null;
+    const amountPaid = (inv.data.amount_paid as number) ?? null;
     const created = inv.data.created as number | undefined;
     if (created) {
       events.push({
         date: new Date(created * 1000),
         type: "billed",
         subscriptionId,
+        amount: amountDue,
+        currency,
       });
     }
     const transitions = inv.data.status_transitions as
@@ -122,6 +130,8 @@ function extractBillingEvents(
         date: new Date(paidAt * 1000),
         type: "paid",
         subscriptionId,
+        amount: amountPaid,
+        currency,
       });
     }
   }
@@ -174,11 +184,18 @@ function billingMarkersForSubscription(
 ): TimelineMarker[] {
   return billingEvents
     .filter((ev) => ev.subscriptionId === subscriptionId)
-    .map((ev) => ({
-      date: ev.date,
-      type: ev.type as "billed" | "paid",
-      tooltip: `${ev.type === "billed" ? "Billed" : "Paid"}: ${formatDateLabel(ev.date)}`,
-    }));
+    .map((ev) => {
+      const label = ev.type === "billed" ? "Billed" : "Paid";
+      const amountStr =
+        ev.amount != null && ev.currency
+          ? ` — ${formatCurrency(ev.amount, ev.currency)}`
+          : "";
+      return {
+        date: ev.date,
+        type: ev.type as "billed" | "paid",
+        tooltip: `${label}: ${formatDateLabel(ev.date)}${amountStr}`,
+      };
+    });
 }
 
 export function buildTimelineLanes(
