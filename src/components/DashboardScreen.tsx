@@ -41,6 +41,8 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
         );
       }
     }
+
+    onSelectTestClock(clock.id);
   };
 
   const handleConfirm = async () => {
