@@ -15,7 +15,7 @@ interface CustomerTabsProps {
   error: string | null;
   isDeleted: boolean;
   frozenTime: string;
-  onCreateCustomer: (name?: string, email?: string) => Promise<void>;
+  onCreateCustomer: (name?: string, email?: string, metadata?: Record<string, string>) => Promise<void>;
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
@@ -52,8 +52,8 @@ export function CustomerTabs({
     }
   }, [customerGroups.length, activeTabIndex]);
 
-  const handleCreateCustomer = async (name?: string, email?: string) => {
-    await onCreateCustomer(name, email);
+  const handleCreateCustomer = async (name?: string, email?: string, metadata?: Record<string, string>) => {
+    await onCreateCustomer(name, email, metadata);
     setActiveTabIndex(customerGroups.length); // will be the new last index
   };
 
@@ -73,7 +73,8 @@ export function CustomerTabs({
       <div className="flex border-b border-gray-200 bg-gray-50">
         {customerGroups.map((group, index) => {
           const isActive = index === activeTabIndex;
-          const name = String(group.customer.data.name || "Unnamed");
+          const metadata = group.customer.data.metadata as Record<string, string> | undefined;
+          const name = String(metadata?.payment_clock_label || group.customer.data.name || "Unnamed");
           return (
             <button
               key={group.customer.stripeId}

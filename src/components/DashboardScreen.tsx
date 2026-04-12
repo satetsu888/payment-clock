@@ -24,12 +24,14 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   const handleCreate = async (
     frozenTime: number,
     name?: string,
-    options?: { createCustomer: boolean; paymentMethodIds: string[] },
+    options?: { createCustomer: boolean; customerName?: string; paymentMethodIds: string[] },
   ) => {
     const clock = await create(frozenTime, name);
 
     if (options?.createCustomer) {
-      const customer = await apiCreateCustomer(selectedAccount!.id, clock.id);
+      const customerName = options.customerName;
+      const metadata = customerName ? { payment_clock_label: customerName } : undefined;
+      const customer = await apiCreateCustomer(selectedAccount!.id, clock.id, customerName, undefined, metadata);
       const customerId = (customer as { id: string }).id;
 
       for (const pmId of options.paymentMethodIds) {

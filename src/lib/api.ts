@@ -138,12 +138,14 @@ export async function createCustomer(
   testClockId: string,
   name?: string,
   email?: string,
+  metadata?: Record<string, string>,
 ): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("create_customer", {
     accountId,
     testClockId,
     name,
     email,
+    metadata,
   });
 }
 

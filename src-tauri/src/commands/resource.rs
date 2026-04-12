@@ -30,6 +30,7 @@ pub async fn create_customer(
     test_clock_id: String,
     name: Option<String>,
     email: Option<String>,
+    metadata: Option<std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
 
@@ -38,6 +39,7 @@ pub async fn create_customer(
         &stripe_clock_id,
         name.as_deref(),
         email.as_deref(),
+        metadata.as_ref(),
     )
     .await?;
 

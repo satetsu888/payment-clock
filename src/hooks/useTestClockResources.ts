@@ -56,8 +56,8 @@ export function useTestClockResources(
   }, [resources]);
 
   const createCustomer = useCallback(
-    async (name?: string, email?: string) => {
-      await apiCreateCustomer(accountId, testClockId, name, email);
+    async (name?: string, email?: string, metadata?: Record<string, string>) => {
+      await apiCreateCustomer(accountId, testClockId, name, email, metadata);
       await load();
     },
     [accountId, testClockId, load],

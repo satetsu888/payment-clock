@@ -3,7 +3,7 @@ import { PM_VISA, PM_CHARGE_FAIL } from "../lib/payment-methods";
 import { toDatetimeLocalUTC } from "../lib/format";
 
 interface CreateTestClockDialogProps {
-  onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; paymentMethodIds: string[] }) => Promise<void>;
+  onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; customerName?: string; paymentMethodIds: string[] }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -14,6 +14,7 @@ export function CreateTestClockDialog({
   const [name, setName] = useState("");
   const [dateTime, setDateTime] = useState(() => toDatetimeLocalUTC(new Date()));
   const [createCustomer, setCreateCustomer] = useState(true);
+  const [customerName, setCustomerName] = useState("customer1");
   const [attachSuccess, setAttachSuccess] = useState(true);
   const [attachDecline, setAttachDecline] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export function CreateTestClockDialog({
       }
       await onSubmit(frozenTime, name || undefined, {
         createCustomer,
+        customerName: createCustomer ? customerName || undefined : undefined,
         paymentMethodIds,
       });
       onClose();
@@ -92,6 +94,18 @@ export function CreateTestClockDialog({
               />
               Create a customer
             </label>
+            {createCustomer && (
+              <div className="ml-6">
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="customer1"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={loading}
+                />
+              </div>
+            )}
             <label className={`flex items-center gap-2 text-sm font-medium cursor-pointer ml-6 ${
               createCustomer ? "text-gray-700" : "text-gray-400"
             }`}>

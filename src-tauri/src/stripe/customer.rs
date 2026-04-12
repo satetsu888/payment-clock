@@ -6,16 +6,23 @@ pub async fn create_customer(
     test_clock_id: &str,
     name: Option<&str>,
     email: Option<&str>,
+    metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
-    let mut params: Vec<(&str, &str)> = vec![("test_clock", test_clock_id)];
+    let mut params: Vec<(String, String)> = vec![("test_clock".into(), test_clock_id.to_string())];
     if let Some(n) = name {
-        params.push(("name", n));
+        params.push(("name".into(), n.to_string()));
     }
     if let Some(e) = email {
-        params.push(("email", e));
+        params.push(("email".into(), e.to_string()));
     }
-    client.post("/v1/customers", &params).await
+    if let Some(meta) = metadata {
+        for (key, value) in meta {
+            params.push((format!("metadata[{}]", key), value.clone()));
+        }
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    client.post("/v1/customers", &str_params).await
 }
 
 pub async fn set_default_payment_method(

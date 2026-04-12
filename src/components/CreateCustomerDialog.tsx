@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface CreateCustomerDialogProps {
-  onSubmit: (name?: string, email?: string) => Promise<void>;
+  onSubmit: (name?: string, email?: string, metadata?: Record<string, string>) => Promise<void>;
   onClose: () => void;
   customerCount: number;
 }
@@ -21,7 +21,8 @@ export function CreateCustomerDialog({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(name || undefined, email || undefined);
+      const meta = name ? { payment_clock_label: name } : undefined;
+      await onSubmit(name || undefined, email || undefined, meta);
       onClose();
     } catch (e) {
       setError(String(e));
