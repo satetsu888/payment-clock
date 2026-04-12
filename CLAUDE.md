@@ -24,7 +24,6 @@ src/                        # React frontend
     InvoiceSection.tsx       # Invoice list display
     PaymentIntentSection.tsx # Payment intent list display
     EventItem.tsx            # Single event display with expandable detail
-    AdvanceTimeDialog.tsx    # Time advance dialog with preview
     CreateTestClockDialog.tsx # Test clock creation dialog with optional customer/PM setup
     CreateCustomerDialog.tsx # Customer creation dialog
     CreateSubscriptionDialog.tsx # Subscription creation dialog with trial options
@@ -138,7 +137,7 @@ npm run tauri build
 ## Test Clock Detail Page Layout
 
 1. **Header**: Clock name, status badge, Stripe ID, delete button
-2. **TimeControlBar** (sticky): Current simulation time, visual timeline (advance points + billing event markers), "Advance Time" button, refresh
+2. **TimeControlBar** (sticky): Current simulation time, visual timeline (advance points + billing event markers + per-subscription period bars), click-to-advance interaction (hover shows time cursor, click pins advance target, button executes advance), refresh
 3. **CustomerTabs**: Tab-based per-customer view. [+] tab creates a new customer. Each tab contains:
    - Payment Methods (attach/detach/set default)
    - Subscriptions (create/view status)
