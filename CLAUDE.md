@@ -17,10 +17,12 @@ src/                        # React frontend
     TimeControlBar.tsx       # Sticky time control bar with visual timeline
     CustomerTabs.tsx         # Tab-based customer management
     CustomerTabContent.tsx   # Per-customer content (payment methods, subscriptions, billing history)
-    PaymentMethodList.tsx    # Payment method list with attach/detach/set default
-    BillingHistory.tsx       # Per-customer invoice billing history table
+    PaymentMethodList.tsx    # Payment method list with dropdown menu (set default/detach)
+    BillingHistory.tsx       # Per-customer invoice billing history table (bidirectional highlight with TimeControlBar)
     UnifiedTimeline.tsx      # Event log (operations + Stripe events)
-    SubscriptionSection.tsx  # Subscription list display
+    SubscriptionSection.tsx  # Subscription card display with status-dependent actions (cancel/pause/resume)
+    DropdownMenu.tsx         # Shared dropdown menu component (trigger button + menu + click-outside close)
+    CreatePaymentMethodDialog.tsx # Payment method attach dialog (test card selection)
     InvoiceSection.tsx       # Invoice list display
     PaymentIntentSection.tsx # Payment intent list display
     EventItem.tsx            # Single event display with expandable detail
@@ -41,24 +43,24 @@ src/                        # React frontend
     useTestClocks.ts        # Test clock list + create/advance/delete/purge
     useTestClockDetail.ts   # Single test clock detail + operations
     useTestClockEvents.ts   # Stripe events for a test clock
-    useTestClockResources.ts # Resources (customers, subscriptions, invoices, paymentIntents) + mutations + customer grouping + chronological ordering
+    useTestClockResources.ts # Resources (customers, subscriptions, invoices, paymentIntents) + mutations (including cancel/pause/resume subscription) + customer grouping + chronological ordering
     useAdvancePolling.ts    # Advance completion polling (2s interval, auto-fetch on ready)
   contexts/                 # React Context
     AccountContext.tsx       # Selected account state (AccountProvider, useAccountContext)
   lib/
-    api.ts                  # Tauri command invocations (22 commands)
+    api.ts                  # Tauri command invocations (25 commands)
     types.ts                # TypeScript type definitions
     format.ts               # Currency/price formatting + UTC datetime formatting utilities
     resource-grouping.ts    # Group resources by customer + extract customer IDs from events/operations
     stripe-compat.ts        # Stripe API version compatibility helpers (subscription period field location)
-    timeline-data.ts        # Timeline lane/marker/period computation for TimeControlBar
+    timeline-data.ts        # Timeline lane/marker/period computation for TimeControlBar (markers carry invoiceId for cross-highlight)
     payment-methods.ts      # Test payment method constants (Visa, Mastercard, Amex, etc.)
 
 src-tauri/src/              # Rust backend
   commands/                 # Tauri command handlers
     account.rs              # Account CRUD (validate, list, select, delete with cascade)
     test_clock.rs           # Test clock management + advance + preview
-    resource.rs             # Customer, subscription, payment method, product/price management
+    resource.rs             # Customer, subscription (create/cancel/pause/resume), payment method, product/price management
     event.rs                # Event fetching (incremental API polling + DB sync)
   models/                   # Data models + DB operations
     account.rs              # Account, AccountSummary + DB queries
@@ -75,7 +77,7 @@ src-tauri/src/              # Rust backend
     account.rs              # Fetch account info
     test_clock.rs           # Test clock CRUD + advance
     customer.rs             # Customer create/update/list
-    subscription.rs         # Subscription create/list
+    subscription.rs         # Subscription create/list/cancel/pause/resume
     payment_method.rs       # Payment method attach/detach/list
     event.rs                # Event fetch + test_clock_id extraction
     invoice.rs              # Invoice list
@@ -133,13 +135,15 @@ npm run tauri build
 - **TestClockDetail** (page component) orchestrates hooks and passes data down to child components
 - Stripe resources (customers, subscriptions, invoices, paymentIntents) are test clock-level data managed by `useTestClockResources`, not by individual UI components
 - **Components** (CustomerTabs, TimeControlBar, etc.) are presentation-focused and receive data via props
+- **Cross-component state**: `highlightedInvoiceId` is managed at TestClockDetail level and shared between BillingHistory and TimeControlBar for bidirectional hover highlighting
+- **Shared UI**: `DropdownMenu` is a reusable component used across TestClockCard, TestClockDetail header, PaymentMethodList, and SubscriptionSection
 
 ## Test Clock Detail Page Layout
 
 1. **Header**: Clock name, status badge, Stripe ID, delete button
-2. **TimeControlBar** (sticky): Current simulation time, visual timeline (advance points + billing event markers + per-subscription period bars), click-to-advance interaction (hover shows time cursor, click pins advance target, button executes advance), refresh
+2. **TimeControlBar** (sticky): Current simulation time, visual timeline (advance points + billing event markers + per-subscription period bars with state-dependent colors), click-to-advance interaction (hover shows time cursor, click pins advance target, button executes advance), refresh. Period bars reflect subscription state: paused (amber dashed), cancel_at_period_end (red dashed), normal (indigo). Bidirectional invoice highlight with BillingHistory.
 3. **CustomerTabs**: Tab-based per-customer view. [+] tab creates a new customer. Each tab contains:
-   - Payment Methods (attach/detach/set default)
-   - Subscriptions (create/view status)
-   - Billing History (invoice table with billed date, paid date, amount, status + totals)
+   - Payment Methods (dropdown menu for set default/detach, dialog for attach)
+   - Subscriptions (card layout with status badge, amount, period info; dropdown menu for cancel/pause/resume)
+   - Billing History (invoice table with billed date, paid date, amount, status + totals; bidirectional highlight with TimeControlBar)
 4. **Event Log**: UnifiedTimeline showing operations and Stripe events with filters
