@@ -16,6 +16,8 @@ src/                        # React frontend
     TestClockDetail.tsx      # Test clock detail page (main layout)
     TimeControlBar.tsx       # Sticky time control bar with visual timeline
     CustomerTabs.tsx         # Tab-based customer management
+    CustomerTabContent.tsx   # Per-customer content (payment methods, subscriptions, billing history)
+    PaymentMethodList.tsx    # Payment method list with attach/detach/set default
     BillingHistory.tsx       # Per-customer invoice billing history table
     UnifiedTimeline.tsx      # Event log (operations + Stripe events)
     SubscriptionSection.tsx  # Subscription list display
@@ -27,6 +29,7 @@ src/                        # React frontend
     CreateCustomerDialog.tsx # Customer creation dialog
     CreateSubscriptionDialog.tsx # Subscription creation dialog with trial options
     ConfirmDialog.tsx        # Generic confirmation dialog
+    UpdateDialog.tsx         # App update dialog (Tauri updater + relaunch)
     ErrorBanner.tsx          # Error display with retry/dismiss
     DashboardScreen.tsx      # Test clock list view with create/delete/purge
     TestClockCard.tsx        # Test clock card with status badge and menu
@@ -39,13 +42,14 @@ src/                        # React frontend
     useTestClocks.ts        # Test clock list + create/advance/delete/purge
     useTestClockDetail.ts   # Single test clock detail + operations
     useTestClockEvents.ts   # Stripe events for a test clock
-    useTestClockResources.ts # Resources (customers, subscriptions, invoices, paymentIntents) + mutations + customer grouping
+    useTestClockResources.ts # Resources (customers, subscriptions, invoices, paymentIntents) + mutations + customer grouping + chronological ordering
     useAdvancePolling.ts    # Advance completion polling (2s interval, auto-fetch on ready)
   contexts/                 # React Context
     AccountContext.tsx       # Selected account state (AccountProvider, useAccountContext)
   lib/
     api.ts                  # Tauri command invocations (22 commands)
     types.ts                # TypeScript type definitions
+    format.ts               # Currency/price formatting utilities
     resource-grouping.ts    # Group resources by customer + extract customer IDs from events/operations
     stripe-compat.ts        # Stripe API version compatibility helpers (subscription period field location)
     timeline-data.ts        # Timeline lane/marker/period computation for TimeControlBar
