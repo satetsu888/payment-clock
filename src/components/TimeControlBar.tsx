@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Operation, TestClockResources } from "../lib/types";
 import {
   buildTimelineLanes,
@@ -19,7 +19,7 @@ interface TimeControlBarProps {
   stripeApiVersion: string;
   isDeleted: boolean;
   advanceElapsedSeconds?: number;
-  onAdvance: () => void;
+  onAdvanceToTime: (frozenTime: number) => void;
   onRefresh: () => void;
 }
 
@@ -136,7 +136,7 @@ export function TimeControlBar({
   stripeApiVersion,
   isDeleted,
   advanceElapsedSeconds,
-  onAdvance,
+  onAdvanceToTime,
   onRefresh,
 }: TimeControlBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -145,6 +145,10 @@ export function TimeControlBar({
     x: number;
     label: string;
   } | null>(null);
+
+  // Hover / pin state for click-to-advance
+  const [hoverX, setHoverX] = useState<number | null>(null);
+  const [pinned, setPinned] = useState<{ x: number; time: Date } | null>(null);
 
   const currentTime = new Date(frozenTime);
   const createdTime = getClockCreatedTime(operations);
@@ -185,6 +189,20 @@ export function TimeControlBar({
       ((time.getTime() - startTime.getTime()) / MS_PER_DAY) * pxPerDay
     );
   };
+
+  // Inverse of getX: pixel position → time (truncated to minutes)
+  const getTimeFromX = useCallback(
+    (x: number): Date => {
+      const days = (x - TIMELINE_PADDING_PX) / pxPerDay;
+      const ms = startTime.getTime() + days * MS_PER_DAY;
+      // Truncate to minutes
+      const truncated = Math.floor(ms / 60000) * 60000;
+      return new Date(truncated);
+    },
+    [pxPerDay, startTime],
+  );
+
+  const canInteract = !isDeleted && !isAdvancing;
 
   // Per-lane label computation
   const laneLabels = lanes.map((lane) => {
@@ -247,6 +265,74 @@ export function TimeControlBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frozenTime, containerWidth]);
 
+  // Clear pinned state when advance starts or clock becomes deleted
+  useEffect(() => {
+    if (!canInteract) setPinned(null);
+  }, [canInteract]);
+
+  // Escape key to unpin
+  useEffect(() => {
+    if (!pinned) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPinned(null);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [pinned]);
+
+  const handleTimelineMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!canInteract) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left + el.scrollLeft;
+      setHoverX(x);
+    },
+    [canInteract],
+  );
+
+  const handleTimelineMouseLeave = useCallback(() => {
+    setHoverX(null);
+  }, []);
+
+  const handleTimelineClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!canInteract) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left + el.scrollLeft;
+      const nowX = getX(currentTime);
+      if (x <= nowX) {
+        setPinned(null);
+        return;
+      }
+      const time = getTimeFromX(x);
+      setPinned({ x, time });
+    },
+    [canInteract, getX, getTimeFromX, currentTime],
+  );
+
+  const handleAdvanceClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!pinned) return;
+      const unixSeconds = Math.floor(pinned.time.getTime() / 1000);
+      setPinned(null);
+      onAdvanceToTime(unixSeconds);
+    },
+    [pinned, onAdvanceToTime],
+  );
+
+  const formatShortDateTime = (date: Date): string => {
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    const h = date.getHours().toString().padStart(2, "0");
+    const min = date.getMinutes().toString().padStart(2, "0");
+    return `${m}/${d} ${h}:${min}`;
+  };
+
   const showTooltip = (e: React.MouseEvent, label: string) => {
     const rect = scrollRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -274,6 +360,12 @@ export function TimeControlBar({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {isAdvancing && (
+            <span className="text-sm text-indigo-600 font-medium flex items-center gap-1.5">
+              <span className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+              Advancing...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
+            </span>
+          )}
           <button
             onClick={onRefresh}
             disabled={isDeleted || isAdvancing}
@@ -281,18 +373,6 @@ export function TimeControlBar({
           >
             Refresh
           </button>
-          {!isDeleted && (
-            <button
-              onClick={onAdvance}
-              disabled={isAdvancing}
-              className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-            >
-              {isAdvancing
-                ? `Advancing...${advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}`
-                : "Advance Time"}
-              {!isAdvancing && <span aria-hidden="true">&rarr;</span>}
-            </button>
-          )}
         </div>
       </div>
 
@@ -300,7 +380,10 @@ export function TimeControlBar({
       <div className="flex justify-center">
         <div
           ref={scrollRef}
-          className="overflow-x-auto w-full max-w-4xl"
+          className={`overflow-x-auto w-full max-w-4xl${canInteract ? " cursor-crosshair" : ""}`}
+          onMouseMove={handleTimelineMouseMove}
+          onMouseLeave={handleTimelineMouseLeave}
+          onClick={handleTimelineClick}
         >
           <div
             className="relative mx-auto"
@@ -459,6 +542,59 @@ export function TimeControlBar({
                 <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap -translate-x-1/2">
                   {tooltip.label}
                 </div>
+              </div>
+            )}
+
+            {/* Hover vertical line (past = gray, future = indigo) */}
+            {canInteract && hoverX != null && (() => {
+              const isFuture = hoverX > nowX;
+              return (
+                <div
+                  className={`absolute w-px pointer-events-none ${isFuture ? "bg-indigo-400/50" : "bg-gray-300/50"}`}
+                  style={{
+                    left: `${hoverX}px`,
+                    top: `${MONTH_AREA_HEIGHT}px`,
+                    height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
+                  }}
+                >
+                  {/* Hover time tooltip */}
+                  <div
+                    className="absolute -translate-x-1/2 whitespace-nowrap"
+                    style={{ top: "-20px", left: "0px" }}
+                  >
+                    <span className={`text-white text-[10px] px-1.5 py-0.5 rounded ${isFuture ? "bg-indigo-600" : "bg-gray-400"}`}>
+                      {formatShortDateTime(getTimeFromX(hoverX))}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Pinned vertical line + advance button */}
+            {canInteract && pinned && (
+              <div
+                className="absolute w-px bg-indigo-500 pointer-events-none"
+                style={{
+                  left: `${pinned.x}px`,
+                  top: `${MONTH_AREA_HEIGHT}px`,
+                  height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
+                }}
+              >
+                {/* Advance button centered on first lane track */}
+                <button
+                  type="button"
+                  onClick={handleAdvanceClick}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto px-2.5 py-1 text-xs font-medium text-white bg-indigo-600 rounded-md shadow-lg hover:bg-indigo-700 whitespace-nowrap flex items-center gap-1"
+                  style={{
+                    top: `${(laneYPositions[0] ?? MONTH_AREA_HEIGHT) + LANE_HEIGHT / 2 - MONTH_AREA_HEIGHT}px`,
+                    left: "0px",
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="shrink-0">
+                    <polygon points="2,1 9,5 2,9" />
+                  </svg>
+                  {formatShortDateTime(pinned.time)}
+                </button>
               </div>
             )}
           </div>

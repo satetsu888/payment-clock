@@ -4,7 +4,6 @@ import { useTestClockDetail as useDetail } from "../hooks/useTestClockDetail";
 import { useTestClockEvents } from "../hooks/useTestClockEvents";
 import { useTestClockResources } from "../hooks/useTestClockResources";
 import { useAdvancePolling } from "../hooks/useAdvancePolling";
-import { AdvanceTimeDialog } from "./AdvanceTimeDialog";
 import { UnifiedTimeline } from "./UnifiedTimeline";
 import { CustomerTabs } from "./CustomerTabs";
 import { TimeControlBar } from "./TimeControlBar";
@@ -90,7 +89,6 @@ export function TestClockDetail({
   }, [clock?.status, isAdvancePolling, startAdvancePolling]);
 
   // --- Local UI state ---
-  const [showAdvance, setShowAdvance] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -120,8 +118,8 @@ export function TestClockDetail({
     }
   };
 
-  const handleAdvance = async (clockId: string, frozenTime: number) => {
-    await onAdvance(clockId, frozenTime);
+  const handleAdvanceToTime = async (frozenTime: number) => {
+    await onAdvance(testClockId, frozenTime);
     await reloadDetail();
     startAdvancePolling();
   };
@@ -212,7 +210,7 @@ export function TestClockDetail({
         stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
         isDeleted={isDeleted}
         advanceElapsedSeconds={isAdvancePolling ? advanceElapsedSeconds : undefined}
-        onAdvance={() => setShowAdvance(true)}
+        onAdvanceToTime={handleAdvanceToTime}
         onRefresh={handleRefresh}
       />
 
@@ -256,15 +254,6 @@ export function TestClockDetail({
           />
         </div>
       </main>
-
-      {showAdvance && (
-        <AdvanceTimeDialog
-          accountId={accountId}
-          clock={clock}
-          onSubmit={handleAdvance}
-          onClose={() => setShowAdvance(false)}
-        />
-      )}
 
       {confirmDelete && (
         <ConfirmDialog
