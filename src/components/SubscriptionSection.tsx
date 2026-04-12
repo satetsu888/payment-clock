@@ -98,16 +98,21 @@ export function SubscriptionSection({
             key={s.stripeId}
             className={`border-l-2 ${borderColor} rounded bg-gray-50 px-3 py-2.5 ${isDimmed ? "opacity-60" : ""}`}
           >
-            {/* Row 1: status + amount + menu */}
+            {/* Row 1: label + status + amount + menu */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {label && (
+                  <span className="text-sm font-medium text-gray-900">
+                    {label}
+                  </span>
+                )}
                 <span
                   className={`px-1.5 py-0.5 text-xs rounded ${statusColors[status] || "bg-gray-100 text-gray-600"}`}
                 >
                   {status}
                 </span>
                 {priceInfo && (
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-xs text-gray-600">
                     {((priceInfo.unit_amount as number) / 100).toFixed(2)}{" "}
                     {String(priceInfo.currency).toUpperCase()}
                     {priceInfo.recurring
@@ -129,13 +134,6 @@ export function SubscriptionSection({
                 <DropdownMenu items={menuItems} />
               </div>
             </div>
-
-            {/* Row 2: label */}
-            {label && (
-              <div className="text-xs text-gray-600 mt-1">
-                {label}
-              </div>
-            )}
 
             {/* Row 3: period info (conditional) */}
             <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">

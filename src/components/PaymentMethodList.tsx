@@ -80,7 +80,7 @@ export function PaymentMethodList({
                   </span>
                 )}
                 {isDefault && (
-                  <span className="text-xs text-green-600 font-medium">
+                  <span className="px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-700">
                     default
                   </span>
                 )}
