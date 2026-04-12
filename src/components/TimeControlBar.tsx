@@ -341,12 +341,12 @@ export function TimeControlBar({
   const nowX = getX(currentTime);
 
   return (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 pb-4 pt-3 shadow-sm">
-      {/* Top row: current time + buttons */}
-      <div className="flex items-center justify-between mb-4 max-w-4xl mx-auto">
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      {/* Top row: frozen time + buttons */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-500 uppercase tracking-wide">
-            Current Time
+            Frozen Time
           </span>
           <span className="text-lg font-semibold text-gray-900 font-mono">
             {formatDateTime(currentTime)}
@@ -373,7 +373,7 @@ export function TimeControlBar({
       <div className="flex justify-center">
         <div
           ref={scrollRef}
-          className={`overflow-x-auto w-full max-w-4xl${canInteract ? " cursor-crosshair" : ""}`}
+          className={`overflow-x-auto w-full${canInteract ? " cursor-crosshair" : ""}`}
           onMouseMove={handleTimelineMouseMove}
           onMouseLeave={handleTimelineMouseLeave}
           onClick={handleTimelineClick}

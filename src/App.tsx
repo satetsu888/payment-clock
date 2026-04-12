@@ -6,10 +6,11 @@ import { DashboardScreen } from "./components/DashboardScreen";
 import { TestClockDetail } from "./components/TestClockDetail";
 import { UpdateDialog } from "./components/UpdateDialog";
 import { advanceTestClock, deleteTestClock } from "./lib/api";
+import type { TestClock } from "./lib/types";
 
 function AppContent() {
   const { selectedAccount } = useAccountContext();
-  const [selectedTestClockId, setSelectedTestClockId] = useState<string | null>(
+  const [selectedTestClock, setSelectedTestClock] = useState<TestClock | null>(
     null,
   );
 
@@ -17,11 +18,11 @@ function AppContent() {
     return <AccountSelectScreen />;
   }
 
-  if (selectedTestClockId) {
+  if (selectedTestClock) {
     return (
       <TestClockDetail
-        testClockId={selectedTestClockId}
-        onBack={() => setSelectedTestClockId(null)}
+        initialClock={selectedTestClock}
+        onBack={() => setSelectedTestClock(null)}
         onAdvance={async (testClockId, frozenTime) => {
           await advanceTestClock(selectedAccount.id, testClockId, frozenTime);
         }}
@@ -32,7 +33,7 @@ function AppContent() {
     );
   }
 
-  return <DashboardScreen onSelectTestClock={setSelectedTestClockId} />;
+  return <DashboardScreen onSelectTestClock={setSelectedTestClock} />;
 }
 
 function App() {

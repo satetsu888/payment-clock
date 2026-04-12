@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
 import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../lib/api";
+import type { TestClock } from "../lib/types";
 import { TestClockCard } from "./TestClockCard";
 import { CreateTestClockDialog } from "./CreateTestClockDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface DashboardScreenProps {
-  onSelectTestClock: (clockId: string) => void;
+  onSelectTestClock: (clock: TestClock) => void;
 }
 
 export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
@@ -44,7 +45,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
       }
     }
 
-    onSelectTestClock(clock.id);
+    onSelectTestClock(clock);
   };
 
   const handleConfirm = async () => {
@@ -67,33 +68,32 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-gray-900">
-                  {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
-                </span>
-                {selectedAccount?.stripeApiVersion && (
-                  <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                    API {selectedAccount.stripeApiVersion}
-                  </span>
-                )}
-              </div>
-              <span className="text-xs text-gray-400 font-mono">
-                {selectedAccount?.stripeAccountId}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 pl-[70px] pr-4 py-3" data-tauri-drag-region>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-semibold text-gray-900">
+                {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
               </span>
+              <button
+                onClick={() => setSelectedAccount(null)}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Switch Account
+              </button>
             </div>
-            <button
-              onClick={() => setSelectedAccount(null)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 self-center"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              Switch
-            </button>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
+              <span>{selectedAccount?.stripeAccountId}</span>
+              {selectedAccount?.stripeApiVersion && (
+                <>
+                  <span className="text-gray-300">·</span>
+                  <span>API {selectedAccount.stripeApiVersion}</span>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -115,7 +115,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
         </div>
       </header>
 
-      <main className="p-6 max-w-3xl mx-auto">
+      <main className="p-6 max-w-4xl mx-auto">
 
         {loading && (
           <p className="text-sm text-gray-500 text-center py-8">Loading...</p>
@@ -137,7 +137,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
             <TestClockCard
               key={clock.id}
               clock={clock}
-              onSelect={onSelectTestClock}
+              onSelect={() => { onSelectTestClock(clock); }}
               onDelete={(id) => setConfirmTarget({ type: "delete", testClockId: id })}
             />
           ))}
@@ -153,7 +153,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
                 <TestClockCard
                   key={clock.id}
                   clock={clock}
-                  onSelect={onSelectTestClock}
+                  onSelect={() => { onSelectTestClock(clock); }}
                   onPurge={(id) => setConfirmTarget({ type: "purge", testClockId: id })}
                 />
               ))}

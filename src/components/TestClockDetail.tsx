@@ -10,19 +10,65 @@ import { TimeControlBar } from "./TimeControlBar";
 import { ErrorBanner } from "./ErrorBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
 
+function HeaderMenu({ onDelete, deleting }: { onDelete: () => void; deleting: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <circle cx="10" cy="4" r="1.5" />
+          <circle cx="10" cy="10" r="1.5" />
+          <circle cx="10" cy="16" r="1.5" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+          <button
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            disabled={deleting}
+            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete test clock"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface TestClockDetailProps {
-  testClockId: string;
+  initialClock: import("../lib/types").TestClock;
   onBack: () => void;
   onAdvance: (testClockId: string, frozenTime: number) => Promise<void>;
   onDelete: (testClockId: string) => Promise<void>;
 }
 
 export function TestClockDetail({
-  testClockId,
+  initialClock,
   onBack,
   onAdvance,
   onDelete,
 }: TestClockDetailProps) {
+  const testClockId = initialClock.id;
   const { selectedAccount } = useAccountContext();
   const accountId = selectedAccount!.id;
 
@@ -135,124 +181,123 @@ export function TestClockDetail({
     }
   };
 
-  // --- Loading / error states ---
   const initialLoading =
     !detail ||
     (resourcesLoading && !resources) ||
     (eventsLoading && events.length === 0);
 
-  if (initialLoading) {
-    if (error) {
-      return (
-        <div className="p-6 text-center text-sm text-red-600">{error}</div>
-      );
-    }
-    return (
-      <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-          <span className="text-sm text-gray-500">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!clock) return null;
+  // Use fetched clock data when available, fall back to initial clock from list
+  const displayClock = clock ?? initialClock;
+  const displayIsDeleted = !!displayClock.deletedAt;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 pl-[70px] pr-4 py-3" data-tauri-drag-region>
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              &larr; Back
+              &larr; {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
             </button>
-            <h1 className="text-lg font-semibold text-gray-900">
-              {clock.name || clock.stripeTestClockId}
-            </h1>
-            <span
-              className={`px-2 py-0.5 text-xs rounded-full ${
-                isDeleted
-                  ? "bg-gray-100 text-gray-500"
-                  : clock.status === "ready"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-yellow-100 text-yellow-700"
-              }`}
-            >
-              {isDeleted ? "deleted" : clock.status}
-            </span>
-            <span className="font-mono text-xs text-gray-400">
-              {clock.stripeTestClockId}
-            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {displayClock.name || displayClock.stripeTestClockId}
+                </h1>
+                <span
+                  className={`px-2 py-0.5 text-xs rounded-full ${
+                    displayIsDeleted
+                      ? "bg-gray-100 text-gray-500"
+                      : displayClock.status === "ready"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {displayIsDeleted ? "deleted" : displayClock.status}
+                </span>
+              </div>
+              <span className="font-mono text-xs text-gray-500">
+                {displayClock.stripeTestClockId}
+              </span>
+            </div>
           </div>
-          {!isDeleted && (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              disabled={deleting}
-              className="px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50"
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </button>
+          {!displayIsDeleted && (
+            <HeaderMenu
+              onDelete={() => setConfirmDelete(true)}
+              deleting={deleting}
+            />
           )}
         </div>
       </header>
 
-      {/* Time Control Bar */}
-      <TimeControlBar
-        frozenTime={clock.frozenTime}
-        status={clock.status}
-        operations={operations}
-        resources={resources}
-        stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
-        isDeleted={isDeleted}
-        advanceElapsedSeconds={isAdvancePolling ? advanceElapsedSeconds : undefined}
-        onAdvanceToTime={handleAdvanceToTime}
-        onRefresh={handleRefresh}
-      />
-
       {/* Main content */}
       <main className="p-6 max-w-4xl mx-auto space-y-4">
-        {error && (
-          <ErrorBanner
-            message={error}
-            onRetry={handleRefresh}
-            onDismiss={clearError}
-          />
+        {initialLoading ? (
+          error ? (
+            <p className="text-sm text-red-600 text-center py-8">{error}</p>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+              <span className="text-sm text-gray-500">Loading...</span>
+            </div>
+          )
+        ) : (
+          <>
+            {error && (
+              <ErrorBanner
+                message={error}
+                onRetry={handleRefresh}
+                onDismiss={clearError}
+              />
+            )}
+
+            {/* Time Control Bar */}
+            <TimeControlBar
+              frozenTime={clock!.frozenTime}
+              status={clock!.status}
+              operations={operations}
+              resources={resources}
+              stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
+              isDeleted={isDeleted}
+              advanceElapsedSeconds={isAdvancePolling ? advanceElapsedSeconds : undefined}
+              onAdvanceToTime={handleAdvanceToTime}
+              onRefresh={handleRefresh}
+            />
+
+            {/* Customer Tabs */}
+            <CustomerTabs
+              customerGroups={customerGroups}
+              customerCount={resources?.customers.length ?? 0}
+              loading={resourcesLoading}
+              error={resourcesError}
+              isDeleted={isDeleted}
+              frozenTime={clock!.frozenTime}
+              onCreateCustomer={createCustomer}
+              onAttachPaymentMethod={attachPaymentMethod}
+              onSetDefaultPaymentMethod={setDefaultPaymentMethod}
+              onDetachPaymentMethod={detachPaymentMethod}
+              onCreateSubscription={createSubscription}
+              onReload={reloadResources}
+              onClearError={clearResourcesError}
+            />
+
+            {/* Event Log */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h2 className="text-sm font-medium text-gray-700 mb-3">
+                Event Log
+              </h2>
+              <UnifiedTimeline
+                operations={operations}
+                events={events}
+                customers={customers}
+                stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
+              />
+            </div>
+          </>
         )}
-
-        {/* Customer Tabs */}
-        <CustomerTabs
-          customerGroups={customerGroups}
-          customerCount={resources?.customers.length ?? 0}
-          loading={resourcesLoading}
-          error={resourcesError}
-          isDeleted={isDeleted}
-          frozenTime={clock.frozenTime}
-          onCreateCustomer={createCustomer}
-          onAttachPaymentMethod={attachPaymentMethod}
-          onSetDefaultPaymentMethod={setDefaultPaymentMethod}
-          onDetachPaymentMethod={detachPaymentMethod}
-          onCreateSubscription={createSubscription}
-          onReload={reloadResources}
-          onClearError={clearResourcesError}
-        />
-
-        {/* Event Log */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h2 className="text-sm font-medium text-gray-700 mb-3">
-            Event Log
-          </h2>
-          <UnifiedTimeline
-            operations={operations}
-            events={events}
-            customers={customers}
-            stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
-          />
-        </div>
       </main>
 
       {confirmDelete && (
