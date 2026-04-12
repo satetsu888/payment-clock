@@ -25,6 +25,11 @@ export interface TimelineLane {
   markers: TimelineMarker[];
 }
 
+/** Marker types that should show a date label (not just tooltip). */
+export function isLabelWorthy(marker: TimelineMarker): boolean {
+  return marker.type !== "start" && marker.type !== "advance";
+}
+
 interface BillingEvent {
   date: Date;
   type: "billed" | "paid";

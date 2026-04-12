@@ -7,6 +7,7 @@ import {
   formatDateLabel,
   formatMonthShort,
   assignLabelRows,
+  isLabelWorthy,
   type TimelineMarker,
 } from "../lib/timeline-data";
 
@@ -28,7 +29,8 @@ const FUTURE_PADDING_DAYS = 60;
 const TIMELINE_PADDING_PX = 110;
 const MONTH_AREA_HEIGHT = 24;
 const LANE_HEIGHT = 20;
-const LANE_GAP = 4;
+const LANE_GAP = 8;
+const LABEL_ROW_HEIGHT = 14;
 
 // --- Marker rendering ---
 
@@ -184,34 +186,42 @@ export function TimeControlBar({
     );
   };
 
-  // Lane Y positions
-  const laneY = (index: number) =>
-    MONTH_AREA_HEIGHT + index * (LANE_HEIGHT + LANE_GAP);
-  const trackYForLane = (index: number) => laneY(index) + LANE_HEIGHT / 2;
-  const lanesBottom = laneY(lanes.length);
+  // Per-lane label computation
+  const laneLabels = lanes.map((lane) => {
+    const byDay = new Map<string, { date: Date; x: number }>();
+    const add = (date: Date) => {
+      const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      if (!byDay.has(key)) byDay.set(key, { date, x: getX(date) });
+    };
+    for (const marker of lane.markers) {
+      if (isLabelWorthy(marker)) add(marker.date);
+    }
+    if (lane.periodBar) add(lane.periodBar.end);
+    const labels = assignLabelRows(Array.from(byDay.values()));
+    const maxRow = labels.reduce((max, l) => Math.max(max, l.row), -1);
+    return { labels, maxRow };
+  });
+
+  // Cumulative lane Y positions (each lane + its label area)
+  // Labels start at trackCenter + 2px, so label area extends from there
+  const LABEL_OFFSET_FROM_TRACK = 2;
+  const laneYPositions: number[] = [];
+  let cumulativeY = MONTH_AREA_HEIGHT;
+  for (let i = 0; i < lanes.length; i++) {
+    laneYPositions[i] = cumulativeY;
+    const trackCenter = LANE_HEIGHT / 2;
+    if (laneLabels[i].maxRow >= 0) {
+      cumulativeY += trackCenter + LABEL_OFFSET_FROM_TRACK + (laneLabels[i].maxRow + 1) * LABEL_ROW_HEIGHT;
+    } else {
+      cumulativeY += LANE_HEIGHT;
+    }
+    cumulativeY += LANE_GAP;
+  }
+  const lanesBottom = cumulativeY - (lanes.length > 0 ? LANE_GAP : 0);
+  const timelineHeight = lanesBottom + 4;
 
   // Month boundaries
   const monthBoundaries = getMonthBoundaries(startTime, endTime);
-
-  // Collect all marker dates + period ends for date labels
-  const labelsByDay = new Map<string, { date: Date; x: number }>();
-  const addLabel = (date: Date) => {
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    if (!labelsByDay.has(key)) {
-      labelsByDay.set(key, { date, x: getX(date) });
-    }
-  };
-  for (const lane of lanes) {
-    for (const marker of lane.markers) addLabel(marker.date);
-    if (lane.periodBar) addLabel(lane.periodBar.end);
-  }
-  const unifiedLabels = assignLabelRows(Array.from(labelsByDay.values()));
-  const maxLabelRow = unifiedLabels.reduce(
-    (max, l) => Math.max(max, l.row),
-    0,
-  );
-  const labelsTop = lanesBottom + 4;
-  const timelineHeight = labelsTop + (maxLabelRow + 1) * 14 + 4;
 
   // Measure container
   useEffect(() => {
@@ -342,9 +352,12 @@ export function TimeControlBar({
               />
             )}
 
-            {/* Lanes */}
+            {/* Lanes + per-lane date labels */}
             {lanes.map((lane, laneIndex) => {
-              const ty = trackYForLane(laneIndex);
+              const laneTop = laneYPositions[laneIndex];
+              const ty = laneTop + LANE_HEIGHT / 2;
+              const { labels } = laneLabels[laneIndex];
+              const labelsTop = ty + LABEL_OFFSET_FROM_TRACK;
               return (
                 <div key={lane.id}>
                   {/* Lane label */}
@@ -353,7 +366,7 @@ export function TimeControlBar({
                       className="absolute flex items-center z-10"
                       style={{
                         left: "4px",
-                        top: `${laneY(laneIndex)}px`,
+                        top: `${laneTop}px`,
                         height: `${LANE_HEIGHT}px`,
                       }}
                     >
@@ -415,6 +428,24 @@ export function TimeControlBar({
                       onMouseLeave={hideTooltip}
                     />
                   ))}
+
+                  {/* Date labels for this lane */}
+                  {labels.map((label) => (
+                    <div
+                      key={`label-${lane.id}-${label.date.toISOString()}`}
+                      className="absolute"
+                      style={{ left: `${label.x}px` }}
+                    >
+                      <div
+                        className="absolute -translate-x-1/2 whitespace-nowrap"
+                        style={{ top: `${labelsTop + label.row * LABEL_ROW_HEIGHT}px` }}
+                      >
+                        <span className="text-[10px] text-gray-500">
+                          {formatDateLabel(label.date)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               );
             })}
@@ -430,24 +461,6 @@ export function TimeControlBar({
                 </div>
               </div>
             )}
-
-            {/* Date labels */}
-            {unifiedLabels.map((label) => (
-              <div
-                key={`label-${label.date.toISOString()}`}
-                className="absolute"
-                style={{ left: `${label.x}px` }}
-              >
-                <div
-                  className="absolute -translate-x-1/2 whitespace-nowrap"
-                  style={{ top: `${labelsTop + label.row * 14}px` }}
-                >
-                  <span className="text-[10px] text-gray-500">
-                    {formatDateLabel(label.date)}
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
