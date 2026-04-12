@@ -234,33 +234,7 @@ export function buildTimelineLanes(
     ];
   }
 
-  // 1 subscription → merged lane
-  if (subscriptionPeriods.length === 1) {
-    const period = subscriptionPeriods[0];
-    const subBilling = billingMarkersForSubscription(
-      billingEvents,
-      period.subscriptionId,
-    );
-    return [
-      {
-        id: "merged",
-        label: "",
-        periodBar: {
-          start: period.start,
-          end: period.end,
-          status: period.status,
-        },
-        markers: [
-          ...timeMarkers,
-          currentMarker,
-          ...subBilling,
-          ...unlinkedBilling,
-        ],
-      },
-    ];
-  }
-
-  // 2+ subscriptions → time lane + subscription lanes
+  // 1+ subscriptions → time lane + subscription lanes
   const lanes: TimelineLane[] = [];
 
   lanes.push({

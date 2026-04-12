@@ -343,8 +343,6 @@ export function TimeControlBar({
   };
   const hideTooltip = () => setTooltip(null);
 
-  // Whether to show "now" vertical line across all lanes (multi-lane only)
-  const showNowLine = lanes.length > 1;
   const nowX = getX(currentTime);
 
   return (
@@ -423,8 +421,8 @@ export function TimeControlBar({
               );
             })}
 
-            {/* "Now" vertical line across all lanes (multi-lane only) */}
-            {showNowLine && (
+            {/* "Now" vertical line across all lanes */}
+            {(
               <div
                 className="absolute w-px bg-indigo-300"
                 style={{
