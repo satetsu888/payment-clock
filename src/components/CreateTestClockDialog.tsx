@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PM_VISA, PM_CHARGE_FAIL } from "../lib/payment-methods";
+import { toDatetimeLocalUTC } from "../lib/format";
 
 interface CreateTestClockDialogProps {
   onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; paymentMethodIds: string[] }) => Promise<void>;
@@ -11,10 +12,7 @@ export function CreateTestClockDialog({
   onClose,
 }: CreateTestClockDialogProps) {
   const [name, setName] = useState("");
-  const [dateTime, setDateTime] = useState(() => {
-    const now = new Date();
-    return now.toISOString().slice(0, 16);
-  });
+  const [dateTime, setDateTime] = useState(() => toDatetimeLocalUTC(new Date()));
   const [createCustomer, setCreateCustomer] = useState(true);
   const [attachSuccess, setAttachSuccess] = useState(true);
   const [attachDecline, setAttachDecline] = useState(false);

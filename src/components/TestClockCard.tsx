@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { TestClock } from "../lib/types";
+import { formatDateTime } from "../lib/format";
 
 interface TestClockCardProps {
   clock: TestClock;
@@ -10,7 +11,7 @@ interface TestClockCardProps {
 
 function formatFrozenTime(isoString: string): string {
   try {
-    return new Date(isoString).toLocaleString();
+    return formatDateTime(new Date(isoString));
   } catch {
     return isoString;
   }

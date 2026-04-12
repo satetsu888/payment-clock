@@ -270,17 +270,17 @@ export function buildTimelineLanes(
 
 export function getMonthBoundaries(start: Date, end: Date): Date[] {
   const boundaries: Date[] = [];
-  const cursor = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
   while (cursor.getTime() <= end.getTime()) {
     boundaries.push(new Date(cursor));
-    cursor.setMonth(cursor.getMonth() + 1);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
   return boundaries;
 }
 
 export function formatDateLabel(date: Date): string {
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
+  const m = date.getUTCMonth() + 1;
+  const d = date.getUTCDate();
   return `${m}/${d}`;
 }
 
@@ -300,7 +300,7 @@ const MONTH_ABBR = [
 ];
 
 export function formatMonthShort(date: Date): string {
-  return MONTH_ABBR[date.getMonth()];
+  return MONTH_ABBR[date.getUTCMonth()];
 }
 
 /** Assign vertical rows to labels so nearby ones don't overlap.

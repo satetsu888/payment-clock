@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { StripeEvent } from "../lib/types";
 import { subscriptionCurrentPeriodEnd } from "../lib/stripe-compat";
+import { formatDateTime } from "../lib/format";
 
 interface EventItemProps {
   event: StripeEvent;
@@ -41,7 +42,7 @@ function ResourceSummary({ data, stripeApiVersion }: { data: Record<string, unkn
         <div className="text-xs text-gray-600 space-y-0.5">
           <div>Status: <span className="font-medium">{String(obj.status)}</span></div>
           {periodEnd ? (
-            <div>Period end: {new Date(periodEnd * 1000).toLocaleString()}</div>
+            <div>Period end: {formatDateTime(new Date(periodEnd * 1000))}</div>
           ) : null}
         </div>
       );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { listProducts, listPrices } from "../lib/api";
+import { formatDateTime, toDatetimeLocalUTC } from "../lib/format";
 import type {
   ResourceItem,
   StripeProduct,
@@ -12,9 +13,7 @@ type TrialMode = "days" | "end";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
 
 function toDatetimeLocalValue(isoString: string): string {
-  const date = new Date(isoString);
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return toDatetimeLocalUTC(new Date(isoString));
 }
 
 interface CreateSubscriptionDialogProps {
@@ -52,7 +51,7 @@ export function CreateSubscriptionDialog({
   const frozenTimeMin = toDatetimeLocalValue(frozenTime);
   const defaultTrialEnd = (() => {
     const d = new Date(frozenTime);
-    d.setDate(d.getDate() + 1);
+    d.setUTCDate(d.getUTCDate() + 1);
     return toDatetimeLocalValue(d.toISOString());
   })();
 
@@ -268,7 +267,7 @@ export function CreateSubscriptionDialog({
                       disabled={loading}
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                      Frozen time ({new Date(frozenTime).toLocaleString()}) より未来の日時を指定
+                      Frozen time ({formatDateTime(new Date(frozenTime))}) より未来の日時を指定
                     </p>
                   </div>
                 )}

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import type { Operation, StripeEvent, UnifiedTimelineItem } from "../lib/types";
 import { EventItem } from "./EventItem";
 import { extractCustomerIdFromEvent, extractCustomerIdFromOperation } from "../lib/resource-grouping";
+import { formatDateTime } from "../lib/format";
 
 interface UnifiedTimelineProps {
   operations: Operation[];
@@ -21,7 +22,7 @@ const operationLabels: Record<string, string> = {
 
 function formatTime(isoString: string): string {
   try {
-    return new Date(isoString).toLocaleString();
+    return formatDateTime(new Date(isoString));
   } catch {
     return isoString;
   }
@@ -154,7 +155,7 @@ export function UnifiedTimeline({
                 const params = JSON.parse(op.requestParams);
                 if (params.frozen_time) {
                   const dt = new Date(params.frozen_time * 1000);
-                  detail = `to ${dt.toLocaleString()}`;
+                  detail = `to ${formatDateTime(dt)}`;
                 }
               } catch {
                 // ignore

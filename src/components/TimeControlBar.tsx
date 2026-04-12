@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Operation, TestClockResources } from "../lib/types";
+import { formatDateTime, formatShortDateTime as fmtShort } from "../lib/format";
 import {
   buildTimelineLanes,
   getClockCreatedTime,
@@ -208,7 +209,7 @@ export function TimeControlBar({
   const laneLabels = lanes.map((lane) => {
     const byDay = new Map<string, { date: Date; x: number }>();
     const add = (date: Date) => {
-      const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
       if (!byDay.has(key)) byDay.set(key, { date, x: getX(date) });
     };
     for (const marker of lane.markers) {
@@ -325,13 +326,7 @@ export function TimeControlBar({
     [pinned, onAdvanceToTime],
   );
 
-  const formatShortDateTime = (date: Date): string => {
-    const m = date.getMonth() + 1;
-    const d = date.getDate();
-    const h = date.getHours().toString().padStart(2, "0");
-    const min = date.getMinutes().toString().padStart(2, "0");
-    return `${m}/${d} ${h}:${min}`;
-  };
+  const formatShortDateTime = (date: Date): string => fmtShort(date);
 
   const showTooltip = (e: React.MouseEvent, label: string) => {
     const rect = scrollRef.current?.getBoundingClientRect();
@@ -354,7 +349,7 @@ export function TimeControlBar({
             Current Time
           </span>
           <span className="text-lg font-semibold text-gray-900 font-mono">
-            {currentTime.toLocaleString()}
+            {formatDateTime(currentTime)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -393,7 +388,7 @@ export function TimeControlBar({
             {/* Month boundary dividers */}
             {monthBoundaries.map((month) => {
               const x = getX(month);
-              const showYear = month.getMonth() === 0;
+              const showYear = month.getUTCMonth() === 0;
               return (
                 <div
                   key={month.toISOString()}
