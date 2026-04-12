@@ -324,16 +324,12 @@ export function TimeControlBar({
     [canInteract, getX, getTimeFromX, currentTime],
   );
 
-  const handleAdvanceClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!pinned) return;
-      const unixSeconds = Math.floor(pinned.time.getTime() / 1000);
-      setPinned(null);
-      onAdvanceToTime(unixSeconds);
-    },
-    [pinned, onAdvanceToTime],
-  );
+  const handleAdvanceClick = useCallback(() => {
+    if (!pinned) return;
+    const unixSeconds = Math.floor(pinned.time.getTime() / 1000);
+    setPinned(null);
+    onAdvanceToTime(unixSeconds);
+  }, [pinned, onAdvanceToTime]);
 
   const formatShortDateTime = (date: Date): string => fmtShort(date);
 
@@ -369,6 +365,17 @@ export function TimeControlBar({
               Advancing...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
             </span>
           )}
+          <button
+            type="button"
+            onClick={handleAdvanceClick}
+            disabled={!canInteract || !pinned}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="shrink-0">
+              <polygon points="2,1 9,5 2,9" />
+            </svg>
+            {pinned ? `Advance to ${formatShortDateTime(pinned.time)}` : "Advance"}
+          </button>
           <button
             onClick={onRefresh}
             disabled={isDeleted || isAdvancing}
@@ -616,7 +623,7 @@ export function TimeControlBar({
               );
             })()}
 
-            {/* Pinned vertical line + advance button */}
+            {/* Pinned vertical line + time badge */}
             {canInteract && pinned && (
               <div
                 className="absolute w-px bg-indigo-500 pointer-events-none"
@@ -626,21 +633,18 @@ export function TimeControlBar({
                   height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
                 }}
               >
-                {/* Advance button centered on first lane track */}
-                <button
-                  type="button"
-                  onClick={handleAdvanceClick}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto px-2.5 py-1 text-xs font-medium text-white bg-indigo-600 rounded-md shadow-lg hover:bg-indigo-700 whitespace-nowrap flex items-center gap-1"
+                {/* Time badge centered on first lane track */}
+                <div
+                  className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
                   style={{
                     top: `${(laneYPositions[0] ?? MONTH_AREA_HEIGHT) + LANE_HEIGHT / 2 - MONTH_AREA_HEIGHT}px`,
                     left: "0px",
                   }}
                 >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="shrink-0">
-                    <polygon points="2,1 9,5 2,9" />
-                  </svg>
-                  {formatShortDateTime(pinned.time)}
-                </button>
+                  <span className="text-white text-[10px] px-1.5 py-0.5 rounded bg-indigo-600">
+                    {formatShortDateTime(pinned.time)}
+                  </span>
+                </div>
               </div>
             )}
           </div>
