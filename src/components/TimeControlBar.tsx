@@ -438,7 +438,7 @@ export function TimeControlBar({
                   >
                     {showYear && (
                       <div className="text-[10px] font-medium text-gray-400 leading-none">
-                        {month.getFullYear()}
+                        {month.getUTCFullYear()}
                       </div>
                     )}
                     <div className="text-[11px] text-gray-400 leading-snug">

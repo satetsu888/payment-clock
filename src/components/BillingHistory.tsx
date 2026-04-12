@@ -1,5 +1,5 @@
 import type { ResourceItem } from "../lib/types";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, formatDateLabel } from "../lib/format";
 
 interface BillingHistoryProps {
   invoices: ResourceItem[];
@@ -23,11 +23,7 @@ const statusColors: Record<string, string> = {
 };
 
 function formatDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  return `${date.getUTCFullYear()}/${formatDateLabel(date)}`;
 }
 
 function extractPaidAt(data: Record<string, unknown>): Date | null {
