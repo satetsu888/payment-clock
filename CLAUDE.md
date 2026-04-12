@@ -48,7 +48,7 @@ src/                        # React frontend
   lib/
     api.ts                  # Tauri command invocations (22 commands)
     types.ts                # TypeScript type definitions
-    format.ts               # Currency/price formatting utilities
+    format.ts               # Currency/price formatting + UTC datetime formatting utilities
     resource-grouping.ts    # Group resources by customer + extract customer IDs from events/operations
     stripe-compat.ts        # Stripe API version compatibility helpers (subscription period field location)
     timeline-data.ts        # Timeline lane/marker/period computation for TimeControlBar
