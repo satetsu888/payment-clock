@@ -6,10 +6,10 @@ import type {
   CreateSubscriptionOptions,
 } from "../lib/types";
 import { CreateSubscriptionDialog } from "./CreateSubscriptionDialog";
+import { CreatePaymentMethodDialog } from "./CreatePaymentMethodDialog";
 import { SubscriptionSection } from "./SubscriptionSection";
 import { BillingHistory } from "./BillingHistory";
 import { PaymentMethodList } from "./PaymentMethodList";
-import { TEST_PAYMENT_METHOD_GROUPS } from "../lib/payment-methods";
 
 function getDefaultPaymentMethodId(
   data: Record<string, unknown>,
@@ -39,6 +39,12 @@ export function CustomerTabContent({
   onSetDefaultPaymentMethod,
   onDetachPaymentMethod,
   onCreateSubscription,
+  onCancelSubscription,
+  onPauseSubscription,
+  onResumeSubscription,
+  stripeApiVersion,
+  highlightedInvoiceId,
+  onHighlightInvoice,
 }: {
   group: CustomerWithResources;
   accountId: string;
@@ -48,10 +54,15 @@ export function CustomerTabContent({
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onCreateSubscription: (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => Promise<void>;
+  onCancelSubscription: (subscriptionId: string) => Promise<void>;
+  onPauseSubscription: (subscriptionId: string) => Promise<void>;
+  onResumeSubscription: (subscriptionId: string) => Promise<void>;
+  stripeApiVersion: string;
+  highlightedInvoiceId: string | null;
+  onHighlightInvoice: (id: string | null) => void;
 }) {
   const { customer, subscriptions, invoices } = group;
-  const [attachingPM, setAttachingPM] = useState(false);
-  const [pmLoading, setPmLoading] = useState(false);
+  const [showAttachPM, setShowAttachPM] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodData[]>([]);
   const [showCreateSubscription, setShowCreateSubscription] = useState(false);
@@ -70,17 +81,8 @@ export function CustomerTabContent({
   }, [loadPaymentMethods]);
 
   const handleAttach = async (pmId: string) => {
-    setPmLoading(true);
-    setError(null);
-    try {
-      await onAttachPaymentMethod(customer.stripeId, pmId);
-      setAttachingPM(false);
-      await loadPaymentMethods();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setPmLoading(false);
-    }
+    await onAttachPaymentMethod(customer.stripeId, pmId);
+    await loadPaymentMethods();
   };
 
   const handleSetDefault = async (customerId: string, pmId: string) => {
@@ -140,7 +142,7 @@ export function CustomerTabContent({
             Payment Methods ({paymentMethods.length})
           </h4>
           <button
-            onClick={() => setAttachingPM(!attachingPM)}
+            onClick={() => setShowAttachPM(true)}
             className="text-xs text-indigo-600 hover:text-indigo-800"
           >
             + Payment Method
@@ -153,29 +155,6 @@ export function CustomerTabContent({
           onSetDefault={handleSetDefault}
           onDetach={handleDetach}
         />
-        {attachingPM && (
-          <div className="mt-2 space-y-1.5">
-            {TEST_PAYMENT_METHOD_GROUPS.map((pmGroup) => (
-              <div key={pmGroup.label} className="flex items-start gap-2">
-                <span className="text-xs text-gray-500 w-16 shrink-0 pt-1">
-                  {pmGroup.label}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {pmGroup.methods.map((pm) => (
-                    <button
-                      key={pm.id}
-                      onClick={() => handleAttach(pm.id)}
-                      disabled={pmLoading}
-                      className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50"
-                    >
-                      {pm.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Subscriptions */}
@@ -192,7 +171,13 @@ export function CustomerTabContent({
           </button>
         </div>
         {subscriptions.length > 0 ? (
-          <SubscriptionSection subscriptions={subscriptions} />
+          <SubscriptionSection
+            subscriptions={subscriptions}
+            stripeApiVersion={stripeApiVersion}
+            onCancel={onCancelSubscription}
+            onPause={onPauseSubscription}
+            onResume={onResumeSubscription}
+          />
         ) : (
           <p className="text-xs text-gray-400 mt-1">No subscriptions</p>
         )}
@@ -203,8 +188,19 @@ export function CustomerTabContent({
         <h4 className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
           Billing History
         </h4>
-        <BillingHistory invoices={invoices} />
+        <BillingHistory
+          invoices={invoices}
+          highlightedInvoiceId={highlightedInvoiceId}
+          onHighlightInvoice={onHighlightInvoice}
+        />
       </div>
+
+      {showAttachPM && (
+        <CreatePaymentMethodDialog
+          onAttach={handleAttach}
+          onClose={() => setShowAttachPM(false)}
+        />
+      )}
 
       {showCreateSubscription && (
         <CreateSubscriptionDialog

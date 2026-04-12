@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { PaymentMethodData } from "../lib/types";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
 import { formatBrand } from "../lib/format";
 
 export function PaymentMethodList({
@@ -49,6 +50,21 @@ export function PaymentMethodList({
       <div className="mt-1.5 space-y-1">
         {paymentMethods.map((pm) => {
           const isDefault = pm.id === defaultPaymentMethodId;
+          const menuItems: DropdownMenuItem[] = [];
+          if (!isDefault) {
+            menuItems.push({
+              label: "Set as default",
+              onClick: () => handleSetDefault(pm.id),
+              disabled: loading !== null,
+            });
+          }
+          menuItems.push({
+            label: "Detach",
+            onClick: () => setDetachTarget(pm),
+            danger: true,
+            disabled: loading !== null,
+          });
+
           return (
             <div
               key={pm.id}
@@ -69,24 +85,7 @@ export function PaymentMethodList({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                {!isDefault && (
-                  <button
-                    onClick={() => handleSetDefault(pm.id)}
-                    disabled={loading !== null}
-                    className="text-indigo-500 hover:text-indigo-700 disabled:opacity-50"
-                  >
-                    Set Default
-                  </button>
-                )}
-                <button
-                  onClick={() => setDetachTarget(pm)}
-                  disabled={loading !== null}
-                  className="text-red-400 hover:text-red-600 disabled:opacity-50"
-                >
-                  Detach
-                </button>
-              </div>
+              <DropdownMenu items={menuItems} />
             </div>
           );
         })}

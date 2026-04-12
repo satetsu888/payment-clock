@@ -11,12 +11,15 @@ export interface TimelineMarker {
   date: Date;
   type: "start" | "advance" | "current" | "billed" | "paid";
   tooltip: string;
+  invoiceId?: string;
 }
 
 export interface TimelinePeriodBar {
   start: Date;
   end: Date;
   status: string;
+  cancelAtPeriodEnd?: boolean;
+  isPaused?: boolean;
 }
 
 export interface TimelineLane {
@@ -35,15 +38,18 @@ interface BillingEvent {
   date: Date;
   type: "billed" | "paid";
   subscriptionId: string | null;
+  invoiceId: string;
   amount: number | null;
   currency: string | null;
 }
 
 interface SubscriptionPeriod {
   subscriptionId: string;
-  start: Date;
-  end: Date;
+  start: Date | null;
+  end: Date | null;
   status: string;
+  cancelAtPeriodEnd: boolean;
+  isPaused: boolean;
 }
 
 // --- Data extraction ---
@@ -108,6 +114,7 @@ function extractBillingEvents(
   const events: BillingEvent[] = [];
   for (const inv of resources.invoices) {
     const subscriptionId = getInvoiceSubscriptionId(inv.data);
+    const invoiceId = inv.stripeId;
     const currency = (inv.data.currency as string) ?? null;
     const amountDue = (inv.data.amount_due as number) ?? null;
     const amountPaid = (inv.data.amount_paid as number) ?? null;
@@ -117,6 +124,7 @@ function extractBillingEvents(
         date: new Date(created * 1000),
         type: "billed",
         subscriptionId,
+        invoiceId,
         amount: amountDue,
         currency,
       });
@@ -130,6 +138,7 @@ function extractBillingEvents(
         date: new Date(paidAt * 1000),
         type: "paid",
         subscriptionId,
+        invoiceId,
         amount: amountPaid,
         currency,
       });
@@ -147,17 +156,16 @@ function extractSubscriptionPeriods(
   const periods: SubscriptionPeriod[] = [];
   for (const sub of resources.subscriptions) {
     const status = sub.data.status as string;
-    if (status === "canceled" || status === "incomplete_expired") continue;
     const start = subscriptionCurrentPeriodStart(sub.data, apiVersion);
     const end = subscriptionCurrentPeriodEnd(sub.data, apiVersion);
-    if (start && end) {
-      periods.push({
-        subscriptionId: sub.stripeId,
-        start: new Date(start * 1000),
-        end: new Date(end * 1000),
-        status,
-      });
-    }
+    periods.push({
+      subscriptionId: sub.stripeId,
+      start: start ? new Date(start * 1000) : null,
+      end: end ? new Date(end * 1000) : null,
+      status,
+      cancelAtPeriodEnd: !!(sub.data.cancel_at_period_end as boolean | undefined),
+      isPaused: !!sub.data.pause_collection,
+    });
   }
   return periods;
 }
@@ -194,6 +202,7 @@ function billingMarkersForSubscription(
         date: ev.date,
         type: ev.type as "billed" | "paid",
         tooltip: `${label}: ${formatDateLabel(ev.date)}${amountStr}`,
+        invoiceId: ev.invoiceId,
       };
     });
 }
@@ -271,11 +280,16 @@ export function buildTimelineLanes(
       label: resources
         ? getSubscriptionLabel(period.subscriptionId, resources)
         : "",
-      periodBar: {
-        start: period.start,
-        end: period.end,
-        status: period.status,
-      },
+      periodBar:
+        period.start && period.end
+          ? {
+              start: period.start,
+              end: period.end,
+              status: period.status,
+              cancelAtPeriodEnd: period.cancelAtPeriodEnd,
+              isPaused: period.isPaused,
+            }
+          : null,
       markers: subBilling,
     });
   }

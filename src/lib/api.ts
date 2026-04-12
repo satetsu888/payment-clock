@@ -168,6 +168,42 @@ export async function createSubscription(
   });
 }
 
+export async function cancelSubscription(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("cancel_subscription", {
+    accountId,
+    testClockId,
+    subscriptionId,
+  });
+}
+
+export async function pauseSubscription(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("pause_subscription", {
+    accountId,
+    testClockId,
+    subscriptionId,
+  });
+}
+
+export async function resumeSubscription(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("resume_subscription", {
+    accountId,
+    testClockId,
+    subscriptionId,
+  });
+}
+
 export async function listProducts(
   accountId: string,
 ): Promise<StripeProduct[]> {

@@ -20,6 +20,8 @@ interface TimeControlBarProps {
   stripeApiVersion: string;
   isDeleted: boolean;
   advanceElapsedSeconds?: number;
+  highlightedInvoiceId?: string | null;
+  onHighlightInvoice?: (id: string | null) => void;
   onAdvanceToTime: (frozenTime: number) => void;
   onRefresh: () => void;
 }
@@ -40,15 +42,18 @@ function MarkerDot({
   x,
   trackY,
   marker,
+  isHighlighted,
   onMouseEnter,
   onMouseLeave,
 }: {
   x: number;
   trackY: number;
   marker: TimelineMarker;
+  isHighlighted?: boolean;
   onMouseEnter: (e: React.MouseEvent) => void;
   onMouseLeave: () => void;
 }) {
+  const hl = isHighlighted;
   switch (marker.type) {
     case "current":
       return (
@@ -103,9 +108,9 @@ function MarkerDot({
         >
           <div
             className="absolute -translate-x-1/2"
-            style={{ top: `${trackY - 4}px` }}
+            style={{ top: `${trackY - (hl ? 5 : 4)}px` }}
           >
-            <div className="w-2 h-2 rotate-45 bg-amber-400" />
+            <div className={`rotate-45 transition-all ${hl ? "w-3 h-3 bg-amber-500 ring-2 ring-amber-200" : "w-2 h-2 bg-amber-400"}`} />
           </div>
         </div>
       );
@@ -119,9 +124,9 @@ function MarkerDot({
         >
           <div
             className="absolute -translate-x-1/2"
-            style={{ top: `${trackY - 4}px` }}
+            style={{ top: `${trackY - (hl ? 5 : 4)}px` }}
           >
-            <div className="w-2 h-2 rotate-45 bg-green-500" />
+            <div className={`rotate-45 transition-all ${hl ? "w-3 h-3 bg-green-600 ring-2 ring-green-200" : "w-2 h-2 bg-green-500"}`} />
           </div>
         </div>
       );
@@ -138,6 +143,8 @@ export function TimeControlBar({
   stripeApiVersion,
   isDeleted,
   advanceElapsedSeconds,
+  highlightedInvoiceId,
+  onHighlightInvoice,
   onAdvanceToTime,
   onRefresh,
 }: TimeControlBarProps) {
@@ -481,9 +488,25 @@ export function TimeControlBar({
 
                   {/* Period bar */}
                   {lane.periodBar && (() => {
-                    const x1 = getX(lane.periodBar.start);
-                    const x2 = getX(lane.periodBar.end);
+                    const pb = lane.periodBar;
+                    const x1 = getX(pb.start);
+                    const x2 = getX(pb.end);
                     const barWidth = x2 - x1;
+
+                    // Color based on subscription state
+                    let barClass = "bg-indigo-100 border-indigo-200";
+                    let dotClass = "bg-indigo-300 ring-indigo-200";
+                    let tooltipSuffix = "";
+                    if (pb.isPaused) {
+                      barClass = "bg-amber-100 border-amber-300 border-dashed";
+                      dotClass = "bg-amber-400 ring-amber-200";
+                      tooltipSuffix = " (paused)";
+                    } else if (pb.cancelAtPeriodEnd) {
+                      barClass = "bg-red-50 border-red-200 border-dashed";
+                      dotClass = "bg-red-400 ring-red-200";
+                      tooltipSuffix = " (cancels at period end)";
+                    }
+
                     return (
                       <div
                         className="absolute cursor-default"
@@ -496,15 +519,15 @@ export function TimeControlBar({
                         onMouseEnter={(e) =>
                           showTooltip(
                             e,
-                            `Current period: ${formatDateLabel(lane.periodBar!.start)} – ${formatDateLabel(lane.periodBar!.end)}`,
+                            `Current period: ${formatDateLabel(pb.start)} – ${formatDateLabel(pb.end)}${tooltipSuffix}`,
                           )
                         }
                         onMouseLeave={hideTooltip}
                       >
-                        <div className="w-full h-full bg-indigo-100 rounded-sm border border-indigo-200" />
+                        <div className={`w-full h-full rounded-sm border ${barClass}`} />
                         {/* Period end marker */}
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 ring-1 ring-indigo-200" />
+                          <div className={`w-1.5 h-1.5 rounded-full ring-1 ${dotClass}`} />
                         </div>
                       </div>
                     );
@@ -517,8 +540,15 @@ export function TimeControlBar({
                       marker={marker}
                       x={getX(marker.date)}
                       trackY={ty}
-                      onMouseEnter={(e) => showTooltip(e, marker.tooltip)}
-                      onMouseLeave={hideTooltip}
+                      isHighlighted={!!marker.invoiceId && marker.invoiceId === highlightedInvoiceId}
+                      onMouseEnter={(e) => {
+                        showTooltip(e, marker.tooltip);
+                        if (marker.invoiceId) onHighlightInvoice?.(marker.invoiceId);
+                      }}
+                      onMouseLeave={() => {
+                        hideTooltip();
+                        if (marker.invoiceId) onHighlightInvoice?.(null);
+                      }}
                     />
                   ))}
 

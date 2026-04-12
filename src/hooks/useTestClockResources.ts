@@ -6,6 +6,9 @@ import {
   setDefaultPaymentMethod as apiSetDefaultPaymentMethod,
   detachPaymentMethod as apiDetachPaymentMethod,
   createSubscription as apiCreateSubscription,
+  cancelSubscription as apiCancelSubscription,
+  pauseSubscription as apiPauseSubscription,
+  resumeSubscription as apiResumeSubscription,
 } from "../lib/api";
 import type { TestClockResources, CustomerWithResources, CreateSubscriptionOptions } from "../lib/types";
 import { groupResourcesByCustomer } from "../lib/resource-grouping";
@@ -95,6 +98,30 @@ export function useTestClockResources(
     [accountId, testClockId, load],
   );
 
+  const cancelSubscription = useCallback(
+    async (subscriptionId: string) => {
+      await apiCancelSubscription(accountId, testClockId, subscriptionId);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const pauseSubscription = useCallback(
+    async (subscriptionId: string) => {
+      await apiPauseSubscription(accountId, testClockId, subscriptionId);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const resumeSubscription = useCallback(
+    async (subscriptionId: string) => {
+      await apiResumeSubscription(accountId, testClockId, subscriptionId);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -109,5 +136,8 @@ export function useTestClockResources(
     setDefaultPaymentMethod,
     detachPaymentMethod,
     createSubscription,
+    cancelSubscription,
+    pauseSubscription,
+    resumeSubscription,
   };
 }

@@ -36,6 +36,45 @@ pub async fn create_subscription(
     client.post("/v1/subscriptions", &str_params).await
 }
 
+pub async fn cancel_subscription(
+    api_key: &str,
+    subscription_id: &str,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &[("cancel_at_period_end", "true")],
+        )
+        .await
+}
+
+pub async fn pause_subscription(
+    api_key: &str,
+    subscription_id: &str,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &[("pause_collection[behavior]", "void")],
+        )
+        .await
+}
+
+pub async fn resume_subscription(
+    api_key: &str,
+    subscription_id: &str,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &[("pause_collection", "")],
+        )
+        .await
+}
+
 pub async fn list_subscriptions_by_customer(
     api_key: &str,
     customer_id: &str,

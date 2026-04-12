@@ -20,6 +20,12 @@ interface CustomerTabsProps {
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onCreateSubscription: (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => Promise<void>;
+  onCancelSubscription: (subscriptionId: string) => Promise<void>;
+  onPauseSubscription: (subscriptionId: string) => Promise<void>;
+  onResumeSubscription: (subscriptionId: string) => Promise<void>;
+  stripeApiVersion: string;
+  highlightedInvoiceId: string | null;
+  onHighlightInvoice: (id: string | null) => void;
   onReload: () => void;
   onClearError: () => void;
 }
@@ -36,6 +42,12 @@ export function CustomerTabs({
   onSetDefaultPaymentMethod,
   onDetachPaymentMethod,
   onCreateSubscription,
+  onCancelSubscription,
+  onPauseSubscription,
+  onResumeSubscription,
+  stripeApiVersion,
+  highlightedInvoiceId,
+  onHighlightInvoice,
   onReload,
   onClearError,
 }: CustomerTabsProps) {
@@ -145,6 +157,12 @@ export function CustomerTabs({
               onSetDefaultPaymentMethod={onSetDefaultPaymentMethod}
               onDetachPaymentMethod={onDetachPaymentMethod}
               onCreateSubscription={onCreateSubscription}
+              onCancelSubscription={onCancelSubscription}
+              onPauseSubscription={onPauseSubscription}
+              onResumeSubscription={onResumeSubscription}
+              stripeApiVersion={stripeApiVersion}
+              highlightedInvoiceId={highlightedInvoiceId}
+              onHighlightInvoice={onHighlightInvoice}
             />
           )}
       </div>

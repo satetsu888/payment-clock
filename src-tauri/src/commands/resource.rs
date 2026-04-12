@@ -286,6 +286,120 @@ pub async fn create_subscription(
 }
 
 #[tauri::command]
+pub async fn cancel_subscription(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: String,
+    subscription_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+
+    let subscription =
+        stripe::subscription::cancel_subscription(&api_key, &subscription_id).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let sub_id = subscription["id"].as_str().unwrap_or_default();
+    resource_snapshot::save_snapshot(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "subscription",
+        sub_id,
+        &subscription.to_string(),
+        &now,
+    )?;
+    let params_json =
+        serde_json::json!({ "subscription_id": subscription_id }).to_string();
+    operation::record(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "cancel_subscription",
+        Some(&params_json),
+        Some(sub_id),
+        &now,
+    )?;
+    Ok(subscription)
+}
+
+#[tauri::command]
+pub async fn pause_subscription(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: String,
+    subscription_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+
+    let subscription =
+        stripe::subscription::pause_subscription(&api_key, &subscription_id).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let sub_id = subscription["id"].as_str().unwrap_or_default();
+    resource_snapshot::save_snapshot(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "subscription",
+        sub_id,
+        &subscription.to_string(),
+        &now,
+    )?;
+    let params_json =
+        serde_json::json!({ "subscription_id": subscription_id }).to_string();
+    operation::record(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "pause_subscription",
+        Some(&params_json),
+        Some(sub_id),
+        &now,
+    )?;
+    Ok(subscription)
+}
+
+#[tauri::command]
+pub async fn resume_subscription(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: String,
+    subscription_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+
+    let subscription =
+        stripe::subscription::resume_subscription(&api_key, &subscription_id).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let sub_id = subscription["id"].as_str().unwrap_or_default();
+    resource_snapshot::save_snapshot(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "subscription",
+        sub_id,
+        &subscription.to_string(),
+        &now,
+    )?;
+    let params_json =
+        serde_json::json!({ "subscription_id": subscription_id }).to_string();
+    operation::record(
+        &db,
+        &account_id,
+        Some(&test_clock_id),
+        "resume_subscription",
+        Some(&params_json),
+        Some(sub_id),
+        &now,
+    )?;
+    Ok(subscription)
+}
+
+#[tauri::command]
 pub async fn list_products(
     state: State<'_, AppState>,
     account_id: String,

@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
 import type { TestClock } from "../lib/types";
 import { formatDateTime } from "../lib/format";
+import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
 
 interface TestClockCardProps {
   clock: TestClock;
@@ -38,60 +38,15 @@ function statusBadge(status: string, deletedAt: string | null) {
   );
 }
 
-function DropdownMenu({
-  items,
-  onClose,
-}: {
-  items: { label: string; onClick: () => void; danger?: boolean }[];
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
-
-  return (
-    <div
-      ref={ref}
-      className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10"
-    >
-      {items.map((item) => (
-        <button
-          key={item.label}
-          onClick={(e) => {
-            e.stopPropagation();
-            item.onClick();
-            onClose();
-          }}
-          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-            item.danger ? "text-red-600" : "text-gray-700"
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function TestClockCard({
   clock,
   onSelect,
   onDelete,
   onPurge,
 }: TestClockCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const isDeleted = !!clock.deletedAt;
 
-  const menuItems: { label: string; onClick: () => void; danger?: boolean }[] =
-    [];
+  const menuItems: DropdownMenuItem[] = [];
 
   if (isDeleted && onPurge) {
     menuItems.push({
@@ -120,29 +75,7 @@ export function TestClockCard({
         </span>
         <div className="flex items-center gap-2">
           {statusBadge(clock.status, clock.deletedAt)}
-          {menuItems.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(!menuOpen);
-                }}
-                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <circle cx="10" cy="4" r="1.5" />
-                  <circle cx="10" cy="10" r="1.5" />
-                  <circle cx="10" cy="16" r="1.5" />
-                </svg>
-              </button>
-              {menuOpen && (
-                <DropdownMenu
-                  items={menuItems}
-                  onClose={() => setMenuOpen(false)}
-                />
-              )}
-            </div>
-          )}
+          <DropdownMenu items={menuItems} />
         </div>
       </div>
       <div className="text-xs text-gray-500">

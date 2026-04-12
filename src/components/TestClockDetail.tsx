@@ -9,51 +9,7 @@ import { CustomerTabs } from "./CustomerTabs";
 import { TimeControlBar } from "./TimeControlBar";
 import { ErrorBanner } from "./ErrorBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
-
-function HeaderMenu({ onDelete, deleting }: { onDelete: () => void; deleting: boolean }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
-      >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <circle cx="10" cy="4" r="1.5" />
-          <circle cx="10" cy="10" r="1.5" />
-          <circle cx="10" cy="16" r="1.5" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-          <button
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            disabled={deleting}
-            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50 disabled:opacity-50"
-          >
-            {deleting ? "Deleting..." : "Delete test clock"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+import { DropdownMenu } from "./DropdownMenu";
 
 interface TestClockDetailProps {
   initialClock: import("../lib/types").TestClock;
@@ -105,6 +61,9 @@ export function TestClockDetail({
     setDefaultPaymentMethod,
     detachPaymentMethod,
     createSubscription,
+    cancelSubscription,
+    pauseSubscription,
+    resumeSubscription,
   } = useTestClockResources(accountId, testClockId, isDeleted);
 
   // --- Advance polling ---
@@ -137,6 +96,7 @@ export function TestClockDetail({
   // --- Local UI state ---
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
 
   // --- Aggregate error ---
   const error = detailError || eventsError || resourcesError || advanceError;
@@ -225,9 +185,16 @@ export function TestClockDetail({
             </div>
           </div>
           {!displayIsDeleted && (
-            <HeaderMenu
-              onDelete={() => setConfirmDelete(true)}
-              deleting={deleting}
+            <DropdownMenu
+              items={[
+                {
+                  label: deleting ? "Deleting..." : "Delete test clock",
+                  onClick: () => setConfirmDelete(true),
+                  danger: true,
+                  disabled: deleting,
+                },
+              ]}
+              buttonClassName="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
             />
           )}
         </div>
@@ -263,6 +230,8 @@ export function TestClockDetail({
               stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
               isDeleted={isDeleted}
               advanceElapsedSeconds={isAdvancePolling ? advanceElapsedSeconds : undefined}
+              highlightedInvoiceId={highlightedInvoiceId}
+              onHighlightInvoice={setHighlightedInvoiceId}
               onAdvanceToTime={handleAdvanceToTime}
               onRefresh={handleRefresh}
             />
@@ -280,6 +249,12 @@ export function TestClockDetail({
               onSetDefaultPaymentMethod={setDefaultPaymentMethod}
               onDetachPaymentMethod={detachPaymentMethod}
               onCreateSubscription={createSubscription}
+              onCancelSubscription={cancelSubscription}
+              onPauseSubscription={pauseSubscription}
+              onResumeSubscription={resumeSubscription}
+              stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
+              highlightedInvoiceId={highlightedInvoiceId}
+              onHighlightInvoice={setHighlightedInvoiceId}
               onReload={reloadResources}
               onClearError={clearResourcesError}
             />

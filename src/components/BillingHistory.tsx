@@ -3,6 +3,8 @@ import { formatCurrency, formatDateLabel } from "../lib/format";
 
 interface BillingHistoryProps {
   invoices: ResourceItem[];
+  highlightedInvoiceId?: string | null;
+  onHighlightInvoice?: (id: string | null) => void;
 }
 
 interface BillingRow {
@@ -36,7 +38,11 @@ function extractPaidAt(data: Record<string, unknown>): Date | null {
   return new Date(paidAt * 1000);
 }
 
-export function BillingHistory({ invoices }: BillingHistoryProps) {
+export function BillingHistory({
+  invoices,
+  highlightedInvoiceId,
+  onHighlightInvoice,
+}: BillingHistoryProps) {
   const rows: BillingRow[] = [];
 
   for (const inv of invoices) {
@@ -86,10 +92,19 @@ export function BillingHistory({ invoices }: BillingHistoryProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const accentColor =
+                row.status === "open" ? "border-l-blue-400" :
+                row.status === "draft" ? "border-l-gray-300" :
+                row.status === "uncollectible" ? "border-l-red-400" :
+                "border-l-transparent";
+              const isHighlighted = highlightedInvoiceId === row.id;
+              return (
               <tr
                 key={row.id}
-                className="hover:bg-gray-50"
+                className={`hover:bg-gray-50 border-l-2 ${accentColor} ${isHighlighted ? "bg-indigo-50" : ""} transition-colors`}
+                onMouseEnter={() => onHighlightInvoice?.(row.id)}
+                onMouseLeave={() => onHighlightInvoice?.(null)}
               >
                 <td className="px-3 py-1.5 text-gray-600">
                   {formatDate(row.createdAt)}
@@ -110,7 +125,8 @@ export function BillingHistory({ invoices }: BillingHistoryProps) {
                   </span>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
