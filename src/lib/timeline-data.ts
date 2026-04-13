@@ -84,7 +84,7 @@ export function getClockCreatedTime(operations: Operation[]): Date | null {
 /** Extract subscription ID from invoice data.
  *  - Legacy API: `invoice.subscription` (string)
  *  - API v2025-03-31.basil+: `invoice.parent.subscription_details.subscription` */
-function getInvoiceSubscriptionId(
+export function getInvoiceSubscriptionId(
   data: Record<string, unknown>,
 ): string | null {
   // Legacy: top-level subscription field

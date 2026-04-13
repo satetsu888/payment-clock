@@ -190,6 +190,7 @@ export function CustomerTabContent({
         </h4>
         <BillingHistory
           invoices={invoices}
+          subscriptions={subscriptions}
           highlightedInvoiceId={highlightedInvoiceId}
           onHighlightInvoice={onHighlightInvoice}
         />

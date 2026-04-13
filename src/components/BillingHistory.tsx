@@ -1,8 +1,10 @@
 import type { ResourceItem } from "../lib/types";
-import { formatCurrency, formatDateLabel } from "../lib/format";
+import { formatCurrency, formatShortDateTime } from "../lib/format";
+import { getInvoiceSubscriptionId } from "../lib/timeline-data";
 
 interface BillingHistoryProps {
   invoices: ResourceItem[];
+  subscriptions: ResourceItem[];
   highlightedInvoiceId?: string | null;
   onHighlightInvoice?: (id: string | null) => void;
 }
@@ -14,6 +16,7 @@ interface BillingRow {
   amount: number;
   currency: string;
   status: string;
+  subscriptionLabel: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -23,10 +26,6 @@ const statusColors: Record<string, string> = {
   void: "text-gray-500 bg-gray-100",
   uncollectible: "text-red-700 bg-red-100",
 };
-
-function formatDate(date: Date): string {
-  return `${date.getUTCFullYear()}/${formatDateLabel(date)}`;
-}
 
 function extractPaidAt(data: Record<string, unknown>): Date | null {
   const transitions = data.status_transitions as
@@ -38,8 +37,25 @@ function extractPaidAt(data: Record<string, unknown>): Date | null {
   return new Date(paidAt * 1000);
 }
 
+function resolveSubscriptionLabel(
+  subscriptionId: string | null,
+  subscriptions: ResourceItem[],
+): string | null {
+  if (!subscriptionId) return null;
+  const sub = subscriptions.find((s) => s.stripeId === subscriptionId);
+  if (sub) {
+    const metadata = sub.data.metadata as Record<string, string> | undefined;
+    if (metadata?.payment_clock_label) return metadata.payment_clock_label;
+  }
+  // フォールバック: subscription IDの末尾を表示
+  return subscriptionId.length > 12
+    ? `sub_...${subscriptionId.slice(-6)}`
+    : subscriptionId;
+}
+
 export function BillingHistory({
   invoices,
+  subscriptions,
   highlightedInvoiceId,
   onHighlightInvoice,
 }: BillingHistoryProps) {
@@ -48,6 +64,7 @@ export function BillingHistory({
   for (const inv of invoices) {
     const status = inv.data.status as string;
     const created = inv.data.created as number | undefined;
+    const subscriptionId = getInvoiceSubscriptionId(inv.data);
     rows.push({
       id: inv.stripeId,
       createdAt: created ? new Date(created * 1000) : new Date(0),
@@ -55,6 +72,7 @@ export function BillingHistory({
       amount: (inv.data.total as number) ?? 0,
       currency: (inv.data.currency as string) ?? "usd",
       status,
+      subscriptionLabel: resolveSubscriptionLabel(subscriptionId, subscriptions),
     });
   }
 
@@ -87,6 +105,7 @@ export function BillingHistory({
             <tr className="bg-gray-50 text-gray-500 uppercase tracking-wide">
               <th className="px-3 py-1.5 text-left font-medium">Billed</th>
               <th className="px-3 py-1.5 text-left font-medium">Paid</th>
+              <th className="px-3 py-1.5 text-left font-medium">Subscription</th>
               <th className="px-3 py-1.5 text-right font-medium">Amount</th>
               <th className="px-3 py-1.5 text-left font-medium">Status</th>
             </tr>
@@ -107,10 +126,17 @@ export function BillingHistory({
                 onMouseLeave={() => onHighlightInvoice?.(null)}
               >
                 <td className="px-3 py-1.5 text-gray-600">
-                  {formatDate(row.createdAt)}
+                  {formatShortDateTime(row.createdAt)}
                 </td>
                 <td className="px-3 py-1.5 text-gray-600">
-                  {row.paidAt ? formatDate(row.paidAt) : (
+                  {row.paidAt ? formatShortDateTime(row.paidAt) : (
+                    <span className="text-gray-300">&mdash;</span>
+                  )}
+                </td>
+                <td className="px-3 py-1.5 text-gray-500 text-xs">
+                  {row.subscriptionLabel ? (
+                    <span className="font-mono">{row.subscriptionLabel}</span>
+                  ) : (
                     <span className="text-gray-300">&mdash;</span>
                   )}
                 </td>
