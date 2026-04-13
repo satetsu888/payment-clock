@@ -6,7 +6,7 @@ const icons = [Clock, RefreshCw, List]
 
 export function Features() {
   return (
-    <section id="features" className="py-20 px-6 bg-gray-50">
+    <section id="features" className="py-20 px-6 bg-gray-50/70">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-3xl font-bold text-gray-900 text-center">
           {content.features.title}
@@ -17,7 +17,7 @@ export function Features() {
             const reversed = i % 2 === 1
             return (
               <FadeIn key={item.title}>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="feature-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                   <div
                     className={`flex flex-col ${reversed ? 'md:flex-row-reverse' : 'md:flex-row'}`}
                   >
@@ -37,7 +37,9 @@ export function Features() {
                       </p>
                     </div>
                     {/* Screenshot placeholder */}
-                    <div className="flex-1 bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100">
+                    <div
+                      className={`flex-1 bg-gray-50 border-t md:border-t-0 ${reversed ? 'md:border-r' : 'md:border-l'} border-gray-100`}
+                    >
                       <div className="aspect-[16/10] flex items-center justify-center text-gray-400 text-sm">
                         Screenshot
                       </div>

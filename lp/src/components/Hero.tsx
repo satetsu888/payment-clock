@@ -3,8 +3,12 @@ import { content, links } from '../content'
 
 export function Hero() {
   return (
-    <section className="pt-28 pb-20 px-6">
-      <div className="max-w-4xl mx-auto text-center">
+    <section className="relative pt-28 pb-24 px-6 hero-gradient overflow-hidden">
+      {/* Decorative blurred orbs */}
+      <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-indigo-100/40 blur-3xl" />
+      <div className="pointer-events-none absolute top-40 -right-40 h-[300px] w-[300px] rounded-full bg-violet-100/30 blur-3xl" />
+
+      <div className="relative max-w-4xl mx-auto text-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
           {content.hero.title}
         </h1>
@@ -16,7 +20,7 @@ export function Hero() {
             href={links.releases}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all hover:shadow-lg hover:shadow-indigo-200"
           >
             {content.hero.cta}
             <ArrowRight className="h-4 w-4" />
@@ -25,7 +29,7 @@ export function Hero() {
             href={links.github}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
           >
             <Github className="h-4 w-4" />
             {content.hero.github}
@@ -33,7 +37,7 @@ export function Hero() {
         </div>
 
         {/* Screenshot placeholder */}
-        <div className="mt-16 mx-auto max-w-3xl rounded-xl border border-gray-200 bg-gray-50 shadow-lg overflow-hidden">
+        <div className="mt-16 mx-auto max-w-3xl rounded-xl bg-gray-50 screenshot-frame overflow-hidden">
           <div className="aspect-[16/10] flex items-center justify-center text-gray-400 text-sm">
             App screenshot
           </div>
