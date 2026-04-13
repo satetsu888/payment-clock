@@ -69,12 +69,12 @@ export function TestClockCard({
       onClick={() => onSelect(clock.id)}
       className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-indigo-300 transition-colors relative"
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-gray-900">
+      <div className="flex items-center mb-1">
+        <span className="text-sm font-medium text-gray-900 mr-2">
           {clock.name || clock.stripeTestClockId}
         </span>
-        <div className="flex items-center gap-2">
-          {statusBadge(clock.status, clock.deletedAt)}
+        {statusBadge(clock.status, clock.deletedAt)}
+        <div className="ml-auto">
           <DropdownMenu items={menuItems} />
         </div>
       </div>
