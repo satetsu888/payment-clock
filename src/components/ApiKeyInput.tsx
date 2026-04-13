@@ -34,7 +34,7 @@ export function ApiKeyInput({ onSubmit }: ApiKeyInputProps) {
       <div>
         <label
           htmlFor="api-key"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-semibold text-gray-900 mb-1"
         >
           Stripe Test API Key
         </label>

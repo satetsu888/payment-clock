@@ -158,9 +158,10 @@ export function TestClockDetail({
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-xl text-gray-400 hover:text-gray-700 px-1"
+              aria-label="Back"
             >
-              &larr; {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
+              ←
             </button>
             <div>
               <div className="flex items-center gap-2">

@@ -14,7 +14,7 @@ export function AccountList({ accounts, onSelect, onDelete }: AccountListProps) 
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-medium text-gray-700">Saved Accounts</h2>
+      <h2 className="text-sm font-semibold text-gray-900">Saved Accounts</h2>
       {accounts.map((account) => (
         <AccountCard
           key={account.id}
