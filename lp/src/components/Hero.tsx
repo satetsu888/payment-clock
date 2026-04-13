@@ -1,5 +1,5 @@
-import { ArrowRight, Github } from 'lucide-react'
-import { content, links } from '../content'
+import { content } from '../content'
+import { DownloadButtons } from './DownloadButtons'
 
 export function Hero() {
   return (
@@ -16,25 +16,8 @@ export function Hero() {
         <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
           {content.hero.subtitle}
         </p>
-        <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
-          <a
-            href={links.releases}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all hover:shadow-lg hover:shadow-indigo-200"
-          >
-            {content.hero.cta}
-            <ArrowRight className="h-4 w-4" />
-          </a>
-          <a
-            href={links.github}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
-          >
-            <Github className="h-4 w-4" />
-            {content.hero.github}
-          </a>
+        <div className="mt-10">
+          <DownloadButtons />
         </div>
 
         {/* Screenshot placeholder */}

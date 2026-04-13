@@ -1,7 +1,12 @@
-import { Clock, Github } from 'lucide-react'
+import { Clock, Download, Github } from 'lucide-react'
 import { content, links } from '../content'
+import { usePlatform } from '../hooks/usePlatform'
 
 export function Header() {
+  const platform = usePlatform()
+  const downloadLink =
+    platform === 'windows' ? links.downloadWindows : links.downloadMac
+
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -20,11 +25,10 @@ export function Header() {
             {content.header.github}
           </a>
           <a
-            href={links.releases}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+            href={downloadLink}
+            className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
           >
+            <Download className="h-3.5 w-3.5" />
             {content.header.download}
           </a>
         </div>

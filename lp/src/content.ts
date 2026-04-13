@@ -8,8 +8,6 @@ export const content = {
     title: 'Iterate on Stripe billing, visually',
     subtitle:
       'A desktop app that turns Stripe Test Clock operations into a visual timeline. Advance time, trigger billing events, and test subscription lifecycle — all without writing code.',
-    cta: 'Download',
-    github: 'View on GitHub',
   },
   features: {
     title: 'Features',
@@ -83,8 +81,6 @@ export const content = {
   },
   cta: {
     title: 'Start testing your billing flows',
-    download: 'Download',
-    github: 'View on GitHub',
   },
   footer: {
     license: 'MIT License',
@@ -94,4 +90,8 @@ export const content = {
 export const links = {
   github: 'https://github.com/satetsu888/payment-clock',
   releases: 'https://github.com/satetsu888/payment-clock/releases',
+  downloadMac:
+    'https://github.com/satetsu888/payment-clock/releases/latest/download/Payment.Clock_aarch64.dmg',
+  downloadWindows:
+    'https://github.com/satetsu888/payment-clock/releases/latest/download/Payment.Clock_x64-setup.exe',
 } as const
