@@ -68,7 +68,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 pl-[70px] pr-4 py-3" data-tauri-drag-region>
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 pl-4 pr-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">

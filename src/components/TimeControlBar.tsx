@@ -23,7 +23,6 @@ interface TimeControlBarProps {
   highlightedInvoiceId?: string | null;
   onHighlightInvoice?: (id: string | null) => void;
   onAdvanceToTime: (frozenTime: number) => void;
-  onRefresh: () => void;
 }
 
 const MS_PER_DAY = 86400000;
@@ -146,7 +145,6 @@ export function TimeControlBar({
   highlightedInvoiceId,
   onHighlightInvoice,
   onAdvanceToTime,
-  onRefresh,
 }: TimeControlBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -159,10 +157,16 @@ export function TimeControlBar({
   // Hover / pin state for click-to-advance
   const [hoverX, setHoverX] = useState<number | null>(null);
   const [pinned, setPinned] = useState<{ x: number; time: Date } | null>(null);
+  const [advanceTargetTime, setAdvanceTargetTime] = useState<Date | null>(null);
 
   const currentTime = new Date(frozenTime);
   const createdTime = getClockCreatedTime(operations);
   const isAdvancing = status === "advancing";
+
+  // Clear advance target when advancing completes
+  useEffect(() => {
+    if (!isAdvancing) setAdvanceTargetTime(null);
+  }, [isAdvancing]);
 
   // Build lane data
   const lanes = useMemo(
@@ -327,6 +331,7 @@ export function TimeControlBar({
   const handleAdvanceClick = useCallback(() => {
     if (!pinned) return;
     const unixSeconds = Math.floor(pinned.time.getTime() / 1000);
+    setAdvanceTargetTime(pinned.time);
     setPinned(null);
     onAdvanceToTime(unixSeconds);
   }, [pinned, onAdvanceToTime]);
@@ -368,7 +373,7 @@ export function TimeControlBar({
             {isAdvancing ? (
               <>
                 <span className="w-3 h-3 border-2 border-indigo-300 border-t-white rounded-full animate-spin shrink-0" />
-                Advancing...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
+                Advancing{advanceTargetTime ? ` to ${formatShortDateTime(advanceTargetTime)}` : ""}...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
               </>
             ) : (
               <>
@@ -378,13 +383,6 @@ export function TimeControlBar({
                 {pinned ? `Advance to ${formatShortDateTime(pinned.time)}` : "Advance"}
               </>
             )}
-          </button>
-          <button
-            onClick={onRefresh}
-            disabled={isDeleted || isAdvancing}
-            className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Refresh
           </button>
         </div>
       </div>

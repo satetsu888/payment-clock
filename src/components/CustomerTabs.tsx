@@ -108,16 +108,6 @@ export function CustomerTabs({
         >
           +
         </button>
-        <div className="ml-auto flex items-center pr-2">
-          <button
-            onClick={onReload}
-            disabled={loading}
-            className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50"
-            title="Refresh resources"
-          >
-            {loading ? "..." : "Refresh"}
-          </button>
-        </div>
       </div>
 
       {/* Tab content */}
