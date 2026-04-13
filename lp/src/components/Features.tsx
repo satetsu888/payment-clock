@@ -2,7 +2,26 @@ import { Clock, RefreshCw, List } from 'lucide-react'
 import { content } from '../content'
 import { FadeIn } from './FadeIn'
 
-const icons = [Clock, RefreshCw, List]
+const featureStyles = [
+  {
+    Icon: Clock,
+    iconBg: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
+    valueColor: 'text-indigo-600',
+  },
+  {
+    Icon: RefreshCw,
+    iconBg: 'bg-violet-50',
+    iconColor: 'text-violet-600',
+    valueColor: 'text-violet-600',
+  },
+  {
+    Icon: List,
+    iconBg: 'bg-teal-50',
+    iconColor: 'text-teal-600',
+    valueColor: 'text-teal-600',
+  },
+]
 
 export function Features() {
   return (
@@ -13,7 +32,7 @@ export function Features() {
         </h2>
         <div className="mt-14 space-y-12">
           {content.features.items.map((item, i) => {
-            const Icon = icons[i]
+            const { Icon, iconBg, iconColor, valueColor } = featureStyles[i]
             const reversed = i % 2 === 1
             return (
               <FadeIn key={item.title}>
@@ -23,8 +42,10 @@ export function Features() {
                   >
                     {/* Text */}
                     <div className="flex-1 p-8 flex flex-col justify-center">
-                      <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center mb-4">
-                        <Icon className="h-5 w-5 text-indigo-600" />
+                      <div
+                        className={`h-10 w-10 rounded-lg ${iconBg} flex items-center justify-center mb-4`}
+                      >
+                        <Icon className={`h-5 w-5 ${iconColor}`} />
                       </div>
                       <h3 className="text-xl font-semibold text-gray-900">
                         {item.title}
@@ -32,7 +53,7 @@ export function Features() {
                       <p className="mt-3 text-sm text-gray-600 leading-relaxed">
                         {item.description}
                       </p>
-                      <p className="mt-4 text-sm text-indigo-600 font-medium">
+                      <p className={`mt-4 text-sm font-medium ${valueColor}`}>
                         {item.value}
                       </p>
                     </div>
