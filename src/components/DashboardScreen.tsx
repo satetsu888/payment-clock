@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowLeftRight, RefreshCw } from "lucide-react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
 import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../lib/api";
@@ -79,9 +80,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
                 onClick={() => setSelectedAccount(null)}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
+                <ArrowLeftRight className="w-3 h-3" />
                 Switch Account
               </button>
             </div>
@@ -101,9 +100,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
               className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
               title="Refresh"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4.05 11A8 8 0 0118.36 5.64L20 4M19.95 13A8 8 0 015.64 18.36L4 20" />
-              </svg>
+              <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowCreate(true)}

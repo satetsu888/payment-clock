@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { EllipsisVertical } from "lucide-react";
 
 export interface DropdownMenuItem {
   label: string;
@@ -41,11 +42,7 @@ export function DropdownMenu({ items, buttonClassName }: DropdownMenuProps) {
           "p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
         }
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <circle cx="10" cy="4" r="1.5" />
-          <circle cx="10" cy="10" r="1.5" />
-          <circle cx="10" cy="16" r="1.5" />
-        </svg>
+        <EllipsisVertical className="w-4 h-4" />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10">

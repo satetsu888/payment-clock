@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Play } from "lucide-react";
 import type { Operation, TestClockResources } from "../lib/types";
 import { formatDateTime, formatShortDateTime as fmtShort } from "../lib/format";
 import {
@@ -377,9 +378,7 @@ export function TimeControlBar({
               </>
             ) : (
               <>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="shrink-0">
-                  <polygon points="2,1 9,5 2,9" />
-                </svg>
+                <Play className="w-3 h-3 shrink-0 fill-current" />
                 {pinned ? `Advance to ${formatShortDateTime(pinned.time)}` : "Advance"}
               </>
             )}
