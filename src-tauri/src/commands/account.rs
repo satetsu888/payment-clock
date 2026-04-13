@@ -10,9 +10,9 @@ pub async fn validate_and_save_account(
     state: State<'_, AppState>,
     api_key: String,
 ) -> Result<Account, AppError> {
-    if !api_key.starts_with("sk_test_") {
+    if !api_key.starts_with("sk_test_") && !api_key.starts_with("rk_test_") {
         return Err(AppError::Validation(
-            "Only test mode API keys (sk_test_) are accepted".to_string(),
+            "Only test mode API keys (sk_test_ / rk_test_) are accepted".to_string(),
         ));
     }
 

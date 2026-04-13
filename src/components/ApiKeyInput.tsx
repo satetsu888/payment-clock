@@ -9,12 +9,14 @@ export function ApiKeyInput({ onSubmit }: ApiKeyInputProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isValidPrefix = apiKey === "" || apiKey.startsWith("sk_test_");
+  const hasValidPrefix =
+    apiKey.startsWith("sk_test_") || apiKey.startsWith("rk_test_");
+  const isValidPrefix = apiKey === "" || hasValidPrefix;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiKey.startsWith("sk_test_")) {
-      setError("API Key must start with sk_test_");
+    if (!hasValidPrefix) {
+      setError("API Key must start with sk_test_ or rk_test_");
       return;
     }
     setLoading(true);
@@ -43,7 +45,7 @@ export function ApiKeyInput({ onSubmit }: ApiKeyInputProps) {
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder="sk_test_..."
+          placeholder="sk_test_... / rk_test_..."
           className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
             !isValidPrefix ? "border-red-300" : "border-gray-300"
           }`}
@@ -51,7 +53,7 @@ export function ApiKeyInput({ onSubmit }: ApiKeyInputProps) {
         />
         {!isValidPrefix && (
           <p className="mt-1 text-xs text-red-600">
-            Only test mode keys (sk_test_) are accepted
+            Only test mode keys (sk_test_ / rk_test_) are accepted
           </p>
         )}
       </div>
@@ -62,7 +64,7 @@ export function ApiKeyInput({ onSubmit }: ApiKeyInputProps) {
       )}
       <button
         type="submit"
-        disabled={loading || !apiKey.startsWith("sk_test_")}
+        disabled={loading || !hasValidPrefix}
         className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Connecting..." : "Connect Account"}
