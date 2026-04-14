@@ -31,7 +31,7 @@ const PAST_PADDING_DAYS = 30;
 const FUTURE_PADDING_DAYS = 60;
 const LABEL_COLUMN_WIDTH = 110;
 const TIMELINE_PADDING_PX = 40;
-const NOW_CALLOUT_HEIGHT = 10;
+const NOW_CALLOUT_HEIGHT = 20;
 const MONTH_AREA_HEIGHT = 24 + NOW_CALLOUT_HEIGHT;
 const LANE_HEIGHT = 20;
 const LANE_GAP = 8;
@@ -463,41 +463,47 @@ export function TimeControlBar({
               );
             })}
 
+            {/* Label row: fixed-height area at the top for Now / hover / pinned labels */}
+            {/* All labels use the same flex container to vertically center-align */}
+
             {/* "Now" vertical line + L-shaped callout label */}
             {(() => {
               const calloutDx = 24;
-              const calloutTop = 4;
               return (
                 <>
-                  {/* Vertical line (from callout top through all lanes) */}
+                  {/* Vertical line (from middle of label row through all lanes) */}
                   <div
                     className="absolute w-px bg-indigo-300"
                     style={{
                       left: `${nowX}px`,
-                      top: `${calloutTop}px`,
-                      height: `${lanesBottom - calloutTop}px`,
+                      top: `${NOW_CALLOUT_HEIGHT / 2}px`,
+                      height: `${lanesBottom - NOW_CALLOUT_HEIGHT / 2}px`,
                     }}
                   />
-                  {/* Horizontal line (from vertical line to the left) */}
+                  {/* Horizontal line (from vertical line to the left, vertically centered in label row) */}
                   <div
-                    className="absolute h-px bg-indigo-300 pointer-events-none"
+                    className="absolute flex items-center pointer-events-none"
                     style={{
                       left: `${nowX - calloutDx}px`,
-                      top: `${calloutTop}px`,
+                      top: "0px",
                       width: `${calloutDx}px`,
-                    }}
-                  />
-                  {/* Now label (left of horizontal line) */}
-                  <div
-                    className="absolute pointer-events-none whitespace-nowrap text-[10px] font-medium text-indigo-400"
-                    style={{
-                      right: `${timelineWidth - nowX + calloutDx + 4}px`,
-                      top: `${calloutTop}px`,
-                      transform: "translateY(-50%)",
-                      lineHeight: "1",
+                      height: `${NOW_CALLOUT_HEIGHT}px`,
                     }}
                   >
-                    Now: {formatShortDateTime(currentTime)}
+                    <div className="w-full h-px bg-indigo-300" />
+                  </div>
+                  {/* Now label (left of horizontal line, vertically centered in label row) */}
+                  <div
+                    className="absolute flex items-center pointer-events-none"
+                    style={{
+                      right: `${timelineWidth - nowX + calloutDx + 4}px`,
+                      top: "0px",
+                      height: `${NOW_CALLOUT_HEIGHT}px`,
+                    }}
+                  >
+                    <span className="whitespace-nowrap text-[10px] font-medium text-indigo-400">
+                      Now: {formatShortDateTime(currentTime)}
+                    </span>
                   </div>
                 </>
               );
@@ -627,53 +633,57 @@ export function TimeControlBar({
             {canInteract && hoverX != null && (() => {
               const isFuture = hoverX > nowX;
               return (
-                <div
-                  className={`absolute w-px pointer-events-none ${isFuture ? "bg-indigo-400/50" : "bg-gray-300/50"}`}
-                  style={{
-                    left: `${hoverX}px`,
-                    top: `${MONTH_AREA_HEIGHT}px`,
-                    height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
-                  }}
-                >
-                  {/* Hover time tooltip – same height as the advance button */}
+                <>
                   <div
-                    className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                    className={`absolute w-px pointer-events-none ${isFuture ? "bg-indigo-400/50" : "bg-gray-300/50"}`}
                     style={{
-                      top: `${(laneYPositions[0] ?? MONTH_AREA_HEIGHT) + LANE_HEIGHT / 2 - MONTH_AREA_HEIGHT}px`,
-                      left: "0px",
+                      left: `${hoverX}px`,
+                      top: `${NOW_CALLOUT_HEIGHT / 2}px`,
+                      height: `${lanesBottom - NOW_CALLOUT_HEIGHT / 2}px`,
+                    }}
+                  />
+                  {/* Hover time label – vertically centered in label row */}
+                  <div
+                    className="absolute flex items-center -translate-x-1/2 pointer-events-none"
+                    style={{
+                      left: `${hoverX}px`,
+                      top: "0px",
+                      height: `${NOW_CALLOUT_HEIGHT}px`,
                     }}
                   >
-                    <span className={`text-white text-[10px] px-1.5 py-0.5 rounded ${isFuture ? "bg-indigo-600" : "bg-gray-400"}`}>
+                    <span className={`whitespace-nowrap text-white text-[10px] px-1.5 py-0.5 rounded ${isFuture ? "bg-indigo-600" : "bg-gray-400"}`}>
                       {formatShortDateTime(getTimeFromX(hoverX))}
                     </span>
                   </div>
-                </div>
+                </>
               );
             })()}
 
             {/* Pinned vertical line + time badge */}
             {canInteract && pinned && (
-              <div
-                className="absolute w-px bg-indigo-500 pointer-events-none"
-                style={{
-                  left: `${pinned.x}px`,
-                  top: `${MONTH_AREA_HEIGHT}px`,
-                  height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
-                }}
-              >
-                {/* Time badge centered on first lane track */}
+              <>
                 <div
-                  className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                  className="absolute w-px bg-indigo-500 pointer-events-none"
                   style={{
-                    top: `${(laneYPositions[0] ?? MONTH_AREA_HEIGHT) + LANE_HEIGHT / 2 - MONTH_AREA_HEIGHT}px`,
-                    left: "0px",
+                    left: `${pinned.x}px`,
+                    top: `${NOW_CALLOUT_HEIGHT / 2}px`,
+                    height: `${lanesBottom - NOW_CALLOUT_HEIGHT / 2}px`,
+                  }}
+                />
+                {/* Time badge – vertically centered in label row */}
+                <div
+                  className="absolute flex items-center -translate-x-1/2 pointer-events-none"
+                  style={{
+                    left: `${pinned.x}px`,
+                    top: "0px",
+                    height: `${NOW_CALLOUT_HEIGHT}px`,
                   }}
                 >
-                  <span className="text-white text-[10px] px-1.5 py-0.5 rounded bg-indigo-600">
+                  <span className="whitespace-nowrap text-white text-[10px] px-1.5 py-0.5 rounded bg-indigo-600">
                     {formatShortDateTime(pinned.time)}
                   </span>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
