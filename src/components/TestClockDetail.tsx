@@ -76,7 +76,6 @@ export function TestClockDetail({
 
   const {
     isPolling: isAdvancePolling,
-    elapsedSeconds: advanceElapsedSeconds,
     error: advanceError,
     startPolling: startAdvancePolling,
     clearError: clearAdvanceError,
@@ -241,7 +240,6 @@ export function TestClockDetail({
               resources={resources}
               stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
               isDeleted={isDeleted}
-              advanceElapsedSeconds={isAdvancePolling ? advanceElapsedSeconds : undefined}
               highlightedInvoiceId={highlightedInvoiceId}
               onHighlightInvoice={setHighlightedInvoiceId}
               onAdvanceToTime={handleAdvanceToTime}

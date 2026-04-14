@@ -20,7 +20,6 @@ interface TimeControlBarProps {
   resources: TestClockResources | null;
   stripeApiVersion: string;
   isDeleted: boolean;
-  advanceElapsedSeconds?: number;
   highlightedInvoiceId?: string | null;
   onHighlightInvoice?: (id: string | null) => void;
   onAdvanceToTime: (frozenTime: number) => void;
@@ -142,7 +141,6 @@ export function TimeControlBar({
   resources,
   stripeApiVersion,
   isDeleted,
-  advanceElapsedSeconds,
   highlightedInvoiceId,
   onHighlightInvoice,
   onAdvanceToTime,
@@ -217,7 +215,8 @@ export function TimeControlBar({
     [pxPerDay, startTime],
   );
 
-  const canInteract = !isDeleted && !isAdvancing;
+  const isAdvancingOrPending = isAdvancing || advanceTargetTime != null;
+  const canInteract = !isDeleted && !isAdvancingOrPending;
 
   // Per-lane label computation
   const laneLabels = lanes.map((lane) => {
@@ -369,12 +368,12 @@ export function TimeControlBar({
             type="button"
             onClick={handleAdvanceClick}
             disabled={!canInteract || !pinned}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            className="px-4 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 whitespace-nowrap"
           >
-            {isAdvancing ? (
+            {isAdvancingOrPending ? (
               <>
                 <span className="w-3 h-3 border-2 border-indigo-300 border-t-white rounded-full animate-spin shrink-0" />
-                Advancing{advanceTargetTime ? ` to ${formatShortDateTime(advanceTargetTime)}` : ""}...{advanceElapsedSeconds != null && advanceElapsedSeconds > 0 ? ` (${advanceElapsedSeconds}s)` : ""}
+                Advancing to {formatShortDateTime(advanceTargetTime!)}...
               </>
             ) : (
               <>
