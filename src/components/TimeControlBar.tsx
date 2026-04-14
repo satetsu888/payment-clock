@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Play } from "lucide-react";
 import type { Operation, TestClockResources } from "../lib/types";
-import { formatDateTime, formatShortDateTime as fmtShort } from "../lib/format";
+import { formatShortDateTime as fmtShort } from "../lib/format";
 import {
   buildTimelineLanes,
   getClockCreatedTime,
@@ -27,10 +27,12 @@ interface TimeControlBarProps {
 
 const MS_PER_DAY = 86400000;
 const THREE_MONTHS_DAYS = 90;
+const PAST_PADDING_DAYS = 30;
 const FUTURE_PADDING_DAYS = 60;
 const LABEL_COLUMN_WIDTH = 110;
 const TIMELINE_PADDING_PX = 40;
-const MONTH_AREA_HEIGHT = 24;
+const NOW_CALLOUT_HEIGHT = 10;
+const MONTH_AREA_HEIGHT = 24 + NOW_CALLOUT_HEIGHT;
 const LANE_HEIGHT = 20;
 const LANE_GAP = 8;
 const LABEL_ROW_HEIGHT = 14;
@@ -61,7 +63,7 @@ function MarkerDot({
             className="absolute -translate-x-1/2"
             style={{ top: `${trackY - 6}px` }}
           >
-            <div className="w-3.5 h-3.5 rounded-full bg-white border-2 border-indigo-600 ring-2 ring-indigo-200" />
+            <div className="w-3 h-3 rounded-full bg-indigo-200/50 ring-1 ring-indigo-200" />
           </div>
         </div>
       );
@@ -176,7 +178,14 @@ export function TimeControlBar({
   );
 
   // Timeline range
-  const startTime = createdTime ?? currentTime;
+  const currentMinusPast = new Date(
+    currentTime.getTime() - PAST_PADDING_DAYS * MS_PER_DAY,
+  );
+  const baseStart = createdTime ?? currentTime;
+  const startTime =
+    currentMinusPast.getTime() < baseStart.getTime()
+      ? currentMinusPast
+      : baseStart;
   const threeMonthsEnd = new Date(
     startTime.getTime() + THREE_MONTHS_DAYS * MS_PER_DAY,
   );
@@ -353,16 +362,8 @@ export function TimeControlBar({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
-      {/* Top row: frozen time + buttons */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 uppercase tracking-wide">
-            Frozen Time
-          </span>
-          <span className="text-lg font-semibold text-gray-900 font-mono">
-            {formatDateTime(currentTime)}
-          </span>
-        </div>
+      {/* Top row: advance button */}
+      <div className="flex items-center justify-end mb-4">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -447,7 +448,7 @@ export function TimeControlBar({
                   />
                   <div
                     className="absolute left-1.5 whitespace-nowrap"
-                    style={{ top: showYear ? "2px" : "8px" }}
+                    style={{ top: showYear ? `${NOW_CALLOUT_HEIGHT + 2}px` : `${NOW_CALLOUT_HEIGHT + 8}px` }}
                   >
                     {showYear && (
                       <div className="text-[10px] font-medium text-gray-400 leading-none">
@@ -462,17 +463,45 @@ export function TimeControlBar({
               );
             })}
 
-            {/* "Now" vertical line across all lanes */}
-            {(
-              <div
-                className="absolute w-px bg-indigo-300"
-                style={{
-                  left: `${nowX}px`,
-                  top: `${MONTH_AREA_HEIGHT}px`,
-                  height: `${lanesBottom - MONTH_AREA_HEIGHT}px`,
-                }}
-              />
-            )}
+            {/* "Now" vertical line + L-shaped callout label */}
+            {(() => {
+              const calloutDx = 24;
+              const calloutTop = 4;
+              return (
+                <>
+                  {/* Vertical line (from callout top through all lanes) */}
+                  <div
+                    className="absolute w-px bg-indigo-300"
+                    style={{
+                      left: `${nowX}px`,
+                      top: `${calloutTop}px`,
+                      height: `${lanesBottom - calloutTop}px`,
+                    }}
+                  />
+                  {/* Horizontal line (from vertical line to the left) */}
+                  <div
+                    className="absolute h-px bg-indigo-300 pointer-events-none"
+                    style={{
+                      left: `${nowX - calloutDx}px`,
+                      top: `${calloutTop}px`,
+                      width: `${calloutDx}px`,
+                    }}
+                  />
+                  {/* Now label (left of horizontal line) */}
+                  <div
+                    className="absolute pointer-events-none whitespace-nowrap text-[10px] font-medium text-indigo-400"
+                    style={{
+                      right: `${timelineWidth - nowX + calloutDx + 4}px`,
+                      top: `${calloutTop}px`,
+                      transform: "translateY(-50%)",
+                      lineHeight: "1",
+                    }}
+                  >
+                    Now: {formatShortDateTime(currentTime)}
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Lanes + per-lane date labels */}
             {lanes.map((lane, laneIndex) => {
