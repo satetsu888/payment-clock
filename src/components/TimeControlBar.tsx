@@ -61,9 +61,9 @@ function MarkerDot({
         <div className="absolute" style={{ left: `${x}px` }}>
           <div
             className="absolute -translate-x-1/2"
-            style={{ top: `${trackY - 6}px` }}
+            style={{ top: `${trackY - 4}px` }}
           >
-            <div className="w-3 h-3 rounded-full bg-indigo-200/50 ring-1 ring-indigo-200" />
+            <div className="w-2 h-2 rounded-full bg-indigo-200/50 ring-1 ring-indigo-200" />
           </div>
         </div>
       );
