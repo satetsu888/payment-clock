@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Clock, RefreshCw } from "lucide-react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClockDetail as useDetail } from "../hooks/useTestClockDetail";
 import { useTestClockEvents } from "../hooks/useTestClockEvents";
@@ -165,6 +165,7 @@ export function TestClockDetail({
             </button>
             <div>
               <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-gray-400 shrink-0" />
                 <h1 className="text-lg font-semibold text-gray-900">
                   {displayClock.name || displayClock.stripeTestClockId}
                 </h1>

@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react";
 import type { TestClock } from "../lib/types";
 import { formatDateTime } from "../lib/format";
 import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
@@ -70,6 +71,7 @@ export function TestClockCard({
       className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-indigo-300 transition-colors relative"
     >
       <div className="flex items-center mb-1">
+        <Clock className="w-4 h-4 text-gray-400 mr-1.5 shrink-0" />
         <span className="text-sm font-medium text-gray-900 mr-2">
           {clock.name || clock.stripeTestClockId}
         </span>
