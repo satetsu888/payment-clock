@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { TEST_PAYMENT_METHOD_GROUPS } from "../../../lib/payment-methods";
+import { Dialog } from "../../ui/Dialog";
 
 interface CreatePaymentMethodDialogProps {
   onAttach: (paymentMethodId: string) => Promise<void>;
@@ -27,18 +28,14 @@ export function CreatePaymentMethodDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Attach Payment Method
-        </h2>
-
+    <Dialog onClose={onClose} size="sm">
+      <Dialog.Header title="Attach Payment Method" />
+      <Dialog.Content>
         {error && (
-          <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded mb-3">
+          <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-md">
             {error}
           </p>
         )}
-
         <div className="space-y-3">
           {TEST_PAYMENT_METHOD_GROUPS.map((pmGroup) => (
             <div key={pmGroup.label}>
@@ -51,7 +48,7 @@ export function CreatePaymentMethodDialog({
                     key={pm.id}
                     onClick={() => handleAttach(pm.id)}
                     disabled={loading}
-                    className="px-2.5 py-1.5 text-xs border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 transition-colors"
+                    className="px-2.5 py-1.5 text-xs border border-gray-300 rounded-md hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 transition-colors"
                   >
                     {pm.label}
                   </button>
@@ -60,17 +57,10 @@ export function CreatePaymentMethodDialog({
             </div>
           ))}
         </div>
-
-        <div className="mt-5 flex justify-end">
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+      </Dialog.Content>
+      <Dialog.Footer>
+        <Dialog.CancelButton onClick={onClose} disabled={loading} />
+      </Dialog.Footer>
+    </Dialog>
   );
 }

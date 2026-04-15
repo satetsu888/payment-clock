@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { listProducts, listPrices } from "../../../lib/api";
 import type { SubscriptionItemUpdate, StripeProduct, StripePrice } from "../../../lib/types";
 import { formatCurrency } from "../../../lib/format";
+import { Dialog } from "../../ui/Dialog";
 
 interface ItemRow {
   key: string; // unique key for React
@@ -131,96 +132,94 @@ export function UpdateSubscriptionItemsDialog({
     prices.filter((p) => p.product === productId);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Change Plan</h3>
-        </div>
-        <div className="p-4 space-y-4">
-          {/* Items list */}
-          <div className="space-y-3">
-            <label className="block text-xs font-medium text-gray-600">Items</label>
-            {items.map((item) => {
-              if (item.deleted) return null;
-              const productPrices = pricesForProduct(item.productId);
-              return (
-                <div key={item.key} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
-                  <div className="flex-1 space-y-1">
-                    <select
-                      value={item.productId}
-                      onChange={(e) => {
-                        updateItem(item.key, "productId", e.target.value);
-                        updateItem(item.key, "priceId", "");
-                      }}
-                      className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                    >
-                      <option value="">Select product...</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={item.priceId}
-                      onChange={(e) => updateItem(item.key, "priceId", e.target.value)}
-                      className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                      disabled={!item.productId}
-                    >
-                      <option value="">Select price...</option>
-                      {productPrices.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.unit_amount ? formatCurrency(p.unit_amount, p.currency) : "Usage-based"}
-                          {p.recurring ? `/${p.recurring.interval}` : ""}
-                          {p.nickname ? ` (${p.nickname})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {activeItems.length > 1 && (
-                    <button
-                      onClick={() => removeItem(item.key)}
-                      className="text-xs text-red-500 hover:text-red-700 mt-1"
-                    >
-                      Remove
-                    </button>
-                  )}
+    <Dialog onClose={onClose} size="lg">
+      <Dialog.Header title="Change Plan" />
+      <Dialog.Content scrollable compact>
+        {/* Items list */}
+        <div className="space-y-3">
+          <label className="block text-xs font-medium text-gray-600">Items</label>
+          {items.map((item) => {
+            if (item.deleted) return null;
+            const productPrices = pricesForProduct(item.productId);
+            return (
+              <div key={item.key} className="flex items-start gap-2 p-2 bg-gray-50 rounded-md">
+                <div className="flex-1 space-y-1">
+                  <select
+                    value={item.productId}
+                    onChange={(e) => {
+                      updateItem(item.key, "productId", e.target.value);
+                      updateItem(item.key, "priceId", "");
+                    }}
+                    className="w-full text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  >
+                    <option value="">Select product...</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={item.priceId}
+                    onChange={(e) => updateItem(item.key, "priceId", e.target.value)}
+                    className="w-full text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    disabled={!item.productId}
+                  >
+                    <option value="">Select price...</option>
+                    {productPrices.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.unit_amount ? formatCurrency(p.unit_amount, p.currency) : "Usage-based"}
+                        {p.recurring ? `/${p.recurring.interval}` : ""}
+                        {p.nickname ? ` (${p.nickname})` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              );
-            })}
-            <button
-              onClick={addItem}
-              className="text-xs text-indigo-600 hover:text-indigo-800"
-            >
-              + Add Item
-            </button>
-          </div>
-
-          {/* Proration behavior */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Proration Behavior</label>
-            <select
-              value={prorationBehavior}
-              onChange={(e) => setProrationBehavior(e.target.value)}
-              className="w-full text-xs border border-gray-300 rounded px-2 py-1.5"
-            >
-              <option value="create_prorations">Create prorations (default)</option>
-              <option value="none">None</option>
-              <option value="always_invoice">Always invoice</option>
-            </select>
-          </div>
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </div>
-        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+                {activeItems.length > 1 && (
+                  <button
+                    onClick={() => removeItem(item.key)}
+                    className="text-xs text-red-500 hover:text-red-700 mt-1"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            );
+          })}
           <button
-            onClick={handleSubmit}
-            disabled={loading || !canSubmit}
-            className="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
+            onClick={addItem}
+            className="text-xs text-indigo-600 hover:text-indigo-800"
           >
-            {loading ? "Updating..." : "Update"}
+            + Add Item
           </button>
         </div>
-      </div>
-    </div>
+
+        {/* Proration behavior */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Proration Behavior</label>
+          <select
+            value={prorationBehavior}
+            onChange={(e) => setProrationBehavior(e.target.value)}
+            className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          >
+            <option value="create_prorations">Create prorations (default)</option>
+            <option value="none">None</option>
+            <option value="always_invoice">Always invoice</option>
+          </select>
+        </div>
+
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </Dialog.Content>
+      <Dialog.Footer>
+        <Dialog.CancelButton size="compact" onClick={onClose} />
+        <Dialog.ActionButton
+          size="compact"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          loading={loading}
+          loadingText="Updating..."
+        >
+          Update
+        </Dialog.ActionButton>
+      </Dialog.Footer>
+    </Dialog>
   );
 }

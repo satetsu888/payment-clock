@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { Dialog } from "./Dialog";
 
 interface UpdateDialogProps {
   open: boolean;
@@ -76,12 +77,9 @@ export function UpdateDialog({ open, onClose }: UpdateDialogProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Update
-        </h2>
-
+    <Dialog onClose={onClose} size="sm">
+      <Dialog.Header title="Update" />
+      <Dialog.Content>
         {state.phase === "checking" && (
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -134,37 +132,28 @@ export function UpdateDialog({ open, onClose }: UpdateDialogProps) {
         {state.phase === "error" && (
           <p className="text-sm text-red-600">{state.message}</p>
         )}
-
-        <div className="flex justify-end gap-2 mt-6">
-          {state.phase !== "downloading" && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              Close
-            </button>
-          )}
-          {state.phase === "available" && (
-            <button
-              type="button"
-              onClick={handleInstall}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-            >
-              Update Now
-            </button>
-          )}
-          {state.phase === "error" && (
-            <button
-              type="button"
-              onClick={checkForUpdate}
-              className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800"
-            >
-              Retry
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      </Dialog.Content>
+      <Dialog.Footer>
+        {state.phase !== "downloading" && (
+          <Dialog.CancelButton onClick={onClose}>
+            Close
+          </Dialog.CancelButton>
+        )}
+        {state.phase === "available" && (
+          <Dialog.ActionButton onClick={handleInstall}>
+            Update Now
+          </Dialog.ActionButton>
+        )}
+        {state.phase === "error" && (
+          <button
+            type="button"
+            onClick={checkForUpdate}
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Retry
+          </button>
+        )}
+      </Dialog.Footer>
+    </Dialog>
   );
 }

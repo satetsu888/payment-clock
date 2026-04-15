@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatDateTime, toDatetimeLocalUTC } from "../../../lib/format";
+import { Dialog } from "../../ui/Dialog";
 
 interface UpdateSubscriptionTrialDialogProps {
   subscriptionId: string;
@@ -48,82 +49,79 @@ export function UpdateSubscriptionTrialDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Trial Settings</h3>
+    <Dialog onClose={onClose} size="md">
+      <Dialog.Header title="Trial Settings" />
+      <Dialog.Content compact>
+        {/* Current state */}
+        <div className="text-xs text-gray-500">
+          {currentTrialEnd
+            ? `Current trial ends: ${formatDateTime(new Date(currentTrialEnd * 1000))}`
+            : "No active trial"}
         </div>
-        <div className="p-4 space-y-4">
-          {/* Current state */}
-          <div className="text-xs text-gray-500">
-            {currentTrialEnd
-              ? `Current trial ends: ${formatDateTime(new Date(currentTrialEnd * 1000))}`
-              : "No active trial"}
-          </div>
 
-          {/* Action selection */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs">
+        {/* Action selection */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="radio"
+              name="trialAction"
+              checked={action === "set"}
+              onChange={() => setAction("set")}
+            />
+            <span>Set / Extend trial end</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="radio"
+              name="trialAction"
+              checked={action === "end_now"}
+              onChange={() => setAction("end_now")}
+            />
+            <span>End trial immediately</span>
+          </label>
+        </div>
+
+        {action === "set" && (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Trial End (UTC)</label>
               <input
-                type="radio"
-                name="trialAction"
-                checked={action === "set"}
-                onChange={() => setAction("set")}
+                type="datetime-local"
+                value={trialEndDate}
+                onChange={(e) => setTrialEndDate(e.target.value)}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
-              <span>Set / Extend trial end</span>
-            </label>
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="radio"
-                name="trialAction"
-                checked={action === "end_now"}
-                onChange={() => setAction("end_now")}
-              />
-              <span>End trial immediately</span>
-            </label>
-          </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Missing Payment Method Behavior
+              </label>
+              <select
+                value={endBehavior}
+                onChange={(e) => setEndBehavior(e.target.value as TrialEndBehavior)}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              >
+                <option value="create_invoice">Create invoice</option>
+                <option value="cancel">Cancel subscription</option>
+                <option value="pause">Pause subscription</option>
+              </select>
+            </div>
+          </>
+        )}
 
-          {action === "set" && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Trial End (UTC)</label>
-                <input
-                  type="datetime-local"
-                  value={trialEndDate}
-                  onChange={(e) => setTrialEndDate(e.target.value)}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1.5"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Missing Payment Method Behavior
-                </label>
-                <select
-                  value={endBehavior}
-                  onChange={(e) => setEndBehavior(e.target.value as TrialEndBehavior)}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1.5"
-                >
-                  <option value="create_invoice">Create invoice</option>
-                  <option value="cancel">Cancel subscription</option>
-                  <option value="pause">Pause subscription</option>
-                </select>
-              </div>
-            </>
-          )}
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </div>
-        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? "Updating..." : "Update"}
-          </button>
-        </div>
-      </div>
-    </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </Dialog.Content>
+      <Dialog.Footer>
+        <Dialog.CancelButton size="compact" onClick={onClose} />
+        <Dialog.ActionButton
+          size="compact"
+          onClick={handleSubmit}
+          loading={loading}
+          loadingText="Updating..."
+        >
+          Update
+        </Dialog.ActionButton>
+      </Dialog.Footer>
+    </Dialog>
   );
 }

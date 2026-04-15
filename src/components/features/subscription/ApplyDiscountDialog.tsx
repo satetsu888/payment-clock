@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Dialog } from "../../ui/Dialog";
 
 interface ApplyDiscountDialogProps {
   subscriptionId: string;
@@ -37,68 +38,66 @@ export function ApplyDiscountDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Apply Discount</h3>
-        </div>
-        <div className="p-4 space-y-4">
-          {/* Type selection */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="radio"
-                name="discountType"
-                checked={discountType === "coupon"}
-                onChange={() => setDiscountType("coupon")}
-              />
-              <span>Coupon ID</span>
-            </label>
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="radio"
-                name="discountType"
-                checked={discountType === "promotion_code"}
-                onChange={() => setDiscountType("promotion_code")}
-              />
-              <span>Promotion Code ID</span>
-            </label>
-          </div>
-
-          {/* Input */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              {discountType === "coupon" ? "Coupon ID" : "Promotion Code ID"}
-            </label>
+    <Dialog onClose={onClose} size="md">
+      <Dialog.Header title="Apply Discount" />
+      <Dialog.Content compact>
+        {/* Type selection */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-xs">
             <input
-              type="text"
-              value={discountType === "coupon" ? couponId : promotionCodeId}
-              onChange={(e) =>
-                discountType === "coupon"
-                  ? setCouponId(e.target.value)
-                  : setPromotionCodeId(e.target.value)
-              }
-              placeholder={discountType === "coupon" ? "e.g. SUMMER20" : "e.g. promo_xxx"}
-              className="w-full text-xs border border-gray-300 rounded px-2 py-1.5"
+              type="radio"
+              name="discountType"
+              checked={discountType === "coupon"}
+              onChange={() => setDiscountType("coupon")}
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Enter the ID from Stripe Dashboard
-            </p>
-          </div>
+            <span>Coupon ID</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="radio"
+              name="discountType"
+              checked={discountType === "promotion_code"}
+              onChange={() => setDiscountType("promotion_code")}
+            />
+            <span>Promotion Code ID</span>
+          </label>
+        </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+        {/* Input */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            {discountType === "coupon" ? "Coupon ID" : "Promotion Code ID"}
+          </label>
+          <input
+            type="text"
+            value={discountType === "coupon" ? couponId : promotionCodeId}
+            onChange={(e) =>
+              discountType === "coupon"
+                ? setCouponId(e.target.value)
+                : setPromotionCodeId(e.target.value)
+            }
+            placeholder={discountType === "coupon" ? "e.g. SUMMER20" : "e.g. promo_xxx"}
+            className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Enter the ID from Stripe Dashboard
+          </p>
         </div>
-        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !canSubmit}
-            className="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? "Applying..." : "Apply"}
-          </button>
-        </div>
-      </div>
-    </div>
+
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </Dialog.Content>
+      <Dialog.Footer>
+        <Dialog.CancelButton size="compact" onClick={onClose} />
+        <Dialog.ActionButton
+          size="compact"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          loading={loading}
+          loadingText="Applying..."
+        >
+          Apply
+        </Dialog.ActionButton>
+      </Dialog.Footer>
+    </Dialog>
   );
 }

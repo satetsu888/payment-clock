@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toDatetimeLocalUTC } from "../../../lib/format";
+import { Dialog } from "../../ui/Dialog";
 
 interface PauseSubscriptionDialogProps {
   subscriptionId: string;
@@ -38,59 +39,56 @@ export function PauseSubscriptionDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Pause Collection</h3>
-        </div>
-        <div className="p-4 space-y-4">
-          {/* Behavior */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Behavior</label>
-            <select
-              value={behavior}
-              onChange={(e) => setBehavior(e.target.value)}
-              className="w-full text-xs border border-gray-300 rounded px-2 py-1.5"
-            >
-              <option value="void">Void invoices</option>
-              <option value="keep_as_draft">Keep as draft</option>
-              <option value="mark_uncollectible">Mark uncollectible</option>
-            </select>
-          </div>
-
-          {/* Resumes at */}
-          <div>
-            <label className="flex items-center gap-2 text-xs mb-1">
-              <input
-                type="checkbox"
-                checked={hasResumesAt}
-                onChange={(e) => setHasResumesAt(e.target.checked)}
-              />
-              <span className="font-medium text-gray-600">Auto-resume at specific date</span>
-            </label>
-            {hasResumesAt && (
-              <input
-                type="datetime-local"
-                value={resumesAtDate}
-                onChange={(e) => setResumesAtDate(e.target.value)}
-                className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mt-1"
-              />
-            )}
-          </div>
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </div>
-        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
+    <Dialog onClose={onClose} size="md">
+      <Dialog.Header title="Pause Collection" />
+      <Dialog.Content compact>
+        {/* Behavior */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Behavior</label>
+          <select
+            value={behavior}
+            onChange={(e) => setBehavior(e.target.value)}
+            className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
           >
-            {loading ? "Pausing..." : "Pause"}
-          </button>
+            <option value="void">Void invoices</option>
+            <option value="keep_as_draft">Keep as draft</option>
+            <option value="mark_uncollectible">Mark uncollectible</option>
+          </select>
         </div>
-      </div>
-    </div>
+
+        {/* Resumes at */}
+        <div>
+          <label className="flex items-center gap-2 text-xs mb-1">
+            <input
+              type="checkbox"
+              checked={hasResumesAt}
+              onChange={(e) => setHasResumesAt(e.target.checked)}
+            />
+            <span className="font-medium text-gray-600">Auto-resume at specific date</span>
+          </label>
+          {hasResumesAt && (
+            <input
+              type="datetime-local"
+              value={resumesAtDate}
+              onChange={(e) => setResumesAtDate(e.target.value)}
+              className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            />
+          )}
+        </div>
+
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </Dialog.Content>
+      <Dialog.Footer>
+        <Dialog.CancelButton size="compact" onClick={onClose} />
+        <Dialog.ActionButton
+          size="compact"
+          onClick={handleSubmit}
+          loading={loading}
+          loadingText="Pausing..."
+        >
+          Pause
+        </Dialog.ActionButton>
+      </Dialog.Footer>
+    </Dialog>
   );
 }

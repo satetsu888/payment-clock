@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatDateTime } from "../../../lib/format";
+import { Dialog } from "../../ui/Dialog";
 
 interface UpdateBillingAnchorDialogProps {
   subscriptionId: string;
@@ -33,50 +34,47 @@ export function UpdateBillingAnchorDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Reset Billing Cycle Anchor</h3>
-        </div>
-        <div className="p-4 space-y-4">
-          {currentAnchor && (
-            <div className="text-xs text-gray-500">
-              Current anchor: {formatDateTime(new Date(currentAnchor * 1000))}
-            </div>
-          )}
-
-          <div className="text-xs text-gray-600 bg-gray-50 rounded p-2">
-            Resets the billing cycle anchor to the current frozen time ({formatDateTime(new Date(frozenTime))}).
-            This will immediately end the current billing period and start a new cycle.
+    <Dialog onClose={onClose} size="md">
+      <Dialog.Header title="Reset Billing Cycle Anchor" />
+      <Dialog.Content compact>
+        {currentAnchor && (
+          <div className="text-xs text-gray-500">
+            Current anchor: {formatDateTime(new Date(currentAnchor * 1000))}
           </div>
+        )}
 
-          {/* Proration behavior */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Proration Behavior</label>
-            <select
-              value={prorationBehavior}
-              onChange={(e) => setProrationBehavior(e.target.value)}
-              className="w-full text-xs border border-gray-300 rounded px-2 py-1.5"
-            >
-              <option value="create_prorations">Create prorations (default)</option>
-              <option value="none">None</option>
-              <option value="always_invoice">Always invoice</option>
-            </select>
-          </div>
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="text-xs text-gray-600 bg-gray-50 rounded-md p-2">
+          Resets the billing cycle anchor to the current frozen time ({formatDateTime(new Date(frozenTime))}).
+          This will immediately end the current billing period and start a new cycle.
         </div>
-        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
+
+        {/* Proration behavior */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Proration Behavior</label>
+          <select
+            value={prorationBehavior}
+            onChange={(e) => setProrationBehavior(e.target.value)}
+            className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
           >
-            {loading ? "Resetting..." : "Reset Anchor"}
-          </button>
+            <option value="create_prorations">Create prorations (default)</option>
+            <option value="none">None</option>
+            <option value="always_invoice">Always invoice</option>
+          </select>
         </div>
-      </div>
-    </div>
+
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </Dialog.Content>
+      <Dialog.Footer>
+        <Dialog.CancelButton size="compact" onClick={onClose} />
+        <Dialog.ActionButton
+          size="compact"
+          onClick={handleSubmit}
+          loading={loading}
+          loadingText="Resetting..."
+        >
+          Reset Anchor
+        </Dialog.ActionButton>
+      </Dialog.Footer>
+    </Dialog>
   );
 }

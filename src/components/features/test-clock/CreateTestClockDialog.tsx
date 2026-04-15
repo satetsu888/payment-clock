@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PM_VISA, PM_CHARGE_FAIL } from "../../../lib/payment-methods";
 import { toDatetimeLocalUTC } from "../../../lib/format";
 import { generateTestClockName } from "../../../lib/name-generator";
+import { Dialog } from "../../ui/Dialog";
 
 interface CreateTestClockDialogProps {
   onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; customerName?: string; paymentMethodIds: string[] }) => Promise<void>;
@@ -46,12 +47,10 @@ export function CreateTestClockDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Create Test Clock
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Dialog onClose={onClose} size="md">
+      <Dialog.Header title="Create Test Clock" />
+      <form onSubmit={handleSubmit}>
+        <Dialog.Content>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Name (optional)
@@ -62,7 +61,7 @@ export function CreateTestClockDialog({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="My test clock"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 disabled={loading}
               />
               <button
@@ -84,7 +83,7 @@ export function CreateTestClockDialog({
               type="datetime-local"
               value={dateTime}
               onChange={(e) => setDateTime(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               disabled={loading}
               required
             />
@@ -113,7 +112,7 @@ export function CreateTestClockDialog({
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="customer1"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   disabled={loading}
                 />
               </div>
@@ -148,25 +147,18 @@ export function CreateTestClockDialog({
               {error}
             </p>
           )}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {loading ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </Dialog.Content>
+        <Dialog.Footer>
+          <Dialog.CancelButton onClick={onClose} disabled={loading} />
+          <Dialog.ActionButton
+            type="submit"
+            loading={loading}
+            loadingText="Creating..."
+          >
+            Create
+          </Dialog.ActionButton>
+        </Dialog.Footer>
+      </form>
+    </Dialog>
   );
 }

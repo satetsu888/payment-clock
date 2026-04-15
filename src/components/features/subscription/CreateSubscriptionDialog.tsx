@@ -7,6 +7,7 @@ import type {
   StripePrice,
   CreateSubscriptionOptions,
 } from "../../../lib/types";
+import { Dialog } from "../../ui/Dialog";
 
 type TrialMode = "days" | "end";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
@@ -172,12 +173,10 @@ export function CreateSubscriptionDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Create Subscription
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Dialog onClose={onClose} size="md">
+      <Dialog.Header title="Create Subscription" />
+      <form onSubmit={handleSubmit}>
+        <Dialog.Content scrollable>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Customer
@@ -185,7 +184,7 @@ export function CreateSubscriptionDialog({
             <select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               disabled={loading}
             >
               {customers.map((c) => (
@@ -207,7 +206,7 @@ export function CreateSubscriptionDialog({
               {priceRows.map((row) => {
                 const productPrices = pricesForProduct(row.productId);
                 return (
-                  <div key={row.key} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
+                  <div key={row.key} className="flex items-start gap-2 p-2 bg-gray-50 rounded-md">
                     <div className="flex-1 space-y-1">
                       <select
                         value={row.productId}
@@ -306,7 +305,7 @@ export function CreateSubscriptionDialog({
                         min="1"
                         value={trialDays}
                         onChange={(e) => setTrialDays(e.target.value)}
-                        className="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                         disabled={loading}
                       />
                       <span className="text-sm text-gray-600">days</span>
@@ -319,7 +318,7 @@ export function CreateSubscriptionDialog({
                       value={trialEndDate}
                       min={frozenTimeMin}
                       onChange={(e) => setTrialEndDate(e.target.value)}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                       disabled={loading}
                     />
                     <p className="text-xs text-gray-400 mt-1">
@@ -337,7 +336,7 @@ export function CreateSubscriptionDialog({
                     onChange={(e) =>
                       setTrialEndBehavior(e.target.value as TrialEndBehavior)
                     }
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     disabled={loading}
                   >
                     <option value="create_invoice">
@@ -371,7 +370,7 @@ export function CreateSubscriptionDialog({
                     value={billingAnchorDate}
                     min={frozenTimeMin}
                     onChange={(e) => setBillingAnchorDate(e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-400 mt-1">
@@ -385,7 +384,7 @@ export function CreateSubscriptionDialog({
                   <select
                     value={prorationBehavior}
                     onChange={(e) => setProrationBehavior(e.target.value as "create_prorations" | "none")}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     disabled={loading}
                   >
                     <option value="create_prorations">Pro-rate (create_prorations)</option>
@@ -401,25 +400,19 @@ export function CreateSubscriptionDialog({
               {error}
             </p>
           )}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !customerId || validPriceIds.length === 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {loading ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </Dialog.Content>
+        <Dialog.Footer>
+          <Dialog.CancelButton onClick={onClose} disabled={loading} />
+          <Dialog.ActionButton
+            type="submit"
+            disabled={!customerId || validPriceIds.length === 0}
+            loading={loading}
+            loadingText="Creating..."
+          >
+            Create
+          </Dialog.ActionButton>
+        </Dialog.Footer>
+      </form>
+    </Dialog>
   );
 }
