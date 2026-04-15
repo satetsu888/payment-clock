@@ -1,10 +1,10 @@
 import { useState } from "react";
-import type { ResourceItem } from "../lib/types";
-import { formatDateTime } from "../lib/format";
+import type { ResourceItem } from "../../../lib/types";
+import { formatDateTime } from "../../../lib/format";
 import {
   subscriptionCurrentPeriodStart,
   subscriptionCurrentPeriodEnd,
-} from "../lib/stripe-compat";
+} from "../../../lib/stripe-compat";
 interface SubscriptionSectionProps {
   subscriptions: ResourceItem[];
   stripeApiVersion: string;

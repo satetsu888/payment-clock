@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
-import type { TestClock } from "../lib/types";
-import { formatDateTime } from "../lib/format";
-import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
+import type { TestClock } from "../../../lib/types";
+import { formatDateTime } from "../../../lib/format";
+import { DropdownMenu, type DropdownMenuItem } from "../../ui/DropdownMenu";
 
 interface TestClockCardProps {
   clock: TestClock;

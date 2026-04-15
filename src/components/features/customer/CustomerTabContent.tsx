@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { listPaymentMethods } from "../lib/api";
+import { listPaymentMethods } from "../../../lib/api";
 import type {
   CustomerWithResources,
   PaymentMethodData,
   CreateSubscriptionOptions,
-} from "../lib/types";
+} from "../../../lib/types";
 import { CreateSubscriptionDialog } from "./CreateSubscriptionDialog";
 import { CreatePaymentMethodDialog } from "./CreatePaymentMethodDialog";
 import { SubscriptionSection } from "./SubscriptionSection";

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { StripeEvent } from "../lib/types";
-import { subscriptionCurrentPeriodEnd } from "../lib/stripe-compat";
-import { formatDateTime } from "../lib/format";
+import type { StripeEvent } from "../../../lib/types";
+import { subscriptionCurrentPeriodEnd } from "../../../lib/stripe-compat";
+import { formatDateTime } from "../../../lib/format";
 
 interface EventItemProps {
   event: StripeEvent;

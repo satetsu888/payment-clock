@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { PaymentMethodData } from "../lib/types";
-import { ConfirmDialog } from "./ConfirmDialog";
-import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
-import { formatBrand } from "../lib/format";
+import type { PaymentMethodData } from "../../../lib/types";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { DropdownMenu, type DropdownMenuItem } from "../../ui/DropdownMenu";
+import { formatBrand } from "../../../lib/format";
 
 export function PaymentMethodList({
   customerId,

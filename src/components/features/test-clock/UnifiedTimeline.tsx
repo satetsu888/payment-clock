@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import type { Operation, StripeEvent, UnifiedTimelineItem } from "../lib/types";
-import { EventItem } from "./EventItem";
-import { extractCustomerIdFromEvent, extractCustomerIdFromOperation } from "../lib/resource-grouping";
-import { formatDateTime } from "../lib/format";
+import type { Operation, StripeEvent, UnifiedTimelineItem } from "../../../lib/types";
+import { EventItem } from "../timeline/EventItem";
+import { extractCustomerIdFromEvent, extractCustomerIdFromOperation } from "../../../lib/resource-grouping";
+import { formatDateTime } from "../../../lib/format";
 
 interface UnifiedTimelineProps {
   operations: Operation[];

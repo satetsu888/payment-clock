@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PM_VISA, PM_CHARGE_FAIL } from "../lib/payment-methods";
-import { toDatetimeLocalUTC } from "../lib/format";
-import { generateTestClockName } from "../lib/name-generator";
+import { PM_VISA, PM_CHARGE_FAIL } from "../../../lib/payment-methods";
+import { toDatetimeLocalUTC } from "../../../lib/format";
+import { generateTestClockName } from "../../../lib/name-generator";
 
 interface CreateTestClockDialogProps {
   onSubmit: (frozenTime: number, name?: string, options?: { createCustomer: boolean; customerName?: string; paymentMethodIds: string[] }) => Promise<void>;

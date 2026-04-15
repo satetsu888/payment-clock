@@ -1,8 +1,8 @@
-import { useAccounts } from "../hooks/useAccounts";
-import { selectAccount } from "../lib/api";
-import { useAccountContext } from "../contexts/AccountContext";
-import { ApiKeyInput } from "./ApiKeyInput";
-import { AccountList } from "./AccountList";
+import { useAccounts } from "../../hooks/useAccounts";
+import { selectAccount } from "../../lib/api";
+import { useAccountContext } from "../../contexts/AccountContext";
+import { ApiKeyInput } from "../features/account/ApiKeyInput";
+import { AccountList } from "../features/account/AccountList";
 
 export function AccountSelectScreen() {
   const { accounts, loading, error, addAccount, removeAccount } =

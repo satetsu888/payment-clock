@@ -1,4 +1,4 @@
-import type { AccountSummary } from "../lib/types";
+import type { AccountSummary } from "../../../lib/types";
 
 interface AccountCardProps {
   account: AccountSummary;

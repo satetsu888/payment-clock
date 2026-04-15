@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock, RefreshCw } from "lucide-react";
-import { useAccountContext } from "../contexts/AccountContext";
-import { useTestClockDetail as useDetail } from "../hooks/useTestClockDetail";
-import { useTestClockEvents } from "../hooks/useTestClockEvents";
-import { useTestClockResources } from "../hooks/useTestClockResources";
-import { useAdvancePolling } from "../hooks/useAdvancePolling";
-import { PageHeader } from "./PageHeader";
-import { UnifiedTimeline } from "./UnifiedTimeline";
-import { CustomerTabs } from "./CustomerTabs";
-import { TimeControlBar } from "./TimeControlBar";
-import { ErrorBanner } from "./ErrorBanner";
-import { ConfirmDialog } from "./ConfirmDialog";
-import { DropdownMenu } from "./DropdownMenu";
+import { useAccountContext } from "../../contexts/AccountContext";
+import { useTestClockDetail as useDetail } from "../../hooks/useTestClockDetail";
+import { useTestClockEvents } from "../../hooks/useTestClockEvents";
+import { useTestClockResources } from "../../hooks/useTestClockResources";
+import { useAdvancePolling } from "../../hooks/useAdvancePolling";
+import { PageHeader } from "../ui/PageHeader";
+import { UnifiedTimeline } from "../features/test-clock/UnifiedTimeline";
+import { CustomerTabs } from "../features/customer/CustomerTabs";
+import { TimeControlBar } from "../features/test-clock/TimeControlBar";
+import { ErrorBanner } from "../ui/ErrorBanner";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { DropdownMenu } from "../ui/DropdownMenu";
 
 interface TestClockDetailProps {
-  initialClock: import("../lib/types").TestClock;
+  initialClock: import("../../lib/types").TestClock;
   onBack: () => void;
   onAdvance: (testClockId: string, frozenTime: number) => Promise<void>;
   onDelete: (testClockId: string) => Promise<void>;

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { ArrowLeftRight, CircleUserRound, RefreshCw } from "lucide-react";
-import { useAccountContext } from "../contexts/AccountContext";
-import { useTestClocks } from "../hooks/useTestClocks";
-import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../lib/api";
-import type { TestClock } from "../lib/types";
-import { PageHeader } from "./PageHeader";
-import { TestClockCard } from "./TestClockCard";
-import { CreateTestClockDialog } from "./CreateTestClockDialog";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { useAccountContext } from "../../contexts/AccountContext";
+import { useTestClocks } from "../../hooks/useTestClocks";
+import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../../lib/api";
+import type { TestClock } from "../../lib/types";
+import { PageHeader } from "../ui/PageHeader";
+import { TestClockCard } from "../features/test-clock/TestClockCard";
+import { CreateTestClockDialog } from "../features/test-clock/CreateTestClockDialog";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 interface DashboardScreenProps {
   onSelectTestClock: (clock: TestClock) => void;

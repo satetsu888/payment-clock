@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Play } from "lucide-react";
-import type { Operation, TestClockResources } from "../lib/types";
-import { formatShortDateTime as fmtShort } from "../lib/format";
+import type { Operation, TestClockResources } from "../../../lib/types";
+import { formatShortDateTime as fmtShort } from "../../../lib/format";
 import {
   buildTimelineLanes,
   getClockCreatedTime,
@@ -11,7 +11,7 @@ import {
   assignLabelRows,
   isLabelWorthy,
   type TimelineMarker,
-} from "../lib/timeline-data";
+} from "../../../lib/timeline-data";
 
 interface TimeControlBarProps {
   frozenTime: string;

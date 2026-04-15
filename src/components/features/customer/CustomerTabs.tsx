@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import type {
   CustomerWithResources,
   CreateSubscriptionOptions,
-} from "../lib/types";
-import { useAccountContext } from "../contexts/AccountContext";
+} from "../../../lib/types";
+import { useAccountContext } from "../../../contexts/AccountContext";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
 import { CustomerTabContent } from "./CustomerTabContent";
-import { ErrorBanner } from "./ErrorBanner";
+import { ErrorBanner } from "../../ui/ErrorBanner";
 
 interface CustomerTabsProps {
   customerGroups: CustomerWithResources[];

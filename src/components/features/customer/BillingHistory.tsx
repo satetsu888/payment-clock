@@ -1,6 +1,6 @@
-import type { ResourceItem } from "../lib/types";
-import { formatCurrency, formatShortDateTime } from "../lib/format";
-import { getInvoiceSubscriptionId } from "../lib/timeline-data";
+import type { ResourceItem } from "../../../lib/types";
+import { formatCurrency, formatShortDateTime } from "../../../lib/format";
+import { getInvoiceSubscriptionId } from "../../../lib/timeline-data";
 
 interface BillingHistoryProps {
   invoices: ResourceItem[];

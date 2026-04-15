@@ -12,32 +12,38 @@ Stripe Test Clock を管理するための Tauri デスクトップアプリケ�
 
 ```
 src/                        # React frontend
-  components/               # UI components
-    TestClockDetail.tsx      # Test clock detail page (main layout)
-    TimeControlBar.tsx       # Sticky time control bar with visual timeline
-    CustomerTabs.tsx         # Tab-based customer management
-    CustomerTabContent.tsx   # Per-customer content (payment methods, subscriptions, billing history)
-    PaymentMethodList.tsx    # Payment method list with dropdown menu (set default/detach)
-    BillingHistory.tsx       # Per-customer invoice billing history table (bidirectional highlight with TimeControlBar)
-    UnifiedTimeline.tsx      # Event log (operations + Stripe events)
-    SubscriptionSection.tsx  # Subscription card display with status-dependent actions (cancel/pause/resume)
-    DropdownMenu.tsx         # Shared dropdown menu component (trigger button + menu + click-outside close)
-    CreatePaymentMethodDialog.tsx # Payment method attach dialog (test card selection)
-    InvoiceSection.tsx       # Invoice list display
-    PaymentIntentSection.tsx # Payment intent list display
-    EventItem.tsx            # Single event display with expandable detail
-    CreateTestClockDialog.tsx # Test clock creation dialog with optional customer/PM setup
-    CreateCustomerDialog.tsx # Customer creation dialog
-    CreateSubscriptionDialog.tsx # Subscription creation dialog with trial options
-    ConfirmDialog.tsx        # Generic confirmation dialog
-    UpdateDialog.tsx         # App update dialog (Tauri updater + relaunch)
-    ErrorBanner.tsx          # Error display with retry/dismiss
-    DashboardScreen.tsx      # Test clock list view with create/delete/purge
-    TestClockCard.tsx        # Test clock card with status badge and menu
-    AccountSelectScreen.tsx  # Account selection/creation
-    AccountList.tsx          # Account list
-    AccountCard.tsx          # Account card
-    ApiKeyInput.tsx          # API key input (sk_test_ validation)
+  components/
+    pages/                  # 画面全体を構成するコンポーネント
+      AccountSelectScreen.tsx  # Account selection/creation
+      DashboardScreen.tsx      # Test clock list view with create/delete/purge
+      TestClockDetail.tsx      # Test clock detail page (main layout)
+    features/               # 特定の機能ドメインに属するコンポーネント
+      account/
+        AccountList.tsx      # Account list
+        AccountCard.tsx      # Account card
+        ApiKeyInput.tsx      # API key input (sk_test_ validation)
+      test-clock/
+        TestClockCard.tsx    # Test clock card with status badge and menu
+        CreateTestClockDialog.tsx # Test clock creation dialog with optional customer/PM setup
+        TimeControlBar.tsx   # Sticky time control bar with visual timeline
+        UnifiedTimeline.tsx  # Event log (operations + Stripe events)
+      customer/
+        CustomerTabs.tsx     # Tab-based customer management
+        CustomerTabContent.tsx # Per-customer content (payment methods, subscriptions, billing history)
+        CreateCustomerDialog.tsx # Customer creation dialog
+        CreateSubscriptionDialog.tsx # Subscription creation dialog with trial options
+        CreatePaymentMethodDialog.tsx # Payment method attach dialog (test card selection)
+        PaymentMethodList.tsx # Payment method list with dropdown menu (set default/detach)
+        SubscriptionSection.tsx # Subscription card display with status-dependent actions (cancel/pause/resume)
+        BillingHistory.tsx   # Per-customer invoice billing history table (bidirectional highlight with TimeControlBar)
+      timeline/
+        EventItem.tsx        # Single event display with expandable detail
+    ui/                     # ドメイン知識を持たない汎用UIコンポーネント
+      ConfirmDialog.tsx      # Generic confirmation dialog
+      DropdownMenu.tsx       # Shared dropdown menu component (trigger button + menu + click-outside close)
+      ErrorBanner.tsx        # Error display with retry/dismiss
+      PageHeader.tsx         # Page header with title, subtitle, icon, actions
+      UpdateDialog.tsx       # App update dialog (Tauri updater + relaunch)
   hooks/                    # Custom hooks
     useAccounts.ts          # Account list + CRUD
     useTestClocks.ts        # Test clock list + create/advance/delete/purge

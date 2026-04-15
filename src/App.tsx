@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { AccountProvider, useAccountContext } from "./contexts/AccountContext";
-import { AccountSelectScreen } from "./components/AccountSelectScreen";
-import { DashboardScreen } from "./components/DashboardScreen";
-import { TestClockDetail } from "./components/TestClockDetail";
-import { UpdateDialog } from "./components/UpdateDialog";
+import { AccountSelectScreen } from "./components/pages/AccountSelectScreen";
+import { DashboardScreen } from "./components/pages/DashboardScreen";
+import { TestClockDetail } from "./components/pages/TestClockDetail";
+import { UpdateDialog } from "./components/ui/UpdateDialog";
 import { advanceTestClock, deleteTestClock } from "./lib/api";
 import type { TestClock } from "./lib/types";
 

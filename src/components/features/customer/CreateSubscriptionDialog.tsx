@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { listProducts, listPrices } from "../lib/api";
-import { formatDateTime, toDatetimeLocalUTC } from "../lib/format";
+import { listProducts, listPrices } from "../../../lib/api";
+import { formatDateTime, toDatetimeLocalUTC } from "../../../lib/format";
 import type {
   ResourceItem,
   StripeProduct,
   StripePrice,
   CreateSubscriptionOptions,
-} from "../lib/types";
-import { formatPrice } from "../lib/format";
+} from "../../../lib/types";
+import { formatPrice } from "../../../lib/format";
 
 type TrialMode = "days" | "end";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";

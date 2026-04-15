@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TEST_PAYMENT_METHOD_GROUPS } from "../lib/payment-methods";
+import { TEST_PAYMENT_METHOD_GROUPS } from "../../../lib/payment-methods";
 
 interface CreatePaymentMethodDialogProps {
   onAttach: (paymentMethodId: string) => Promise<void>;
