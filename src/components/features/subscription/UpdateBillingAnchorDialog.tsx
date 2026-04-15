@@ -46,8 +46,8 @@ export function UpdateBillingAnchorDialog({
           )}
 
           <div className="text-xs text-gray-600 bg-gray-50 rounded p-2">
-            Billing cycle anchor を現在の frozen time ({formatDateTime(new Date(frozenTime))}) にリセットします。
-            これにより現在の請求期間が即座に終了し、新しいサイクルが開始されます。
+            Resets the billing cycle anchor to the current frozen time ({formatDateTime(new Date(frozenTime))}).
+            This will immediately end the current billing period and start a new cycle.
           </div>
 
           {/* Proration behavior */}

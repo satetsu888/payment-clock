@@ -29,7 +29,7 @@ pub fn run() {
             }
 
             // Build application menu
-            let check_update = MenuItemBuilder::with_id("check_update", "更新を確認...")
+            let check_update = MenuItemBuilder::with_id("check_update", "Check for Updates...")
                 .build(app)?;
             let app_submenu = SubmenuBuilder::new(app, "Payment Clock")
                 .about(None)

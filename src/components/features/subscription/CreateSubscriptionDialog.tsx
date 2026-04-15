@@ -263,7 +263,7 @@ export function CreateSubscriptionDialog({
                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 disabled={loading}
               />
-              Trial を設定する
+              Enable Trial
             </label>
 
             {enableTrial && (
@@ -279,7 +279,7 @@ export function CreateSubscriptionDialog({
                       className="text-indigo-600 focus:ring-indigo-500"
                       disabled={loading}
                     />
-                    日数指定
+                    By days
                   </label>
                   <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
                     <input
@@ -291,7 +291,7 @@ export function CreateSubscriptionDialog({
                       className="text-indigo-600 focus:ring-indigo-500"
                       disabled={loading}
                     />
-                    終了日時指定
+                    By end date
                   </label>
                 </div>
 
@@ -306,7 +306,7 @@ export function CreateSubscriptionDialog({
                         className="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         disabled={loading}
                       />
-                      <span className="text-sm text-gray-600">日間</span>
+                      <span className="text-sm text-gray-600">days</span>
                     </div>
                   </div>
                 ) : (
@@ -320,14 +320,14 @@ export function CreateSubscriptionDialog({
                       disabled={loading}
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                      Frozen time ({formatDateTime(new Date(frozenTime))}) より未来の日時を指定
+                      Must be after frozen time ({formatDateTime(new Date(frozenTime))})
                     </p>
                   </div>
                 )}
 
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">
-                    Trial 終了時の挙動 (payment method 未設定の場合)
+                    Trial end behavior (if no payment method)
                   </label>
                   <select
                     value={trialEndBehavior}
@@ -338,10 +338,10 @@ export function CreateSubscriptionDialog({
                     disabled={loading}
                   >
                     <option value="create_invoice">
-                      Create invoice (請求書を作成)
+                      Create invoice
                     </option>
-                    <option value="cancel">Cancel (サブスクリプションをキャンセル)</option>
-                    <option value="pause">Pause (一時停止)</option>
+                    <option value="cancel">Cancel subscription</option>
+                    <option value="pause">Pause subscription</option>
                   </select>
                 </div>
               </div>
@@ -357,7 +357,7 @@ export function CreateSubscriptionDialog({
                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 disabled={loading}
               />
-              Billing Cycle Anchor を指定する
+              Set Billing Cycle Anchor
             </label>
 
             {enableBillingAnchor && (
@@ -372,12 +372,12 @@ export function CreateSubscriptionDialog({
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    請求サイクルの基準日を指定（例: 月初に揃えたい場合は毎月1日の日時を指定）
+                    Set the billing cycle reference date (e.g., 1st of each month to align billing)
                   </p>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">
-                    Anchor までの期間の課金
+                    Billing until anchor
                   </label>
                   <select
                     value={prorationBehavior}
@@ -385,8 +385,8 @@ export function CreateSubscriptionDialog({
                     className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     disabled={loading}
                   >
-                    <option value="create_prorations">日割り課金 (create_prorations)</option>
-                    <option value="none">課金しない (none)</option>
+                    <option value="create_prorations">Pro-rate (create_prorations)</option>
+                    <option value="none">No charge (none)</option>
                   </select>
                 </div>
               </div>
