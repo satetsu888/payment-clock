@@ -16,7 +16,7 @@ interface DashboardScreenProps {
 
 export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   const { selectedAccount, setSelectedAccount } = useAccountContext();
-  const { testClocks, loading, error, refresh, create, remove, purge } =
+  const { testClocks, resourceCounts, loading, error, refresh, create, remove, purge } =
     useTestClocks(selectedAccount!.id);
   const [showCreate, setShowCreate] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<{
@@ -135,6 +135,8 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
             <TestClockCard
               key={clock.id}
               clock={clock}
+              customerCount={resourceCounts[clock.id]?.customerCount}
+              subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
               onSelect={() => { onSelectTestClock(clock); }}
               onDelete={(id) => setConfirmTarget({ type: "delete", testClockId: id })}
             />
@@ -151,6 +153,8 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
                 <TestClockCard
                   key={clock.id}
                   clock={clock}
+                  customerCount={resourceCounts[clock.id]?.customerCount}
+                  subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
                   onSelect={() => { onSelectTestClock(clock); }}
                   onPurge={(id) => setConfirmTarget({ type: "purge", testClockId: id })}
                 />

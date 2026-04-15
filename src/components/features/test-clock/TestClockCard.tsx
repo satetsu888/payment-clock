@@ -6,6 +6,8 @@ import { StripeIdLink } from "../../ui/StripeIdLink";
 
 interface TestClockCardProps {
   clock: TestClock;
+  customerCount?: number;
+  subscriptionCount?: number;
   onSelect: (clockId: string) => void;
   onDelete?: (testClockId: string) => void;
   onPurge?: (testClockId: string) => void;
@@ -42,6 +44,8 @@ function statusBadge(status: string, deletedAt: string | null) {
 
 export function TestClockCard({
   clock,
+  customerCount,
+  subscriptionCount,
   onSelect,
   onDelete,
   onPurge,
@@ -84,6 +88,20 @@ export function TestClockCard({
       <div className="text-xs text-gray-500">
         Frozen: {formatFrozenTime(clock.frozenTime)}
       </div>
+      {((customerCount ?? 0) > 0 || (subscriptionCount ?? 0) > 0) && (
+        <div className="text-xs text-gray-400 mt-0.5">
+          {[
+            customerCount && customerCount > 0
+              ? `${customerCount} customer${customerCount !== 1 ? "s" : ""}`
+              : null,
+            subscriptionCount && subscriptionCount > 0
+              ? `${subscriptionCount} subscription${subscriptionCount !== 1 ? "s" : ""}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </div>
+      )}
       {clock.name && (
         <div className="text-xs text-gray-400 mt-0.5">
           <StripeIdLink stripeId={clock.stripeTestClockId} />

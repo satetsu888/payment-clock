@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::Serialize;
 use tauri::State;
 
@@ -182,6 +183,15 @@ pub struct AdvancePreviewItem {
 pub struct AdvancePreview {
     pub affected_subscriptions: Vec<AdvancePreviewItem>,
     pub affected_invoices: Vec<AdvancePreviewItem>,
+}
+
+#[tauri::command]
+pub async fn get_resource_counts(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<HashMap<String, resource_snapshot::ResourceCounts>, AppError> {
+    let db = state.db.lock().unwrap();
+    resource_snapshot::count_by_test_clock(&db, &account_id)
 }
 
 #[tauri::command]

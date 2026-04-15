@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use rusqlite::{params, Connection};
 use serde::Serialize;
 
@@ -39,6 +40,50 @@ pub fn save_snapshot(
         ],
     )?;
     Ok(())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceCounts {
+    pub customer_count: u32,
+    pub subscription_count: u32,
+}
+
+/// Count customers and subscriptions per test clock for an account
+pub fn count_by_test_clock(
+    conn: &Connection,
+    account_id: &str,
+) -> Result<HashMap<String, ResourceCounts>, AppError> {
+    let mut stmt = conn.prepare(
+        "SELECT test_clock_id, resource_type, COUNT(*) as cnt
+         FROM resource_snapshots
+         WHERE account_id = ?1
+           AND resource_type IN ('customer', 'subscription')
+           AND test_clock_id IS NOT NULL
+         GROUP BY test_clock_id, resource_type",
+    )?;
+    let rows = stmt.query_map(params![account_id], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, u32>(2)?,
+        ))
+    })?;
+
+    let mut map: HashMap<String, ResourceCounts> = HashMap::new();
+    for row in rows {
+        let (test_clock_id, resource_type, count) = row?;
+        let entry = map.entry(test_clock_id).or_insert(ResourceCounts {
+            customer_count: 0,
+            subscription_count: 0,
+        });
+        match resource_type.as_str() {
+            "customer" => entry.customer_count = count,
+            "subscription" => entry.subscription_count = count,
+            _ => {}
+        }
+    }
+    Ok(map)
 }
 
 /// Get all snapshots for a resource type (one per resource due to UNIQUE constraint)

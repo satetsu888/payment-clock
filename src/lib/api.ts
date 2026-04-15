@@ -5,6 +5,7 @@ import type {
   TestClock,
   TestClockDetail,
   TestClockResources,
+  ResourceCounts,
   StripeProduct,
   StripePrice,
   StripeEvent,
@@ -339,6 +340,12 @@ export async function listPrices(
   productId?: string,
 ): Promise<StripePrice[]> {
   return invoke<StripePrice[]>("list_prices", { accountId, productId });
+}
+
+export async function getResourceCounts(
+  accountId: string,
+): Promise<Record<string, ResourceCounts>> {
+  return invoke<Record<string, ResourceCounts>>("get_resource_counts", { accountId });
 }
 
 export async function fetchTestClockResources(

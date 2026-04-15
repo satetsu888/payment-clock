@@ -26,6 +26,11 @@ export interface TestClock {
   deletedAt: string | null;
 }
 
+export interface ResourceCounts {
+  customerCount: number;
+  subscriptionCount: number;
+}
+
 export interface Operation {
   id: number;
   accountId: string;

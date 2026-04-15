@@ -5,11 +5,13 @@ import {
   advanceTestClock as apiAdvanceTestClock,
   deleteTestClock as apiDeleteTestClock,
   purgeTestClock as apiPurgeTestClock,
+  getResourceCounts as apiGetResourceCounts,
 } from "../lib/api";
-import type { TestClock } from "../lib/types";
+import type { TestClock, ResourceCounts } from "../lib/types";
 
 export function useTestClocks(accountId: string) {
   const [testClocks, setTestClocks] = useState<TestClock[]>([]);
+  const [resourceCounts, setResourceCounts] = useState<Record<string, ResourceCounts>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,8 +19,12 @@ export function useTestClocks(accountId: string) {
     setLoading(true);
     setError(null);
     try {
-      const result = await listTestClocks(accountId);
-      setTestClocks(result);
+      const [clocks, counts] = await Promise.all([
+        listTestClocks(accountId),
+        apiGetResourceCounts(accountId),
+      ]);
+      setTestClocks(clocks);
+      setResourceCounts(counts);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -64,5 +70,5 @@ export function useTestClocks(accountId: string) {
     [refresh],
   );
 
-  return { testClocks, loading, error, refresh, create, advance, remove, purge };
+  return { testClocks, resourceCounts, loading, error, refresh, create, advance, remove, purge };
 }
