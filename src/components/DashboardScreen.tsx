@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ArrowLeftRight, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, CircleUserRound, RefreshCw } from "lucide-react";
 import { useAccountContext } from "../contexts/AccountContext";
 import { useTestClocks } from "../hooks/useTestClocks";
 import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../lib/api";
 import type { TestClock } from "../lib/types";
+import { PageHeader } from "./PageHeader";
 import { TestClockCard } from "./TestClockCard";
 import { CreateTestClockDialog } from "./CreateTestClockDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -69,32 +70,31 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 pl-4 pr-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-semibold text-gray-900">
-                {selectedAccount?.displayName || selectedAccount?.stripeAccountId}
-              </span>
-              <button
-                onClick={() => setSelectedAccount(null)}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600"
-              >
-                <ArrowLeftRight className="w-3 h-3" />
-                Switch Account
-              </button>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
-              <span>{selectedAccount?.stripeAccountId}</span>
-              {selectedAccount?.stripeApiVersion && (
-                <>
-                  <span className="text-gray-300">·</span>
-                  <span>API {selectedAccount.stripeApiVersion}</span>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        icon={<CircleUserRound className="w-5 h-5 text-gray-400 shrink-0" />}
+        title={selectedAccount?.displayName || selectedAccount?.stripeAccountId || ""}
+        titleExtra={
+          <button
+            onClick={() => setSelectedAccount(null)}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600"
+          >
+            <ArrowLeftRight className="w-3 h-3" />
+            Switch Account
+          </button>
+        }
+        subtitle={
+          <span className="flex items-center gap-1.5">
+            <span>{selectedAccount?.stripeAccountId}</span>
+            {selectedAccount?.stripeApiVersion && (
+              <>
+                <span className="text-gray-300">·</span>
+                <span>API {selectedAccount.stripeApiVersion}</span>
+              </>
+            )}
+          </span>
+        }
+        actions={
+          <>
             <button
               onClick={refresh}
               className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
@@ -108,9 +108,9 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
             >
               + New Clock
             </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="p-6 max-w-4xl mx-auto">
 

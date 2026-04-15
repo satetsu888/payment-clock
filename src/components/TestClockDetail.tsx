@@ -5,6 +5,7 @@ import { useTestClockDetail as useDetail } from "../hooks/useTestClockDetail";
 import { useTestClockEvents } from "../hooks/useTestClockEvents";
 import { useTestClockResources } from "../hooks/useTestClockResources";
 import { useAdvancePolling } from "../hooks/useAdvancePolling";
+import { PageHeader } from "./PageHeader";
 import { UnifiedTimeline } from "./UnifiedTimeline";
 import { CustomerTabs } from "./CustomerTabs";
 import { TimeControlBar } from "./TimeControlBar";
@@ -152,41 +153,26 @@ export function TestClockDetail({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 pl-4 pr-4 py-3">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="text-xl text-gray-400 hover:text-gray-700 px-1"
-              aria-label="Back"
-            >
-              ←
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-gray-400 shrink-0" />
-                <h1 className="text-lg font-semibold text-gray-900">
-                  {displayClock.name || displayClock.stripeTestClockId}
-                </h1>
-                <span
-                  className={`px-2 py-0.5 text-xs rounded-full ${
-                    displayIsDeleted
-                      ? "bg-gray-100 text-gray-500"
-                      : displayClock.status === "ready"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  {displayIsDeleted ? "deleted" : displayClock.status}
-                </span>
-              </div>
-              <span className="font-mono text-xs text-gray-500">
-                {displayClock.stripeTestClockId}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
+      <PageHeader
+        icon={<Clock className="w-5 h-5 text-gray-400 shrink-0" />}
+        title={displayClock.name || displayClock.stripeTestClockId}
+        titleExtra={
+          <span
+            className={`px-2 py-0.5 text-xs rounded-full ${
+              displayIsDeleted
+                ? "bg-gray-100 text-gray-500"
+                : displayClock.status === "ready"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"
+            }`}
+          >
+            {displayIsDeleted ? "deleted" : displayClock.status}
+          </span>
+        }
+        subtitle={displayClock.stripeTestClockId}
+        onBack={onBack}
+        actions={
+          <>
             <button
               onClick={handleRefresh}
               disabled={displayIsDeleted || displayClock.status === "advancing"}
@@ -208,9 +194,9 @@ export function TestClockDetail({
                 buttonClassName="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
               />
             )}
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Main content */}
       <main className="p-6 max-w-4xl mx-auto space-y-4">
