@@ -6,6 +6,7 @@ import {
   subscriptionCurrentPeriodEnd,
 } from "../../../lib/stripe-compat";
 import { DropdownMenu } from "../../ui/DropdownMenu";
+import { StripeIdLink } from "../../ui/StripeIdLink";
 import type { DropdownMenuItem } from "../../ui/DropdownMenu";
 import { UpdateSubscriptionItemsDialog } from "./UpdateSubscriptionItemsDialog";
 import { UpdateSubscriptionTrialDialog } from "./UpdateSubscriptionTrialDialog";
@@ -182,9 +183,7 @@ export function SubscriptionSection({
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-400 font-mono">
-                  {s.stripeId}
-                </span>
+                <StripeIdLink stripeId={s.stripeId} className="text-xs text-gray-400" />
                 {menuItems.length > 0 && <DropdownMenu items={menuItems} />}
               </div>
             </div>

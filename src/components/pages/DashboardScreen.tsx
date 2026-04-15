@@ -5,6 +5,7 @@ import { useTestClocks } from "../../hooks/useTestClocks";
 import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../../lib/api";
 import type { TestClock } from "../../lib/types";
 import { PageHeader } from "../ui/PageHeader";
+import { StripeIdLink } from "../ui/StripeIdLink";
 import { TestClockCard } from "../features/test-clock/TestClockCard";
 import { CreateTestClockDialog } from "../features/test-clock/CreateTestClockDialog";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -84,7 +85,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
         }
         subtitle={
           <span className="flex items-center gap-1.5">
-            <span>{selectedAccount?.stripeAccountId}</span>
+            {selectedAccount && <StripeIdLink stripeId={selectedAccount.stripeAccountId} />}
             {selectedAccount?.stripeApiVersion && (
               <>
                 <span className="text-gray-300">·</span>

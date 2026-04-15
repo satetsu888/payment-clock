@@ -1,4 +1,5 @@
 import type { AccountSummary } from "../../../lib/types";
+import { StripeIdLink } from "../../ui/StripeIdLink";
 
 interface AccountCardProps {
   account: AccountSummary;
@@ -16,8 +17,8 @@ export function AccountCard({ account, onSelect, onDelete }: AccountCardProps) {
         <div className="text-sm font-medium text-gray-900">
           {account.displayName || "Unnamed Account"}
         </div>
-        <div className="text-xs text-gray-500 font-mono">
-          {account.stripeAccountId}
+        <div className="text-xs text-gray-500">
+          <StripeIdLink stripeId={account.stripeAccountId} />
         </div>
       </button>
       <button

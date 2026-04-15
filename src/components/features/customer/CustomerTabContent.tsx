@@ -7,6 +7,7 @@ import type {
   SubscriptionActions,
 } from "../../../lib/types";
 import { CreateSubscriptionDialog } from "../subscription/CreateSubscriptionDialog";
+import { StripeIdLink } from "../../ui/StripeIdLink";
 import { CreatePaymentMethodDialog } from "./CreatePaymentMethodDialog";
 import { SubscriptionSection } from "../subscription/SubscriptionSection";
 import { BillingHistory } from "./BillingHistory";
@@ -129,7 +130,7 @@ export function CustomerTabContent({
 
       {/* Customer info */}
       <div className="flex items-center gap-2 text-xs text-gray-400">
-        <span className="font-mono">{customer.stripeId}</span>
+        <StripeIdLink stripeId={customer.stripeId} />
         {customer.data.email ? (
           <>
             <span>&middot;</span>

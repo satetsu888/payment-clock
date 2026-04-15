@@ -2,6 +2,7 @@ import { Clock } from "lucide-react";
 import type { TestClock } from "../../../lib/types";
 import { formatDateTime } from "../../../lib/format";
 import { DropdownMenu, type DropdownMenuItem } from "../../ui/DropdownMenu";
+import { StripeIdLink } from "../../ui/StripeIdLink";
 
 interface TestClockCardProps {
   clock: TestClock;
@@ -84,8 +85,8 @@ export function TestClockCard({
         Frozen: {formatFrozenTime(clock.frozenTime)}
       </div>
       {clock.name && (
-        <div className="text-xs text-gray-400 font-mono mt-0.5">
-          {clock.stripeTestClockId}
+        <div className="text-xs text-gray-400 mt-0.5">
+          <StripeIdLink stripeId={clock.stripeTestClockId} />
         </div>
       )}
     </button>

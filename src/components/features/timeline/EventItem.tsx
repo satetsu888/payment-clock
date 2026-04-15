@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { StripeEvent } from "../../../lib/types";
 import { subscriptionCurrentPeriodEnd } from "../../../lib/stripe-compat";
 import { formatDateTime } from "../../../lib/format";
+import { StripeIdLink } from "../../ui/StripeIdLink";
 
 interface EventItemProps {
   event: StripeEvent;
@@ -106,9 +107,7 @@ export function EventItem({ event, stripeApiVersion }: EventItemProps) {
           {event.eventType}
         </span>
         {event.resourceId && (
-          <span className="text-xs text-gray-400 font-mono truncate">
-            {event.resourceId}
-          </span>
+          <StripeIdLink stripeId={event.resourceId} className="text-xs text-gray-400 truncate" />
         )}
         <span className="text-xs text-gray-300 ml-auto shrink-0">
           {event.source === "cli" ? "CLI" : "API"}

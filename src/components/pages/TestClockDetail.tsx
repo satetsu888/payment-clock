@@ -6,6 +6,7 @@ import { useTestClockEvents } from "../../hooks/useTestClockEvents";
 import { useTestClockResources } from "../../hooks/useTestClockResources";
 import { useAdvancePolling } from "../../hooks/useAdvancePolling";
 import { PageHeader } from "../ui/PageHeader";
+import { StripeIdLink } from "../ui/StripeIdLink";
 import { UnifiedTimeline } from "../features/test-clock/UnifiedTimeline";
 import { CustomerTabs } from "../features/customer/CustomerTabs";
 import { TimeControlBar } from "../features/test-clock/TimeControlBar";
@@ -173,7 +174,7 @@ export function TestClockDetail({
             {displayIsDeleted ? "deleted" : displayClock.status}
           </span>
         }
-        subtitle={displayClock.stripeTestClockId}
+        subtitle={<StripeIdLink stripeId={displayClock.stripeTestClockId} className="text-gray-500" />}
         onBack={onBack}
         actions={
           <>
