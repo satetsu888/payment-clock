@@ -1,6 +1,7 @@
 import type { ResourceItem } from "../../../lib/types";
 import { formatCurrency, formatShortDateTime } from "../../../lib/format";
 import { getInvoiceSubscriptionId } from "../../../lib/timeline-data";
+import { StripeIdLink } from "../../ui/StripeIdLink";
 
 interface BillingHistoryProps {
   invoices: ResourceItem[];
@@ -103,6 +104,7 @@ export function BillingHistory({
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-gray-50 text-gray-500 uppercase tracking-wide">
+              <th className="px-3 py-1.5 text-left font-medium">Invoice</th>
               <th className="px-3 py-1.5 text-left font-medium">Billed</th>
               <th className="px-3 py-1.5 text-left font-medium">Paid</th>
               <th className="px-3 py-1.5 text-left font-medium">Subscription</th>
@@ -125,6 +127,9 @@ export function BillingHistory({
                 onMouseEnter={() => onHighlightInvoice?.(row.id)}
                 onMouseLeave={() => onHighlightInvoice?.(null)}
               >
+                <td className="px-3 py-1.5">
+                  <StripeIdLink stripeId={row.id} className="text-gray-500 text-[11px]" />
+                </td>
                 <td className="px-3 py-1.5 text-gray-600">
                   {formatShortDateTime(row.createdAt)}
                 </td>
