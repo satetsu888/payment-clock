@@ -289,7 +289,7 @@ export function TestClockDetail({
           accountId={accountId}
           customers={resources.customers}
           frozenTime={clock!.frozenTime}
-          defaultLabel={`Sub ${(resources.subscriptions.length ?? 0) + 1}`}
+          defaultLabel={`Subscription ${(resources.subscriptions.length ?? 0) + 1}`}
           defaultCustomerId={customerGroups[activeCustomerTabIndex]?.customer.stripeId}
           onSubmit={createSubscription}
           onClose={() => setShowCreateSubscription(false)}
