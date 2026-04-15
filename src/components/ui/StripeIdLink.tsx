@@ -1,6 +1,5 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { ExternalLink } from "lucide-react";
-import { getStripeDashboardUrl } from "../../lib/stripe-urls";
+import { useState, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
 
 interface StripeIdLinkProps {
   stripeId: string;
@@ -8,24 +7,31 @@ interface StripeIdLinkProps {
 }
 
 export function StripeIdLink({ stripeId, className = "" }: StripeIdLinkProps) {
-  const url = getStripeDashboardUrl(stripeId);
+  const [copied, setCopied] = useState(false);
 
-  if (!url) {
-    return <span className={`font-mono ${className}`}>{stripeId}</span>;
-  }
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(stripeId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    },
+    [stripeId],
+  );
 
   return (
     <button
       type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        openUrl(url);
-      }}
-      className={`group/link inline-flex items-center gap-0.5 font-mono hover:text-indigo-600 hover:underline cursor-pointer ${className}`}
-      title="Open in Stripe Dashboard"
+      onClick={handleCopy}
+      className={`group/link inline-flex items-center gap-0.5 font-mono hover:text-indigo-600 cursor-pointer ${className}`}
+      title="Copy ID"
     >
       {stripeId}
-      <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+      {copied ? (
+        <Check className="w-3 h-3 shrink-0 text-green-500" />
+      ) : (
+        <Copy className="w-3 h-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+      )}
     </button>
   );
 }

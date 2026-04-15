@@ -1,6 +1,8 @@
 import { Clock } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { TestClock } from "../../../lib/types";
 import { formatDateTime } from "../../../lib/format";
+import { getStripeDashboardUrl } from "../../../lib/stripe-urls";
 import { DropdownMenu, type DropdownMenuItem } from "../../ui/DropdownMenu";
 import { StripeIdLink } from "../../ui/StripeIdLink";
 
@@ -53,6 +55,14 @@ export function TestClockCard({
   const isDeleted = !!clock.deletedAt;
 
   const menuItems: DropdownMenuItem[] = [];
+
+  const stripeUrl = getStripeDashboardUrl(clock.stripeTestClockId);
+  if (stripeUrl) {
+    menuItems.push({
+      label: "View in Stripe",
+      onClick: () => openUrl(stripeUrl),
+    });
+  }
 
   if (isDeleted && onPurge) {
     menuItems.push({

@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ResourceItem, SubscriptionActions } from "../../../lib/types";
 import { formatDateTime } from "../../../lib/format";
 import {
   subscriptionCurrentPeriodStart,
   subscriptionCurrentPeriodEnd,
 } from "../../../lib/stripe-compat";
+import { getStripeDashboardUrl } from "../../../lib/stripe-urls";
 import { DropdownMenu } from "../../ui/DropdownMenu";
 import { StripeIdLink } from "../../ui/StripeIdLink";
 import type { DropdownMenuItem } from "../../ui/DropdownMenu";
@@ -112,6 +114,13 @@ export function SubscriptionSection({
 
         // Build dropdown menu items
         const menuItems: DropdownMenuItem[] = [];
+        const stripeUrl = getStripeDashboardUrl(s.stripeId);
+        if (stripeUrl) {
+          menuItems.push({
+            label: "View in Stripe",
+            onClick: () => openUrl(stripeUrl),
+          });
+        }
         if (canModify) {
           menuItems.push({
             label: "Change Plan",

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock, RefreshCw } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { getStripeDashboardUrl } from "../../lib/stripe-urls";
 import { useAccountContext } from "../../contexts/AccountContext";
 import { useTestClockDetail as useDetail } from "../../hooks/useTestClockDetail";
 import { useTestClockEvents } from "../../hooks/useTestClockEvents";
@@ -189,6 +191,12 @@ export function TestClockDetail({
             {!displayIsDeleted && (
               <DropdownMenu
                 items={[
+                  ...(getStripeDashboardUrl(displayClock.stripeTestClockId)
+                    ? [{
+                        label: "View in Stripe",
+                        onClick: () => openUrl(getStripeDashboardUrl(displayClock.stripeTestClockId)!),
+                      }]
+                    : []),
                   {
                     label: deleting ? "Deleting..." : "Delete test clock",
                     onClick: () => setConfirmDelete(true),
