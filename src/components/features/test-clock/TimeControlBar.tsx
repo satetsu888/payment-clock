@@ -34,7 +34,7 @@ const LABEL_COLUMN_WIDTH = 110;
 const TIMELINE_PADDING_PX = 40;
 const NOW_CALLOUT_HEIGHT = 20;
 const MONTH_AREA_HEIGHT = 24 + NOW_CALLOUT_HEIGHT;
-const LANE_HEIGHT = 20;
+const LANE_HEIGHT = 24;
 const LANE_GAP = 8;
 const LABEL_ROW_HEIGHT = 14;
 
@@ -412,7 +412,7 @@ export function TimeControlBar({
                   height: `${LANE_HEIGHT}px`,
                 }}
               >
-                <span className="text-[9px] text-gray-400 truncate block">
+                <span className="text-[11px] font-medium text-gray-500 truncate block">
                   {lane.label}
                 </span>
               </div>
@@ -431,7 +431,7 @@ export function TimeControlBar({
               <button
                 type="button"
                 onClick={onAddSubscription}
-                className="text-[9px] text-gray-400 hover:text-indigo-600 transition-colors truncate"
+                className="text-[11px] text-gray-400 hover:text-indigo-600 transition-colors truncate"
               >
                 + Add Subscription
               </button>
@@ -557,8 +557,8 @@ export function TimeControlBar({
                     const barWidth = x2 - x1;
 
                     // Color based on subscription state
-                    let barClass = "bg-indigo-100 border-indigo-200";
-                    let dotClass = "bg-indigo-300 ring-indigo-200";
+                    let barClass = "bg-green-100 border-green-300";
+                    let dotClass = "bg-green-400 ring-green-200";
                     let tooltipSuffix = "";
                     if (pb.isPaused) {
                       barClass = "bg-amber-100 border-amber-300 border-dashed";
@@ -568,6 +568,10 @@ export function TimeControlBar({
                       barClass = "bg-red-50 border-red-200 border-dashed";
                       dotClass = "bg-red-400 ring-red-200";
                       tooltipSuffix = " (cancels at period end)";
+                    } else if (pb.isTrial) {
+                      barClass = "bg-blue-100 border-blue-400";
+                      dotClass = "bg-blue-400 ring-blue-200";
+                      tooltipSuffix = " (trial)";
                     }
 
                     return (
@@ -576,8 +580,8 @@ export function TimeControlBar({
                         style={{
                           left: `${x1}px`,
                           width: `${barWidth}px`,
-                          top: `${ty - 3}px`,
-                          height: "6px",
+                          top: `${ty - 5}px`,
+                          height: "10px",
                         }}
                         onMouseEnter={(e) =>
                           showTooltip(

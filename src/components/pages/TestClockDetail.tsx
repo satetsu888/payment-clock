@@ -212,7 +212,7 @@ export function TestClockDetail({
       />
 
       {/* Main content */}
-      <main className="p-6 max-w-4xl mx-auto space-y-4">
+      <main className="p-6 max-w-6xl mx-auto space-y-4">
         {initialLoading ? (
           error ? (
             <p className="text-sm text-red-600 text-center py-8">{error}</p>

@@ -20,6 +20,7 @@ export interface TimelinePeriodBar {
   status: string;
   cancelAtPeriodEnd?: boolean;
   isPaused?: boolean;
+  isTrial?: boolean;
 }
 
 export interface TimelineLane {
@@ -50,6 +51,7 @@ interface SubscriptionPeriod {
   status: string;
   cancelAtPeriodEnd: boolean;
   isPaused: boolean;
+  isTrial: boolean;
 }
 
 // --- Data extraction ---
@@ -175,6 +177,7 @@ function extractSubscriptionPeriods(
       status,
       cancelAtPeriodEnd: !!(sub.data.cancel_at_period_end as boolean | undefined),
       isPaused: !!sub.data.pause_collection,
+      isTrial: status === "trialing",
     });
   }
   return periods;
@@ -298,6 +301,7 @@ export function buildTimelineLanes(
               status: period.status,
               cancelAtPeriodEnd: period.cancelAtPeriodEnd,
               isPaused: period.isPaused,
+              isTrial: period.isTrial,
             }
           : null,
       markers: subBilling,
