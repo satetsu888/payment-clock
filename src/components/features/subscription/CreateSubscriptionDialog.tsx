@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import { listProducts, listPrices } from "../../../lib/api";
-import { formatDateTime, toDatetimeLocalUTC } from "../../../lib/format";
+import { formatDateTime, formatPrice, toDatetimeLocalUTC } from "../../../lib/format";
 import type {
   ResourceItem,
   StripeProduct,
   StripePrice,
   CreateSubscriptionOptions,
 } from "../../../lib/types";
-import { formatPrice } from "../../../lib/format";
 
 type TrialMode = "days" | "end";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
 
 function toDatetimeLocalValue(isoString: string): string {
   return toDatetimeLocalUTC(new Date(isoString));
+}
+
+interface PriceRow {
+  key: number;
+  productId: string;
+  priceId: string;
 }
 
 interface CreateSubscriptionDialogProps {
@@ -23,7 +28,7 @@ interface CreateSubscriptionDialogProps {
   defaultLabel: string;
   onSubmit: (
     customerId: string,
-    priceId: string,
+    priceIds: string[],
     options?: CreateSubscriptionOptions,
   ) => Promise<void>;
   onClose: () => void;
@@ -41,11 +46,10 @@ export function CreateSubscriptionDialog({
     customers.length > 0 ? (customers[0].data.id as string) : "",
   );
   const [products, setProducts] = useState<StripeProduct[]>([]);
-  const [prices, setPrices] = useState<StripePrice[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string>("");
-  const [selectedPriceId, setSelectedPriceId] = useState<string>("");
+  const [allPrices, setAllPrices] = useState<StripePrice[]>([]);
+  const [priceRows, setPriceRows] = useState<PriceRow[]>([{ key: 0, productId: "", priceId: "" }]);
+  const [nextKey, setNextKey] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [loadingPrices, setLoadingPrices] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const frozenTimeMin = toDatetimeLocalValue(frozenTime);
@@ -61,13 +65,27 @@ export function CreateSubscriptionDialog({
   const [trialEndDate, setTrialEndDate] = useState<string>(defaultTrialEnd);
   const [trialEndBehavior, setTrialEndBehavior] =
     useState<TrialEndBehavior>("create_invoice");
+  const [enableBillingAnchor, setEnableBillingAnchor] = useState(false);
+  const [billingAnchorDate, setBillingAnchorDate] = useState<string>(
+    toDatetimeLocalValue(frozenTime),
+  );
+  const [prorationBehavior, setProrationBehavior] = useState<"create_prorations" | "none">("create_prorations");
 
-  const loadProducts = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const prods = await listProducts(accountId);
+      const [prods, prs] = await Promise.all([
+        listProducts(accountId),
+        listPrices(accountId),
+      ]);
       setProducts(prods);
+      setAllPrices(prs);
       if (prods.length > 0) {
-        setSelectedProductId(prods[0].id);
+        const firstProductPrices = prs.filter((p) => p.product === prods[0].id);
+        setPriceRows([{
+          key: 0,
+          productId: prods[0].id,
+          priceId: firstProductPrices.length > 0 ? firstProductPrices[0].id : "",
+        }]);
       }
     } catch (e) {
       setError(String(e));
@@ -75,28 +93,39 @@ export function CreateSubscriptionDialog({
   }, [accountId]);
 
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    loadData();
+  }, [loadData]);
 
-  useEffect(() => {
-    if (!selectedProductId) return;
-    setLoadingPrices(true);
-    listPrices(accountId, selectedProductId)
-      .then((p) => {
-        setPrices(p);
-        if (p.length > 0) {
-          setSelectedPriceId(p[0].id);
-        } else {
-          setSelectedPriceId("");
+  const pricesForProduct = (productId: string) =>
+    allPrices.filter((p) => p.product === productId);
+
+  const updateRow = (key: number, field: "productId" | "priceId", value: string) => {
+    setPriceRows((prev) =>
+      prev.map((row) => {
+        if (row.key !== key) return row;
+        if (field === "productId") {
+          const productPrices = allPrices.filter((p) => p.product === value);
+          return { ...row, productId: value, priceId: productPrices.length > 0 ? productPrices[0].id : "" };
         }
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoadingPrices(false));
-  }, [accountId, selectedProductId]);
+        return { ...row, [field]: value };
+      }),
+    );
+  };
+
+  const addRow = () => {
+    setPriceRows((prev) => [...prev, { key: nextKey, productId: "", priceId: "" }]);
+    setNextKey((k) => k + 1);
+  };
+
+  const removeRow = (key: number) => {
+    setPriceRows((prev) => prev.filter((r) => r.key !== key));
+  };
+
+  const validPriceIds = priceRows.filter((r) => r.priceId).map((r) => r.priceId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId || !selectedPriceId) return;
+    if (!customerId || validPriceIds.length === 0) return;
     setLoading(true);
     setError(null);
     try {
@@ -124,7 +153,13 @@ export function CreateSubscriptionDialog({
         }
         options.trialEndBehavior = trialEndBehavior;
       }
-      await onSubmit(customerId, selectedPriceId, options);
+      if (enableBillingAnchor && billingAnchorDate) {
+        options.billingCycleAnchor = Math.floor(
+          new Date(billingAnchorDate + "Z").getTime() / 1000,
+        );
+        options.prorationBehavior = prorationBehavior;
+      }
+      await onSubmit(customerId, validPriceIds, options);
       onClose();
     } catch (e) {
       setError(String(e));
@@ -135,7 +170,7 @@ export function CreateSubscriptionDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Create Subscription
         </h2>
@@ -159,46 +194,64 @@ export function CreateSubscriptionDialog({
               ))}
             </select>
           </div>
+
+          {/* Items */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Product
+              Items
             </label>
-            <select
-              value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={loading || products.length === 0}
-            >
-              {products.length === 0 && (
-                <option value="">No products available</option>
-              )}
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Price
-            </label>
-            <select
-              value={selectedPriceId}
-              onChange={(e) => setSelectedPriceId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={loading || loadingPrices || prices.length === 0}
-            >
-              {loadingPrices && <option value="">Loading prices...</option>}
-              {!loadingPrices && prices.length === 0 && (
-                <option value="">No prices for this product</option>
-              )}
-              {prices.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {formatPrice(p)}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2">
+              {priceRows.map((row) => {
+                const productPrices = pricesForProduct(row.productId);
+                return (
+                  <div key={row.key} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
+                    <div className="flex-1 space-y-1">
+                      <select
+                        value={row.productId}
+                        onChange={(e) => updateRow(row.key, "productId", e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                        disabled={loading || products.length === 0}
+                      >
+                        {products.length === 0 && <option value="">No products</option>}
+                        <option value="">Select product...</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={row.priceId}
+                        onChange={(e) => updateRow(row.key, "priceId", e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                        disabled={loading || !row.productId}
+                      >
+                        <option value="">Select price...</option>
+                        {productPrices.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {formatPrice(p)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {priceRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeRow(row.key)}
+                        className="text-xs text-red-500 hover:text-red-700 mt-1"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={addRow}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                + Add Item
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-gray-200 pt-3">
@@ -295,6 +348,51 @@ export function CreateSubscriptionDialog({
             )}
           </div>
 
+          <div className="border-t border-gray-200 pt-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableBillingAnchor}
+                onChange={(e) => setEnableBillingAnchor(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={loading}
+              />
+              Billing Cycle Anchor を指定する
+            </label>
+
+            {enableBillingAnchor && (
+              <div className="mt-3 ml-6 space-y-3">
+                <div>
+                  <input
+                    type="datetime-local"
+                    value={billingAnchorDate}
+                    min={frozenTimeMin}
+                    onChange={(e) => setBillingAnchorDate(e.target.value)}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    請求サイクルの基準日を指定（例: 月初に揃えたい場合は毎月1日の日時を指定）
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Anchor までの期間の課金
+                  </label>
+                  <select
+                    value={prorationBehavior}
+                    onChange={(e) => setProrationBehavior(e.target.value as "create_prorations" | "none")}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={loading}
+                  >
+                    <option value="create_prorations">日割り課金 (create_prorations)</option>
+                    <option value="none">課金しない (none)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
               {error}
@@ -311,7 +409,7 @@ export function CreateSubscriptionDialog({
             </button>
             <button
               type="submit"
-              disabled={loading || !customerId || !selectedPriceId}
+              disabled={loading || !customerId || validPriceIds.length === 0}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
             >
               {loading ? "Creating..." : "Create"}

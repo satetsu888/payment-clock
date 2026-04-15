@@ -4,10 +4,11 @@ import type {
   CustomerWithResources,
   PaymentMethodData,
   CreateSubscriptionOptions,
+  SubscriptionActions,
 } from "../../../lib/types";
-import { CreateSubscriptionDialog } from "./CreateSubscriptionDialog";
+import { CreateSubscriptionDialog } from "../subscription/CreateSubscriptionDialog";
 import { CreatePaymentMethodDialog } from "./CreatePaymentMethodDialog";
-import { SubscriptionSection } from "./SubscriptionSection";
+import { SubscriptionSection } from "../subscription/SubscriptionSection";
 import { BillingHistory } from "./BillingHistory";
 import { PaymentMethodList } from "./PaymentMethodList";
 
@@ -42,6 +43,7 @@ export function CustomerTabContent({
   onCancelSubscription,
   onPauseSubscription,
   onResumeSubscription,
+  subscriptionActions,
   stripeApiVersion,
   highlightedInvoiceId,
   onHighlightInvoice,
@@ -53,10 +55,11 @@ export function CustomerTabContent({
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
-  onCreateSubscription: (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => Promise<void>;
+  onCreateSubscription: (customerId: string, priceIds: string[], options?: CreateSubscriptionOptions) => Promise<void>;
   onCancelSubscription: (subscriptionId: string) => Promise<void>;
   onPauseSubscription: (subscriptionId: string) => Promise<void>;
   onResumeSubscription: (subscriptionId: string) => Promise<void>;
+  subscriptionActions: SubscriptionActions;
   stripeApiVersion: string;
   highlightedInvoiceId: string | null;
   onHighlightInvoice: (id: string | null) => void;
@@ -107,10 +110,10 @@ export function CustomerTabContent({
 
   const handleCreateSubscription = async (
     customerId: string,
-    priceId: string,
+    priceIds: string[],
     options?: CreateSubscriptionOptions,
   ) => {
-    await onCreateSubscription(customerId, priceId, options);
+    await onCreateSubscription(customerId, priceIds, options);
     setShowCreateSubscription(false);
   };
 
@@ -177,6 +180,9 @@ export function CustomerTabContent({
             onCancel={onCancelSubscription}
             onPause={onPauseSubscription}
             onResume={onResumeSubscription}
+            actions={subscriptionActions}
+            accountId={accountId}
+            frozenTime={frozenTime}
           />
         ) : (
           <p className="text-xs text-gray-400 mt-1">No subscriptions</p>

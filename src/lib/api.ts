@@ -153,17 +153,19 @@ export async function createSubscription(
   accountId: string,
   testClockId: string,
   customerId: string,
-  priceId: string,
+  priceIds: string[],
   options?: CreateSubscriptionOptions,
 ): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("create_subscription", {
     accountId,
     testClockId,
     customerId,
-    priceId,
+    priceIds,
     trialPeriodDays: options?.trialPeriodDays ?? null,
     trialEnd: options?.trialEnd ?? null,
     trialEndBehavior: options?.trialEndBehavior ?? null,
+    billingCycleAnchor: options?.billingCycleAnchor ?? null,
+    prorationBehavior: options?.prorationBehavior ?? null,
     metadata: options?.metadata ?? null,
   });
 }
@@ -201,6 +203,128 @@ export async function resumeSubscription(
     accountId,
     testClockId,
     subscriptionId,
+  });
+}
+
+export async function updateSubscriptionItems(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  items: Array<Record<string, string>>,
+  prorationBehavior?: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("update_subscription_items", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    items,
+    prorationBehavior: prorationBehavior ?? null,
+  });
+}
+
+export async function updateSubscriptionTrial(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  trialEnd: string,
+  trialEndBehavior?: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("update_subscription_trial", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    trialEnd,
+    trialEndBehavior: trialEndBehavior ?? null,
+  });
+}
+
+export async function cancelSubscriptionImmediately(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  invoiceNow: boolean,
+  prorate: boolean,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("cancel_subscription_immediately", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    invoiceNow,
+    prorate,
+  });
+}
+
+export async function updateSubscriptionCancelAt(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  cancelAt: number,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("update_subscription_cancel_at", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    cancelAt,
+  });
+}
+
+export async function undoCancelSubscription(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("undo_cancel_subscription", {
+    accountId,
+    testClockId,
+    subscriptionId,
+  });
+}
+
+export async function updateSubscriptionBillingAnchor(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  billingCycleAnchor: string,
+  prorationBehavior?: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("update_subscription_billing_anchor", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    billingCycleAnchor,
+    prorationBehavior: prorationBehavior ?? null,
+  });
+}
+
+export async function pauseSubscriptionWithOptions(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  behavior: string,
+  resumesAt?: number,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("pause_subscription_with_options", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    behavior,
+    resumesAt: resumesAt ?? null,
+  });
+}
+
+export async function applySubscriptionDiscount(
+  accountId: string,
+  testClockId: string,
+  subscriptionId: string,
+  couponId?: string,
+  promotionCodeId?: string,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("apply_subscription_discount", {
+    accountId,
+    testClockId,
+    subscriptionId,
+    couponId: couponId ?? null,
+    promotionCodeId: promotionCodeId ?? null,
   });
 }
 

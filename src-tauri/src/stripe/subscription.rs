@@ -4,17 +4,21 @@ use crate::stripe::client::StripeClient;
 pub async fn create_subscription(
     api_key: &str,
     customer_id: &str,
-    price_id: &str,
+    price_ids: &[String],
     trial_period_days: Option<u32>,
     trial_end: Option<i64>,
     trial_end_behavior: Option<&str>,
+    billing_cycle_anchor: Option<i64>,
+    proration_behavior: Option<&str>,
     metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
     let mut params: Vec<(String, String)> = vec![
         ("customer".into(), customer_id.to_string()),
-        ("items[0][price]".into(), price_id.to_string()),
     ];
+    for (i, price_id) in price_ids.iter().enumerate() {
+        params.push((format!("items[{}][price]", i), price_id.clone()));
+    }
     if let Some(days) = trial_period_days {
         params.push(("trial_period_days".into(), days.to_string()));
     }
@@ -26,6 +30,12 @@ pub async fn create_subscription(
             "trial_settings[end_behavior][missing_payment_method]".into(),
             behavior.to_string(),
         ));
+    }
+    if let Some(anchor) = billing_cycle_anchor {
+        params.push(("billing_cycle_anchor".into(), anchor.to_string()));
+    }
+    if let Some(pb) = proration_behavior {
+        params.push(("proration_behavior".into(), pb.to_string()));
     }
     if let Some(meta) = metadata {
         for (key, value) in meta {
@@ -71,6 +81,181 @@ pub async fn resume_subscription(
         .post(
             &format!("/v1/subscriptions/{}", subscription_id),
             &[("pause_collection", "")],
+        )
+        .await
+}
+
+/// Update subscription items (add, change, or remove items).
+/// Each item in `items` should be a map with keys like "id", "price", "deleted".
+pub async fn update_subscription_items(
+    api_key: &str,
+    subscription_id: &str,
+    items: &[std::collections::HashMap<String, String>],
+    proration_behavior: Option<&str>,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let mut params: Vec<(String, String)> = Vec::new();
+    for (i, item) in items.iter().enumerate() {
+        for (key, value) in item {
+            params.push((format!("items[{}][{}]", i, key), value.clone()));
+        }
+    }
+    if let Some(behavior) = proration_behavior {
+        params.push(("proration_behavior".into(), behavior.to_string()));
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &str_params,
+        )
+        .await
+}
+
+/// Update trial end on an existing subscription.
+/// `trial_end` can be a Unix timestamp or "now".
+pub async fn update_subscription_trial(
+    api_key: &str,
+    subscription_id: &str,
+    trial_end: &str,
+    trial_end_behavior: Option<&str>,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let mut params: Vec<(String, String)> = vec![
+        ("trial_end".into(), trial_end.to_string()),
+    ];
+    if let Some(behavior) = trial_end_behavior {
+        params.push((
+            "trial_settings[end_behavior][missing_payment_method]".into(),
+            behavior.to_string(),
+        ));
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &str_params,
+        )
+        .await
+}
+
+/// Cancel a subscription immediately (DELETE).
+pub async fn cancel_subscription_immediately(
+    api_key: &str,
+    subscription_id: &str,
+    invoice_now: bool,
+    prorate: bool,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let invoice_now_str = if invoice_now { "true" } else { "false" };
+    let prorate_str = if prorate { "true" } else { "false" };
+    client
+        .delete_with_params(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &[
+                ("invoice_now", invoice_now_str),
+                ("prorate", prorate_str),
+            ],
+        )
+        .await
+}
+
+/// Set cancel_at to a specific timestamp.
+pub async fn update_subscription_cancel_at(
+    api_key: &str,
+    subscription_id: &str,
+    cancel_at: i64,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let cancel_at_str = cancel_at.to_string();
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &[("cancel_at", cancel_at_str.as_str())],
+        )
+        .await
+}
+
+/// Undo cancel_at_period_end.
+pub async fn undo_cancel_subscription(
+    api_key: &str,
+    subscription_id: &str,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &[("cancel_at_period_end", "false")],
+        )
+        .await
+}
+
+/// Update billing_cycle_anchor.
+pub async fn update_subscription_billing_anchor(
+    api_key: &str,
+    subscription_id: &str,
+    billing_cycle_anchor: &str,
+    proration_behavior: Option<&str>,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let mut params: Vec<(String, String)> = vec![
+        ("billing_cycle_anchor".into(), billing_cycle_anchor.to_string()),
+    ];
+    if let Some(behavior) = proration_behavior {
+        params.push(("proration_behavior".into(), behavior.to_string()));
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &str_params,
+        )
+        .await
+}
+
+/// Pause subscription with behavior and optional resumes_at.
+pub async fn pause_subscription_with_options(
+    api_key: &str,
+    subscription_id: &str,
+    behavior: &str,
+    resumes_at: Option<i64>,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let mut params: Vec<(String, String)> = vec![
+        ("pause_collection[behavior]".into(), behavior.to_string()),
+    ];
+    if let Some(ts) = resumes_at {
+        params.push(("pause_collection[resumes_at]".into(), ts.to_string()));
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &str_params,
+        )
+        .await
+}
+
+/// Apply a discount (coupon or promotion code) to a subscription.
+pub async fn apply_subscription_discount(
+    api_key: &str,
+    subscription_id: &str,
+    coupon_id: Option<&str>,
+    promotion_code_id: Option<&str>,
+) -> Result<serde_json::Value, AppError> {
+    let client = StripeClient::new(api_key);
+    let mut params: Vec<(String, String)> = Vec::new();
+    if let Some(coupon) = coupon_id {
+        params.push(("coupon".into(), coupon.to_string()));
+    }
+    if let Some(promo) = promotion_code_id {
+        params.push(("promotion_code".into(), promo.to_string()));
+    }
+    let str_params: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    client
+        .post(
+            &format!("/v1/subscriptions/{}", subscription_id),
+            &str_params,
         )
         .await
 }

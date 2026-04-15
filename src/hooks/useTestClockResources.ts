@@ -9,8 +9,16 @@ import {
   cancelSubscription as apiCancelSubscription,
   pauseSubscription as apiPauseSubscription,
   resumeSubscription as apiResumeSubscription,
+  updateSubscriptionItems as apiUpdateSubscriptionItems,
+  updateSubscriptionTrial as apiUpdateSubscriptionTrial,
+  cancelSubscriptionImmediately as apiCancelSubscriptionImmediately,
+  updateSubscriptionCancelAt as apiUpdateSubscriptionCancelAt,
+  undoCancelSubscription as apiUndoCancelSubscription,
+  updateSubscriptionBillingAnchor as apiUpdateSubscriptionBillingAnchor,
+  pauseSubscriptionWithOptions as apiPauseSubscriptionWithOptions,
+  applySubscriptionDiscount as apiApplySubscriptionDiscount,
 } from "../lib/api";
-import type { TestClockResources, CustomerWithResources, CreateSubscriptionOptions } from "../lib/types";
+import type { TestClockResources, CustomerWithResources, CreateSubscriptionOptions, SubscriptionActions, SubscriptionItemUpdate } from "../lib/types";
 import { groupResourcesByCustomer } from "../lib/resource-grouping";
 
 /** Stripe APIは作成日降順（新しい順）で返すので、reverseして昇順（古い順）にする */
@@ -91,8 +99,8 @@ export function useTestClockResources(
   );
 
   const createSubscription = useCallback(
-    async (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => {
-      await apiCreateSubscription(accountId, testClockId, customerId, priceId, options);
+    async (customerId: string, priceIds: string[], options?: CreateSubscriptionOptions) => {
+      await apiCreateSubscription(accountId, testClockId, customerId, priceIds, options);
       await load();
     },
     [accountId, testClockId, load],
@@ -122,6 +130,105 @@ export function useTestClockResources(
     [accountId, testClockId, load],
   );
 
+  const updateSubscriptionItems = useCallback(
+    async (subscriptionId: string, items: SubscriptionItemUpdate[], prorationBehavior: string) => {
+      const apiItems = items.map((item) => {
+        const m: Record<string, string> = {};
+        if (item.id) m.id = item.id;
+        if (item.price) m.price = item.price;
+        if (item.deleted) m.deleted = "true";
+        return m;
+      });
+      await apiUpdateSubscriptionItems(accountId, testClockId, subscriptionId, apiItems, prorationBehavior);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const updateSubscriptionTrial = useCallback(
+    async (subscriptionId: string, trialEnd: number | "now", endBehavior?: string) => {
+      const trialEndStr = trialEnd === "now" ? "now" : String(trialEnd);
+      await apiUpdateSubscriptionTrial(accountId, testClockId, subscriptionId, trialEndStr, endBehavior);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const cancelSubscriptionImmediately = useCallback(
+    async (subscriptionId: string, opts: { invoiceNow: boolean; prorate: boolean }) => {
+      await apiCancelSubscriptionImmediately(accountId, testClockId, subscriptionId, opts.invoiceNow, opts.prorate);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const updateSubscriptionCancelAt = useCallback(
+    async (subscriptionId: string, cancelAt: number) => {
+      await apiUpdateSubscriptionCancelAt(accountId, testClockId, subscriptionId, cancelAt);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const undoCancelSubscription = useCallback(
+    async (subscriptionId: string) => {
+      await apiUndoCancelSubscription(accountId, testClockId, subscriptionId);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const updateSubscriptionBillingAnchor = useCallback(
+    async (subscriptionId: string, anchor: number | "now", prorationBehavior: string) => {
+      const anchorStr = anchor === "now" ? "now" : String(anchor);
+      await apiUpdateSubscriptionBillingAnchor(accountId, testClockId, subscriptionId, anchorStr, prorationBehavior);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const pauseSubscriptionWithOptions = useCallback(
+    async (subscriptionId: string, opts: { behavior: string; resumesAt?: number }) => {
+      await apiPauseSubscriptionWithOptions(accountId, testClockId, subscriptionId, opts.behavior, opts.resumesAt);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const applySubscriptionDiscount = useCallback(
+    async (subscriptionId: string, couponId?: string, promotionCodeId?: string) => {
+      await apiApplySubscriptionDiscount(accountId, testClockId, subscriptionId, couponId, promotionCodeId);
+      await load();
+    },
+    [accountId, testClockId, load],
+  );
+
+  const subscriptionActions: SubscriptionActions = useMemo(() => ({
+    cancel: cancelSubscription,
+    cancelImmediately: cancelSubscriptionImmediately,
+    cancelAt: updateSubscriptionCancelAt,
+    undoCancel: undoCancelSubscription,
+    pause: pauseSubscription,
+    pauseWithOptions: pauseSubscriptionWithOptions,
+    resume: resumeSubscription,
+    updateItems: updateSubscriptionItems,
+    updateTrial: updateSubscriptionTrial,
+    updateBillingAnchor: updateSubscriptionBillingAnchor,
+    applyDiscount: applySubscriptionDiscount,
+  }), [
+    cancelSubscription,
+    cancelSubscriptionImmediately,
+    updateSubscriptionCancelAt,
+    undoCancelSubscription,
+    pauseSubscription,
+    pauseSubscriptionWithOptions,
+    resumeSubscription,
+    updateSubscriptionItems,
+    updateSubscriptionTrial,
+    updateSubscriptionBillingAnchor,
+    applySubscriptionDiscount,
+  ]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -139,5 +246,6 @@ export function useTestClockResources(
     cancelSubscription,
     pauseSubscription,
     resumeSubscription,
+    subscriptionActions,
   };
 }

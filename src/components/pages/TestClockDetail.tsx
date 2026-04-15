@@ -66,6 +66,7 @@ export function TestClockDetail({
     cancelSubscription,
     pauseSubscription,
     resumeSubscription,
+    subscriptionActions,
   } = useTestClockResources(accountId, testClockId, isDeleted);
 
   // --- Advance polling ---
@@ -248,6 +249,7 @@ export function TestClockDetail({
               onCancelSubscription={cancelSubscription}
               onPauseSubscription={pauseSubscription}
               onResumeSubscription={resumeSubscription}
+              subscriptionActions={subscriptionActions}
               stripeApiVersion={selectedAccount?.stripeApiVersion ?? ""}
               highlightedInvoiceId={highlightedInvoiceId}
               onHighlightInvoice={setHighlightedInvoiceId}

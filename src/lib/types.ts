@@ -96,7 +96,29 @@ export interface CreateSubscriptionOptions {
   trialPeriodDays?: number;
   trialEnd?: number;
   trialEndBehavior?: "create_invoice" | "cancel" | "pause";
+  billingCycleAnchor?: number;
+  prorationBehavior?: "create_prorations" | "none";
   metadata?: Record<string, string>;
+}
+
+export interface SubscriptionItemUpdate {
+  id?: string;
+  price?: string;
+  deleted?: boolean;
+}
+
+export interface SubscriptionActions {
+  cancel: (subscriptionId: string) => Promise<void>;
+  cancelImmediately: (subscriptionId: string, opts: { invoiceNow: boolean; prorate: boolean }) => Promise<void>;
+  cancelAt: (subscriptionId: string, cancelAt: number) => Promise<void>;
+  undoCancel: (subscriptionId: string) => Promise<void>;
+  pause: (subscriptionId: string) => Promise<void>;
+  pauseWithOptions: (subscriptionId: string, opts: { behavior: string; resumesAt?: number }) => Promise<void>;
+  resume: (subscriptionId: string) => Promise<void>;
+  updateItems: (subscriptionId: string, items: SubscriptionItemUpdate[], prorationBehavior: string) => Promise<void>;
+  updateTrial: (subscriptionId: string, trialEnd: number | "now", endBehavior?: string) => Promise<void>;
+  updateBillingAnchor: (subscriptionId: string, anchor: number | "now", prorationBehavior: string) => Promise<void>;
+  applyDiscount: (subscriptionId: string, couponId?: string, promotionCodeId?: string) => Promise<void>;
 }
 
 export interface StripeEvent {

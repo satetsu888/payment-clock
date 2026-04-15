@@ -126,6 +126,42 @@ impl StripeClient {
         Ok(body)
     }
 
+    pub async fn delete_with_params(
+        &self,
+        path: &str,
+        params: &[(&str, &str)],
+    ) -> Result<serde_json::Value, AppError> {
+        let url = format!("{}{}", STRIPE_BASE_URL, path);
+        let query_parts: Vec<String> = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect();
+        let full_url = if query_parts.is_empty() {
+            url
+        } else {
+            format!("{}?{}", url, query_parts.join("&"))
+        };
+        let resp = self
+            .http
+            .delete(&full_url)
+            .bearer_auth(&self.api_key)
+            .header("User-Agent", "PaymentClock/0.1.0")
+            .send()
+            .await?;
+
+        let status = resp.status();
+        let body: serde_json::Value = resp.json().await?;
+
+        if !status.is_success() {
+            let message = body["error"]["message"]
+                .as_str()
+                .unwrap_or("Unknown Stripe error");
+            return Err(AppError::Stripe(format!("{}: {}", status, message)));
+        }
+
+        Ok(body)
+    }
+
     pub async fn delete(&self, path: &str) -> Result<serde_json::Value, AppError> {
         let url = format!("{}{}", STRIPE_BASE_URL, path);
         let resp = self

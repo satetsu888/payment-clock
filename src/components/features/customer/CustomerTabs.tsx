@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type {
   CustomerWithResources,
   CreateSubscriptionOptions,
+  SubscriptionActions,
 } from "../../../lib/types";
 import { useAccountContext } from "../../../contexts/AccountContext";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
@@ -19,10 +20,11 @@ interface CustomerTabsProps {
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
-  onCreateSubscription: (customerId: string, priceId: string, options?: CreateSubscriptionOptions) => Promise<void>;
+  onCreateSubscription: (customerId: string, priceIds: string[], options?: CreateSubscriptionOptions) => Promise<void>;
   onCancelSubscription: (subscriptionId: string) => Promise<void>;
   onPauseSubscription: (subscriptionId: string) => Promise<void>;
   onResumeSubscription: (subscriptionId: string) => Promise<void>;
+  subscriptionActions: SubscriptionActions;
   stripeApiVersion: string;
   highlightedInvoiceId: string | null;
   onHighlightInvoice: (id: string | null) => void;
@@ -45,6 +47,7 @@ export function CustomerTabs({
   onCancelSubscription,
   onPauseSubscription,
   onResumeSubscription,
+  subscriptionActions,
   stripeApiVersion,
   highlightedInvoiceId,
   onHighlightInvoice,
@@ -150,6 +153,7 @@ export function CustomerTabs({
               onCancelSubscription={onCancelSubscription}
               onPauseSubscription={onPauseSubscription}
               onResumeSubscription={onResumeSubscription}
+              subscriptionActions={subscriptionActions}
               stripeApiVersion={stripeApiVersion}
               highlightedInvoiceId={highlightedInvoiceId}
               onHighlightInvoice={onHighlightInvoice}
