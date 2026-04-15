@@ -75,6 +75,16 @@ function parseAdvanceTimestamps(operations: Operation[]): Date[] {
 export function getClockCreatedTime(operations: Operation[]): Date | null {
   for (const op of operations) {
     if (op.operationType === "create_clock") {
+      if (op.requestParams) {
+        try {
+          const params = JSON.parse(op.requestParams);
+          if (params.frozen_time) {
+            return new Date(params.frozen_time * 1000);
+          }
+        } catch {
+          // fall through to createdAt
+        }
+      }
       return new Date(op.createdAt);
     }
   }
