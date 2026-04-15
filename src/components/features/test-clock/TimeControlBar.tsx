@@ -23,6 +23,7 @@ interface TimeControlBarProps {
   highlightedInvoiceId?: string | null;
   onHighlightInvoice?: (id: string | null) => void;
   onAdvanceToTime: (frozenTime: number) => void;
+  onAddSubscription?: () => void;
 }
 
 const MS_PER_DAY = 86400000;
@@ -146,6 +147,7 @@ export function TimeControlBar({
   highlightedInvoiceId,
   onHighlightInvoice,
   onAdvanceToTime,
+  onAddSubscription,
 }: TimeControlBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -259,7 +261,8 @@ export function TimeControlBar({
     cumulativeY += LANE_GAP;
   }
   const lanesBottom = cumulativeY - (lanes.length > 0 ? LANE_GAP : 0);
-  const timelineHeight = lanesBottom + 4;
+  const showAddButton = canInteract && !!onAddSubscription;
+  const timelineHeight = lanesBottom + 4 + (showAddButton ? LANE_HEIGHT + 4 : 0);
 
   // Month boundaries
   const monthBoundaries = getMonthBoundaries(startTime, endTime);
@@ -415,6 +418,25 @@ export function TimeControlBar({
               </div>
             ) : null;
           })}
+          {showAddButton && (
+            <div
+              className="absolute flex items-center"
+              style={{
+                left: "4px",
+                right: "4px",
+                top: `${lanesBottom + 4}px`,
+                height: `${LANE_HEIGHT}px`,
+              }}
+            >
+              <button
+                type="button"
+                onClick={onAddSubscription}
+                className="text-[9px] text-gray-400 hover:text-indigo-600 transition-colors truncate"
+              >
+                + Add Subscription
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scrollable timeline */}

@@ -26,6 +26,7 @@ interface CreateSubscriptionDialogProps {
   customers: ResourceItem[];
   frozenTime: string;
   defaultLabel: string;
+  defaultCustomerId?: string;
   onSubmit: (
     customerId: string,
     priceIds: string[],
@@ -39,11 +40,13 @@ export function CreateSubscriptionDialog({
   customers,
   frozenTime,
   defaultLabel,
+  defaultCustomerId,
   onSubmit,
   onClose,
 }: CreateSubscriptionDialogProps) {
   const [customerId, setCustomerId] = useState(
-    customers.length > 0 ? (customers[0].data.id as string) : "",
+    defaultCustomerId
+      ?? (customers.length > 0 ? (customers[0].data.id as string) : ""),
   );
   const [products, setProducts] = useState<StripeProduct[]>([]);
   const [allPrices, setAllPrices] = useState<StripePrice[]>([]);

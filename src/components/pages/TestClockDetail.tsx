@@ -12,6 +12,7 @@ import { TimeControlBar } from "../features/test-clock/TimeControlBar";
 import { ErrorBanner } from "../ui/ErrorBanner";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DropdownMenu } from "../ui/DropdownMenu";
+import { CreateSubscriptionDialog } from "../features/subscription/CreateSubscriptionDialog";
 
 interface TestClockDetailProps {
   initialClock: import("../../lib/types").TestClock;
@@ -99,6 +100,8 @@ export function TestClockDetail({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
+  const [showCreateSubscription, setShowCreateSubscription] = useState(false);
+  const [activeCustomerTabIndex, setActiveCustomerTabIndex] = useState(0);
 
   // --- Aggregate error ---
   const error = detailError || eventsError || resourcesError || advanceError;
@@ -231,6 +234,11 @@ export function TestClockDetail({
               highlightedInvoiceId={highlightedInvoiceId}
               onHighlightInvoice={setHighlightedInvoiceId}
               onAdvanceToTime={handleAdvanceToTime}
+              onAddSubscription={
+                (resources?.customers.length ?? 0) > 0
+                  ? () => setShowCreateSubscription(true)
+                  : undefined
+              }
             />
 
             {/* Customer Tabs */}
@@ -241,6 +249,8 @@ export function TestClockDetail({
               error={resourcesError}
               isDeleted={isDeleted}
               frozenTime={clock!.frozenTime}
+              activeTabIndex={activeCustomerTabIndex}
+              onActiveTabChange={setActiveCustomerTabIndex}
               onCreateCustomer={createCustomer}
               onAttachPaymentMethod={attachPaymentMethod}
               onSetDefaultPaymentMethod={setDefaultPaymentMethod}
@@ -272,6 +282,18 @@ export function TestClockDetail({
           </>
         )}
       </main>
+
+      {showCreateSubscription && resources && (
+        <CreateSubscriptionDialog
+          accountId={accountId}
+          customers={resources.customers}
+          frozenTime={clock!.frozenTime}
+          defaultLabel={`Sub ${(resources.subscriptions.length ?? 0) + 1}`}
+          defaultCustomerId={customerGroups[activeCustomerTabIndex]?.customer.stripeId}
+          onSubmit={createSubscription}
+          onClose={() => setShowCreateSubscription(false)}
+        />
+      )}
 
       {confirmDelete && (
         <ConfirmDialog

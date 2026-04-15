@@ -16,6 +16,8 @@ interface CustomerTabsProps {
   error: string | null;
   isDeleted: boolean;
   frozenTime: string;
+  activeTabIndex: number;
+  onActiveTabChange: (index: number) => void;
   onCreateCustomer: (name?: string, email?: string, metadata?: Record<string, string>) => Promise<void>;
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
@@ -51,25 +53,26 @@ export function CustomerTabs({
   stripeApiVersion,
   highlightedInvoiceId,
   onHighlightInvoice,
+  activeTabIndex,
+  onActiveTabChange,
   onReload,
   onClearError,
 }: CustomerTabsProps) {
   const { selectedAccount } = useAccountContext();
   const [showCreateCustomer, setShowCreateCustomer] = useState(false);
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   const accountId = selectedAccount!.id;
 
   // Keep active tab in bounds
   useEffect(() => {
     if (activeTabIndex >= customerGroups.length && customerGroups.length > 0) {
-      setActiveTabIndex(customerGroups.length - 1);
+      onActiveTabChange(customerGroups.length - 1);
     }
-  }, [customerGroups.length, activeTabIndex]);
+  }, [customerGroups.length, activeTabIndex, onActiveTabChange]);
 
   const handleCreateCustomer = async (name?: string, email?: string, metadata?: Record<string, string>) => {
     await onCreateCustomer(name, email, metadata);
-    setActiveTabIndex(customerGroups.length); // will be the new last index
+    onActiveTabChange(customerGroups.length); // will be the new last index
   };
 
   if (isDeleted) {
@@ -93,7 +96,7 @@ export function CustomerTabs({
           return (
             <button
               key={group.customer.stripeId}
-              onClick={() => setActiveTabIndex(index)}
+              onClick={() => onActiveTabChange(index)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-indigo-600 text-indigo-600 bg-white"
