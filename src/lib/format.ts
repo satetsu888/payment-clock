@@ -45,6 +45,11 @@ export function formatDateTime(date: Date): string {
   return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())} ${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())} UTC`;
 }
 
+/** "2026-04-12 09:00:35 UTC" */
+export function formatDateTimeWithSeconds(date: Date): string {
+  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())} ${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}:${pad2(date.getUTCSeconds())} UTC`;
+}
+
 /** "4/12 09:00" (UTC) */
 export function formatShortDateTime(date: Date): string {
   return `${date.getUTCMonth() + 1}/${date.getUTCDate()} ${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}`;

@@ -109,9 +109,6 @@ export function EventItem({ event, stripeApiVersion }: EventItemProps) {
         {event.resourceId && (
           <StripeIdLink stripeId={event.resourceId} className="text-xs text-gray-400 truncate" />
         )}
-        <span className="text-xs text-gray-300 ml-auto shrink-0">
-          {event.source === "cli" ? "CLI" : "API"}
-        </span>
       </button>
       {expanded && (
         <div className="mt-1.5 pl-2 border-l-2 border-gray-200">

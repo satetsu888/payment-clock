@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import type { Operation, StripeEvent, UnifiedTimelineItem } from "../../../lib/types";
 import { EventItem } from "../timeline/EventItem";
 import { extractCustomerIdFromEvent, extractCustomerIdFromOperation } from "../../../lib/resource-grouping";
-import { formatDateTime } from "../../../lib/format";
+import { formatDateTime, formatDateTimeWithSeconds } from "../../../lib/format";
 
 interface UnifiedTimelineProps {
   operations: Operation[];
@@ -12,17 +12,30 @@ interface UnifiedTimelineProps {
 }
 
 const operationLabels: Record<string, string> = {
-  create_clock: "Created test clock",
-  advance_time: "Advanced time",
-  delete_clock: "Deleted test clock",
-  create_customer: "Created customer",
-  attach_payment_method: "Attached payment method",
-  create_subscription: "Created subscription",
+  create_clock: "Create test clock",
+  advance_time: "Advance time",
+  delete_clock: "Delete test clock",
+  create_customer: "Create customer",
+  attach_payment_method: "Attach payment method",
+  set_default_payment_method: "Set default payment method",
+  detach_payment_method: "Detach payment method",
+  create_subscription: "Create subscription",
+  cancel_subscription: "Cancel subscription",
+  pause_subscription: "Pause subscription",
+  resume_subscription: "Resume subscription",
+  update_subscription_items: "Update subscription items",
+  update_subscription_trial: "Update subscription trial",
+  cancel_subscription_immediately: "Cancel subscription immediately",
+  update_subscription_cancel_at: "Update subscription cancel_at",
+  undo_cancel_subscription: "Undo cancel subscription",
+  update_subscription_billing_anchor: "Update billing anchor",
+  pause_subscription_with_options: "Pause subscription",
+  apply_subscription_discount: "Apply subscription discount",
 };
 
-function formatTime(isoString: string): string {
+function formatRealTime(isoString: string): string {
   try {
-    return formatDateTime(new Date(isoString));
+    return formatDateTimeWithSeconds(new Date(isoString));
   } catch {
     return isoString;
   }
@@ -72,16 +85,23 @@ export function UnifiedTimeline({
         }
         result.push({
           type: "event",
-          timestamp: ev.stripeCreatedAt,
+          timestamp: ev.receivedAt,
           event: ev,
         });
       }
     }
 
-    result.sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
+    result.sort((a, b) => {
+      const primary =
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      if (primary !== 0) return primary;
+      // 同一実時間内はシミュレーション時間で副次ソート（降順）
+      const aSimTime = a.event?.stripeCreatedAt ?? a.timestamp;
+      const bSimTime = b.event?.stripeCreatedAt ?? b.timestamp;
+      return (
+        new Date(bSimTime).getTime() - new Date(aSimTime).getTime()
+      );
+    });
     return result;
   }, [operations, events, filter, eventTypeFilter, customerFilter]);
 
@@ -169,12 +189,16 @@ export function UnifiedTimeline({
                   <div className="w-px flex-1 bg-gray-200" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm text-gray-900">{label}</div>
-                  {detail && (
-                    <div className="text-xs text-gray-500">{detail}</div>
-                  )}
-                  <div className="text-xs text-gray-400">
-                    {formatTime(op.createdAt)}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div>
+                      <div className="text-sm text-gray-900">{label}</div>
+                      {detail && (
+                        <div className="text-xs text-gray-500">{detail}</div>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-300 shrink-0">
+                      {formatRealTime(op.createdAt)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -190,8 +214,8 @@ export function UnifiedTimeline({
                 </div>
                 <div className="flex-1">
                   <EventItem event={item.event} stripeApiVersion={stripeApiVersion} />
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    {formatTime(item.event.stripeCreatedAt)}
+                  <div className="text-xs text-gray-300 text-right mt-0.5">
+                    {formatRealTime(item.event.stripeCreatedAt)}
                   </div>
                 </div>
               </div>
