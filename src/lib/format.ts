@@ -1,11 +1,30 @@
 import type { StripePrice } from "./types";
 
+// Stripe zero-decimal currencies
+// https://docs.stripe.com/currencies#zero-decimal
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga",
+  "pyg", "rwf", "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
+]);
+
+const THREE_DECIMAL_CURRENCIES = new Set([
+  "bhd", "iqd", "jod", "kwd", "lyd", "omr", "tnd",
+]);
+
 export function formatCurrency(amount: number, currency: string): string {
-  const formatted = (amount / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${formatted} ${currency.toUpperCase()}`;
+  const cur = currency.toLowerCase();
+  let value: number;
+  if (ZERO_DECIMAL_CURRENCIES.has(cur)) {
+    value = amount;
+  } else if (THREE_DECIMAL_CURRENCIES.has(cur)) {
+    value = amount / 1000;
+  } else {
+    value = amount / 100;
+  }
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: cur,
+  }).format(value);
 }
 
 export function formatPrice(price: StripePrice): string {
