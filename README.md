@@ -6,12 +6,15 @@ Stripe Test Clocks let you simulate the passage of time to test subscription bil
 
 ## Features
 
+- **Visual Timeline** - See test clocks as interactive timelines with subscription period bars, invoice markers, and click-to-advance interaction
+- **Complex Subscription Setup** - Trials, billing cycle anchors, metered usage, multiple line items, various billing intervals — set up complex scenarios from a single dialog
+- **Subscription Lifecycle** - Pause, cancel, and resume subscriptions directly from the UI
+- **Payment Method Management** - Attach, detach, and set default payment methods with test card selection
+- **Stripe Event Log** - Events are automatically fetched after each advance and displayed chronologically with expandable details
+- **Billing History** - Per-customer invoice table with bidirectional highlight linked to the timeline
 - **Multi-Account Support** - Manage multiple Stripe accounts and switch between them
-- **Test Clock Management** - Create, list, advance, and delete test clocks
-- **Advance Preview** - See which subscriptions and invoices will be affected before advancing time
-- **Resource Creation** - Create customers, manage multiple payment methods (attach, detach, set default), and set up subscriptions within test clocks
-- **Event Timeline** - View Stripe events in a unified timeline alongside your operations
-- **Resource Snapshots** - Inspect the state of customers, subscriptions, invoices, and payment intents at any point
+- **Product & Price Management** - Create and manage products with recurring/metered pricing
+- **Bulk Operations** - Bulk purge deleted test clocks
 
 ## Prerequisites
 
@@ -41,24 +44,6 @@ On first launch, you'll be prompted to enter a Stripe API key (secret key starti
 | Backend | Rust |
 | Database | SQLite (via rusqlite) |
 | Stripe communication | reqwest (HTTP) |
-
-## Roadmap
-
-### Implemented
-- Multi-account support
-- Test clock CRUD (create, list, delete)
-- Time advance with preview
-- Customer creation
-- Payment method management (attach, detach, set default)
-- Subscription creation
-- Event timeline
-- Resource snapshots (customers, subscriptions, invoices, payment intents)
-
-### Planned
-- Usage-based billing support (usage records, meters)
-- Coupon / Promotion Code support
-- Subscription modification (plan change, cancel, resume)
-- Invoice operations (pay, void, manual creation)
 
 ## License
 
