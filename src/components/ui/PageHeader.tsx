@@ -18,7 +18,7 @@ export function PageHeader({
   actions,
 }: PageHeaderProps) {
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-3">
+    <header className="relative z-20 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between max-w-4xl mx-auto">
         <div className="flex items-center gap-3">
           {onBack ? (
