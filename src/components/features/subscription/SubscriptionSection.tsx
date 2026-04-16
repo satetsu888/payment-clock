@@ -56,11 +56,26 @@ function formatUnix(ts: number | null): string {
 type DialogType = "updateItems" | "updateTrial" | "cancel" | "billingAnchor" | "pause" | "discount";
 
 function formatItemPrice(priceInfo: Record<string, unknown>): string {
-  const amount = ((priceInfo.unit_amount as number) / 100).toFixed(2);
+  const unitAmount = priceInfo.unit_amount as number | null;
   const currency = String(priceInfo.currency).toUpperCase();
   const recurring = priceInfo.recurring as Record<string, unknown> | null;
   const interval = recurring ? `/${String(recurring.interval)}` : "";
+  const isMetered = recurring?.usage_type === "metered";
+
+  if (unitAmount == null) {
+    return `Usage-based${interval}`;
+  }
+  const amount = (unitAmount / 100).toFixed(2);
+  if (isMetered) {
+    return `${amount} ${currency}/unit${interval}`;
+  }
   return `${amount} ${currency}${interval}`;
+}
+
+function isMeteredItem(item: Record<string, unknown>): boolean {
+  const priceInfo = item.price as Record<string, unknown> | null;
+  const recurring = priceInfo?.recurring as Record<string, unknown> | null;
+  return recurring?.usage_type === "metered";
 }
 
 export function SubscriptionSection({
@@ -206,10 +221,14 @@ export function SubscriptionSection({
                     ? priceInfo.product
                     : (priceInfo.product as Record<string, unknown>).name as string
                   : null;
+                const metered = isMeteredItem(item);
                 return (
                   <div key={String(item.id)} className="flex items-center gap-2 text-xs text-gray-600">
                     {productName && <span className="text-gray-500">{productName}</span>}
                     {priceInfo && <span>{formatItemPrice(priceInfo)}</span>}
+                    {metered && (
+                      <span className="px-1 py-0.5 text-[10px] rounded bg-emerald-100 text-emerald-700">metered</span>
+                    )}
                   </div>
                 );
               })}

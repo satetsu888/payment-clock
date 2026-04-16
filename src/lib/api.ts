@@ -8,6 +8,7 @@ import type {
   ResourceCounts,
   StripeProduct,
   StripePrice,
+  StripeMeter,
   StripeEvent,
   AdvancePreview,
   PaymentMethodData,
@@ -357,6 +358,8 @@ export async function createPrice(
   recurringInterval?: string,
   recurringIntervalCount?: number,
   nickname?: string,
+  usageType?: string,
+  meterId?: string,
 ): Promise<StripePrice> {
   return invoke<StripePrice>("create_price", {
     accountId,
@@ -366,6 +369,8 @@ export async function createPrice(
     recurringInterval: recurringInterval ?? null,
     recurringIntervalCount: recurringIntervalCount ?? null,
     nickname: nickname ?? null,
+    usageType: usageType ?? null,
+    meterId: meterId ?? null,
   });
 }
 
@@ -424,4 +429,42 @@ export async function getTestClockEvents(
   testClockId: string,
 ): Promise<StripeEvent[]> {
   return invoke<StripeEvent[]>("get_test_clock_events", { testClockId });
+}
+
+export async function listMeters(
+  accountId: string,
+): Promise<StripeMeter[]> {
+  return invoke<StripeMeter[]>("list_meters", { accountId });
+}
+
+export async function createMeter(
+  accountId: string,
+  displayName: string,
+  eventName: string,
+  aggregationFormula: string,
+): Promise<StripeMeter> {
+  return invoke<StripeMeter>("create_meter", {
+    accountId,
+    displayName,
+    eventName,
+    aggregationFormula,
+  });
+}
+
+export async function createMeterEvent(
+  accountId: string,
+  testClockId: string | null,
+  eventName: string,
+  customerId: string,
+  value: string,
+  timestamp?: number,
+): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("create_meter_event", {
+    accountId,
+    testClockId,
+    eventName,
+    customerId,
+    value,
+    timestamp: timestamp ?? null,
+  });
 }

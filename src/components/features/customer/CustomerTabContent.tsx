@@ -12,6 +12,7 @@ import { CreatePaymentMethodDialog } from "./CreatePaymentMethodDialog";
 import { SubscriptionSection } from "../subscription/SubscriptionSection";
 import { BillingHistory } from "./BillingHistory";
 import { PaymentMethodList } from "./PaymentMethodList";
+import { SubmitUsageDialog, hasMeteredSubscriptions } from "./SubmitUsageDialog";
 
 function getDefaultPaymentMethodId(
   data: Record<string, unknown>,
@@ -35,6 +36,7 @@ function getDefaultPaymentMethodId(
 export function CustomerTabContent({
   group,
   accountId,
+  testClockId,
   frozenTime,
   totalSubscriptionCount,
   onAttachPaymentMethod,
@@ -51,6 +53,7 @@ export function CustomerTabContent({
 }: {
   group: CustomerWithResources;
   accountId: string;
+  testClockId: string;
   frozenTime: string;
   totalSubscriptionCount: number;
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
@@ -70,6 +73,8 @@ export function CustomerTabContent({
   const [error, setError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodData[]>([]);
   const [showCreateSubscription, setShowCreateSubscription] = useState(false);
+  const [showReportUsage, setShowReportUsage] = useState(false);
+  const showMeteredUsage = hasMeteredSubscriptions(subscriptions);
 
   const loadPaymentMethods = useCallback(async () => {
     try {
@@ -167,12 +172,22 @@ export function CustomerTabContent({
           <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Subscriptions ({subscriptions.length})
           </h4>
-          <button
-            onClick={() => setShowCreateSubscription(true)}
-            className="text-xs text-indigo-600 hover:text-indigo-800"
-          >
-            + Subscription
-          </button>
+          <div className="flex items-center gap-3">
+            {showMeteredUsage && (
+              <button
+                onClick={() => setShowReportUsage(true)}
+                className="text-xs text-emerald-600 hover:text-emerald-800"
+              >
+                Report Usage
+              </button>
+            )}
+            <button
+              onClick={() => setShowCreateSubscription(true)}
+              className="text-xs text-indigo-600 hover:text-indigo-800"
+            >
+              + Subscription
+            </button>
+          </div>
         </div>
         {subscriptions.length > 0 ? (
           <SubscriptionSection
@@ -218,6 +233,17 @@ export function CustomerTabContent({
           defaultLabel={`Subscription ${totalSubscriptionCount + 1}`}
           onSubmit={handleCreateSubscription}
           onClose={() => setShowCreateSubscription(false)}
+        />
+      )}
+
+      {showReportUsage && (
+        <SubmitUsageDialog
+          accountId={accountId}
+          testClockId={testClockId}
+          customerId={customer.stripeId}
+          frozenTime={frozenTime}
+          onClose={() => setShowReportUsage(false)}
+          onSubmitted={() => {}}
         />
       )}
     </div>

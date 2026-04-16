@@ -50,6 +50,8 @@ pub async fn create_price(
     recurring_interval: Option<&str>,
     recurring_interval_count: Option<u32>,
     nickname: Option<&str>,
+    usage_type: Option<&str>,
+    meter_id: Option<&str>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
     let amount_str = unit_amount.to_string();
@@ -64,6 +66,12 @@ pub async fn create_price(
         if let Some(count) = recurring_interval_count {
             interval_count_str = count.to_string();
             params.push(("recurring[interval_count]", &interval_count_str));
+        }
+        if let Some(ut) = usage_type {
+            params.push(("recurring[usage_type]", ut));
+        }
+        if let Some(mid) = meter_id {
+            params.push(("recurring[meter]", mid));
         }
     }
     if let Some(nick) = nickname {

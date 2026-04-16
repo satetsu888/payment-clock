@@ -7,7 +7,7 @@ import { formatDateTime, formatDateTimeWithSeconds } from "../../../lib/format";
 interface UnifiedTimelineProps {
   operations: Operation[];
   events: StripeEvent[];
-  customers: { id: string }[];
+  customers: { id: string; name: string | null }[];
   stripeApiVersion: string;
 }
 
@@ -31,6 +31,8 @@ const operationLabels: Record<string, string> = {
   update_subscription_billing_anchor: "Update billing anchor",
   pause_subscription_with_options: "Pause subscription",
   apply_subscription_discount: "Apply subscription discount",
+  create_meter: "Create meter",
+  create_meter_event: "Report usage",
 };
 
 function formatRealTime(isoString: string): string {
@@ -176,6 +178,15 @@ export function UnifiedTimeline({
                 if (params.frozen_time) {
                   const dt = new Date(params.frozen_time * 1000);
                   detail = `to ${formatDateTime(dt)}`;
+                } else if (op.operationType === "create_meter_event") {
+                  const parts: string[] = [];
+                  if (params.customer_id) {
+                    const cust = customers.find((c) => c.id === params.customer_id);
+                    parts.push(cust?.name || params.customer_id);
+                  }
+                  if (params.event_name) parts.push(params.event_name);
+                  if (params.value) parts.push(`value: ${params.value}`);
+                  if (parts.length > 0) detail = parts.join(" · ");
                 }
               } catch {
                 // ignore

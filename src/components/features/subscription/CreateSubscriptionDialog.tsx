@@ -618,8 +618,9 @@ export function CreateSubscriptionDialog({
 
       {createPriceTarget && (
         <CreatePriceDialog
+          accountId={accountId}
           product={createPriceTarget}
-          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname) => {
+          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname, usageType, meterId) => {
             const price = await apiCreatePrice(
               accountId,
               productId,
@@ -628,6 +629,8 @@ export function CreateSubscriptionDialog({
               interval,
               intervalCount,
               nickname,
+              usageType,
+              meterId,
             );
             const prs = await listPrices(accountId);
             setAllPrices(prs);

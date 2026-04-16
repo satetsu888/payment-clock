@@ -61,6 +61,8 @@ export function useProducts(accountId: string) {
       recurringInterval?: string,
       recurringIntervalCount?: number,
       nickname?: string,
+      usageType?: string,
+      meterId?: string,
     ) => {
       const price = await apiCreatePrice(
         accountId,
@@ -70,6 +72,8 @@ export function useProducts(accountId: string) {
         recurringInterval,
         recurringIntervalCount,
         nickname,
+        usageType,
+        meterId,
       );
       await load();
       return price;

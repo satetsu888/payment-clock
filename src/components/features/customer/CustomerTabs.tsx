@@ -16,6 +16,7 @@ interface CustomerTabsProps {
   error: string | null;
   isDeleted: boolean;
   frozenTime: string;
+  testClockId: string;
   activeTabIndex: number;
   onActiveTabChange: (index: number) => void;
   onCreateCustomer: (name?: string, email?: string, metadata?: Record<string, string>) => Promise<void>;
@@ -41,6 +42,7 @@ export function CustomerTabs({
   error,
   isDeleted,
   frozenTime,
+  testClockId,
   onCreateCustomer,
   onAttachPaymentMethod,
   onSetDefaultPaymentMethod,
@@ -147,6 +149,7 @@ export function CustomerTabs({
               key={customerGroups[activeTabIndex].customer.stripeId}
               group={customerGroups[activeTabIndex]}
               accountId={accountId}
+              testClockId={testClockId}
               frozenTime={frozenTime}
               totalSubscriptionCount={customerGroups.reduce((sum, g) => sum + g.subscriptions.length, 0)}
               onAttachPaymentMethod={onAttachPaymentMethod}

@@ -847,6 +847,8 @@ pub async fn create_price(
     recurring_interval: Option<String>,
     recurring_interval_count: Option<u32>,
     nickname: Option<String>,
+    usage_type: Option<String>,
+    meter_id: Option<String>,
 ) -> Result<serde_json::Value, AppError> {
     let api_key = state.get_api_key(&account_id)?;
     let price = stripe::product::create_price(
@@ -857,6 +859,8 @@ pub async fn create_price(
         recurring_interval.as_deref(),
         recurring_interval_count,
         nickname.as_deref(),
+        usage_type.as_deref(),
+        meter_id.as_deref(),
     )
     .await?;
 
@@ -870,6 +874,8 @@ pub async fn create_price(
         "recurring_interval": recurring_interval,
         "recurring_interval_count": recurring_interval_count,
         "nickname": nickname,
+        "usage_type": usage_type,
+        "meter_id": meter_id,
     })
     .to_string();
     operation::record(
@@ -924,6 +930,85 @@ pub async fn list_prices(
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let api_key = state.get_api_key(&account_id)?;
     stripe::product::list_prices(&api_key, product_id.as_deref()).await
+}
+
+#[tauri::command]
+pub async fn list_meters(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<Vec<serde_json::Value>, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    stripe::meter::list_meters(&api_key).await
+}
+
+#[tauri::command]
+pub async fn create_meter(
+    state: State<'_, AppState>,
+    account_id: String,
+    display_name: String,
+    event_name: String,
+    aggregation_formula: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    let meter =
+        stripe::meter::create_meter(&api_key, &display_name, &event_name, &aggregation_formula)
+            .await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let meter_id = meter["id"].as_str().unwrap_or_default();
+    let params_json = serde_json::json!({
+        "display_name": display_name,
+        "event_name": event_name,
+        "aggregation_formula": aggregation_formula,
+    })
+    .to_string();
+    operation::record(
+        &db,
+        &account_id,
+        None,
+        "create_meter",
+        Some(&params_json),
+        Some(meter_id),
+        &now,
+    )?;
+    Ok(meter)
+}
+
+#[tauri::command]
+pub async fn create_meter_event(
+    state: State<'_, AppState>,
+    account_id: String,
+    test_clock_id: Option<String>,
+    event_name: String,
+    customer_id: String,
+    value: String,
+    timestamp: Option<i64>,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    let meter_event =
+        stripe::meter::create_meter_event(&api_key, &event_name, &customer_id, &value, timestamp)
+            .await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let params_json = serde_json::json!({
+        "event_name": event_name,
+        "customer_id": customer_id,
+        "value": value,
+        "timestamp": timestamp,
+    })
+    .to_string();
+    operation::record(
+        &db,
+        &account_id,
+        test_clock_id.as_deref(),
+        "create_meter_event",
+        Some(&params_json),
+        Some(&customer_id),
+        &now,
+    )?;
+    Ok(meter_event)
 }
 
 #[tauri::command]

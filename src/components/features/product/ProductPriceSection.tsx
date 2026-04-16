@@ -200,9 +200,10 @@ export function ProductPriceSection({ accountId }: ProductPriceSectionProps) {
 
       {createPriceTarget && (
         <CreatePriceDialog
+          accountId={accountId}
           product={createPriceTarget}
-          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname) => {
-            await createPrice(productId, unitAmount, currency, interval, intervalCount, nickname);
+          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname, usageType, meterId) => {
+            await createPrice(productId, unitAmount, currency, interval, intervalCount, nickname, usageType, meterId);
           }}
           onClose={() => setCreatePriceTarget(null)}
         />

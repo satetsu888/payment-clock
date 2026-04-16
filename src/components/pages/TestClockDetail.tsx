@@ -117,7 +117,10 @@ export function TestClockDetail({
 
   // --- Customer IDs for timeline filtering ---
   const customers = useMemo(
-    () => (resources?.customers ?? []).map((c) => ({ id: c.stripeId })),
+    () => (resources?.customers ?? []).map((c) => ({
+      id: c.stripeId,
+      name: (c.data.name as string) || null,
+    })),
     [resources],
   );
 
@@ -258,6 +261,7 @@ export function TestClockDetail({
               error={resourcesError}
               isDeleted={isDeleted}
               frozenTime={clock!.frozenTime}
+              testClockId={testClockId}
               activeTabIndex={activeCustomerTabIndex}
               onActiveTabChange={setActiveCustomerTabIndex}
               onCreateCustomer={createCustomer}

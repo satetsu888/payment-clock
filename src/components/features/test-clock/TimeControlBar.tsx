@@ -377,7 +377,7 @@ export function TimeControlBar({
             {isAdvancingOrPending ? (
               <>
                 <span className="w-3 h-3 border-2 border-indigo-300 border-t-white rounded-full animate-spin shrink-0" />
-                Advancing to {formatShortDateTime(advanceTargetTime!)}...
+                {advanceTargetTime ? `Advancing to ${formatShortDateTime(advanceTargetTime)}...` : "Advancing..."}
               </>
             ) : (
               <>

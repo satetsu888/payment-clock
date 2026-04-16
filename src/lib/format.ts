@@ -28,14 +28,17 @@ export function formatCurrency(amount: number, currency: string): string {
 }
 
 export function formatPrice(price: StripePrice): string {
-  const amount = price.unit_amount
+  const isMetered = price.recurring?.usage_type === "metered";
+  const amount = price.unit_amount != null
     ? formatCurrency(price.unit_amount, price.currency)
     : "Usage-based";
+  const perUnit = isMetered && price.unit_amount != null ? "/unit" : "";
   const interval = price.recurring
     ? `/${price.recurring.interval}`
     : " (one-time)";
+  const metered = isMetered ? " (metered)" : "";
   const label = price.nickname ? `${price.nickname} - ` : "";
-  return `${label}${amount}${interval}`;
+  return `${label}${amount}${perUnit}${interval}${metered}`;
 }
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");

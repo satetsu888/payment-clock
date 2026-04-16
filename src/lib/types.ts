@@ -94,8 +94,20 @@ export interface StripePrice {
   recurring: {
     interval: string;
     interval_count: number;
+    usage_type?: string;
+    meter?: string;
   } | null;
   nickname: string | null;
+}
+
+export interface StripeMeter {
+  id: string;
+  display_name: string;
+  event_name: string;
+  status: string;
+  default_aggregation: {
+    formula: string;
+  };
 }
 
 export interface BillingCycleAnchorConfig {
