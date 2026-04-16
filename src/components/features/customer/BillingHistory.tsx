@@ -1,3 +1,5 @@
+import { useState, useRef, useCallback, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import type { ResourceItem } from "../../../lib/types";
 import { formatCurrency, formatShortDateTime } from "../../../lib/format";
 import { getInvoiceSubscriptionId } from "../../../lib/timeline-data";
@@ -18,6 +20,166 @@ interface BillingRow {
   currency: string;
   status: string;
   subscriptionLabel: string | null;
+  data: Record<string, unknown>;
+}
+
+// --- InvoiceAmountPopover ---
+
+interface LineItem {
+  description: string | null;
+  amount: number;
+  quantity: number | null;
+}
+
+function extractLineItems(data: Record<string, unknown>): LineItem[] {
+  const lines = data.lines as { data?: unknown[] } | undefined;
+  if (!lines?.data || !Array.isArray(lines.data)) return [];
+  return lines.data.map((item) => {
+    const li = item as Record<string, unknown>;
+    return {
+      description: (li.description as string) ?? null,
+      amount: (li.amount as number) ?? 0,
+      quantity: (li.quantity as number) ?? null,
+    };
+  });
+}
+
+const POPOVER_GAP = 6;
+
+function InvoiceAmountPopover({
+  data,
+  currency,
+  total,
+}: {
+  data: Record<string, unknown>;
+  currency: string;
+  total: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const enterTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  const handleEnter = useCallback(() => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    enterTimer.current = setTimeout(() => setOpen(true), 200);
+  }, []);
+
+  const handleLeave = useCallback(() => {
+    if (enterTimer.current) clearTimeout(enterTimer.current);
+    leaveTimer.current = setTimeout(() => setOpen(false), 150);
+  }, []);
+
+  // Position the popover above the trigger, aligned to the right edge
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current || !popoverRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const popoverRect = popoverRef.current.getBoundingClientRect();
+
+    let top = triggerRect.top - popoverRect.height - POPOVER_GAP;
+    let left = triggerRect.right - popoverRect.width;
+
+    // Flip below if not enough space above
+    if (top < 8) {
+      top = triggerRect.bottom + POPOVER_GAP;
+    }
+    // Keep within viewport horizontally
+    if (left < 8) {
+      left = 8;
+    }
+
+    setPosition({ top, left });
+  }, [open]);
+
+  const subtotal = (data.subtotal as number) ?? total;
+  const tax = (data.tax as number) ?? 0;
+  const amountPaid = (data.amount_paid as number) ?? 0;
+  const amountRemaining = (data.amount_remaining as number) ?? 0;
+  const lineItems = extractLineItems(data);
+
+  const showSubtotalSection = subtotal !== total || tax > 0;
+  const showPaymentSection = amountPaid !== total || amountRemaining > 0;
+  const showLineItems = lineItems.length > 1 || (lineItems.length === 1 && showSubtotalSection);
+
+  const fmt = (amount: number) => formatCurrency(amount, currency);
+
+  return (
+    <span
+      ref={triggerRef}
+      className="cursor-help"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <span className="decoration-dashed decoration-gray-400 underline underline-offset-2">
+        {fmt(total)}
+      </span>
+      {open &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[400px] text-left text-xs whitespace-nowrap"
+            style={{ top: position.top, left: position.left }}
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+          >
+            {showLineItems && (
+              <>
+                <div className="text-gray-500 font-medium mb-1">Line items</div>
+                {lineItems.map((li, i) => (
+                  <div key={i} className="flex justify-between gap-4 text-gray-700 py-0.5">
+                    <span className="truncate max-w-[320px]">
+                      {li.description || "—"}
+                      {li.quantity != null && li.quantity > 1 && (
+                        <span className="text-gray-400"> ×{li.quantity}</span>
+                      )}
+                    </span>
+                    <span className="font-mono">{fmt(li.amount)}</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {showSubtotalSection && (
+              <>
+                {showLineItems && <hr className="my-1.5 border-gray-200" />}
+                <div className="flex justify-between text-gray-600 py-0.5">
+                  <span>Subtotal</span>
+                  <span className="font-mono">{fmt(subtotal)}</span>
+                </div>
+                {tax > 0 && (
+                  <div className="flex justify-between text-gray-600 py-0.5">
+                    <span>Tax</span>
+                    <span className="font-mono">{fmt(tax)}</span>
+                  </div>
+                )}
+              </>
+            )}
+            {(showLineItems || showSubtotalSection) && (
+              <hr className="my-1.5 border-gray-200" />
+            )}
+            <div className="flex justify-between text-gray-900 font-medium py-0.5">
+              <span>Total</span>
+              <span className="font-mono">{fmt(total)}</span>
+            </div>
+            {showPaymentSection && (
+              <>
+                <hr className="my-1.5 border-gray-200" />
+                <div className="flex justify-between text-gray-600 py-0.5">
+                  <span>Paid</span>
+                  <span className="font-mono">{fmt(amountPaid)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600 py-0.5">
+                  <span>Remaining</span>
+                  <span className="font-mono">{fmt(amountRemaining)}</span>
+                </div>
+              </>
+            )}
+          </div>,
+          document.body
+        )}
+    </span>
+  );
 }
 
 const statusColors: Record<string, string> = {
@@ -74,6 +236,7 @@ export function BillingHistory({
       currency: (inv.data.currency as string) ?? "usd",
       status,
       subscriptionLabel: resolveSubscriptionLabel(subscriptionId, subscriptions),
+      data: inv.data,
     });
   }
 
@@ -146,7 +309,7 @@ export function BillingHistory({
                   )}
                 </td>
                 <td className="px-3 py-1.5 text-right text-gray-900 font-mono">
-                  {formatCurrency(row.amount, row.currency)}
+                  <InvoiceAmountPopover data={row.data} currency={row.currency} total={row.amount} />
                 </td>
                 <td className="px-3 py-1.5">
                   <span
