@@ -787,6 +787,127 @@ pub async fn apply_subscription_discount(
 }
 
 #[tauri::command]
+pub async fn create_product(
+    state: State<'_, AppState>,
+    account_id: String,
+    name: String,
+    description: Option<String>,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    let product =
+        stripe::product::create_product(&api_key, &name, description.as_deref()).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let product_id = product["id"].as_str().unwrap_or_default();
+    let params_json =
+        serde_json::json!({ "name": name, "description": description }).to_string();
+    operation::record(
+        &db,
+        &account_id,
+        None,
+        "create_product",
+        Some(&params_json),
+        Some(product_id),
+        &now,
+    )?;
+    Ok(product)
+}
+
+#[tauri::command]
+pub async fn archive_product(
+    state: State<'_, AppState>,
+    account_id: String,
+    product_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    let product = stripe::product::archive_product(&api_key, &product_id).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    operation::record(
+        &db,
+        &account_id,
+        None,
+        "archive_product",
+        Some(&serde_json::json!({ "product_id": product_id }).to_string()),
+        Some(&product_id),
+        &now,
+    )?;
+    Ok(product)
+}
+
+#[tauri::command]
+pub async fn create_price(
+    state: State<'_, AppState>,
+    account_id: String,
+    product_id: String,
+    unit_amount: i64,
+    currency: String,
+    recurring_interval: Option<String>,
+    recurring_interval_count: Option<u32>,
+    nickname: Option<String>,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    let price = stripe::product::create_price(
+        &api_key,
+        &product_id,
+        unit_amount,
+        &currency,
+        recurring_interval.as_deref(),
+        recurring_interval_count,
+        nickname.as_deref(),
+    )
+    .await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    let price_id = price["id"].as_str().unwrap_or_default();
+    let params_json = serde_json::json!({
+        "product_id": product_id,
+        "unit_amount": unit_amount,
+        "currency": currency,
+        "recurring_interval": recurring_interval,
+        "recurring_interval_count": recurring_interval_count,
+        "nickname": nickname,
+    })
+    .to_string();
+    operation::record(
+        &db,
+        &account_id,
+        None,
+        "create_price",
+        Some(&params_json),
+        Some(price_id),
+        &now,
+    )?;
+    Ok(price)
+}
+
+#[tauri::command]
+pub async fn archive_price(
+    state: State<'_, AppState>,
+    account_id: String,
+    price_id: String,
+) -> Result<serde_json::Value, AppError> {
+    let api_key = state.get_api_key(&account_id)?;
+    let price = stripe::product::archive_price(&api_key, &price_id).await?;
+
+    let db = state.db.lock().unwrap();
+    let now = chrono::Utc::now().to_rfc3339();
+    operation::record(
+        &db,
+        &account_id,
+        None,
+        "archive_price",
+        Some(&serde_json::json!({ "price_id": price_id }).to_string()),
+        Some(&price_id),
+        &now,
+    )?;
+    Ok(price)
+}
+
+#[tauri::command]
 pub async fn list_products(
     state: State<'_, AppState>,
     account_id: String,

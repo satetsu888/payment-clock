@@ -330,6 +330,52 @@ export async function applySubscriptionDiscount(
   });
 }
 
+export async function createProduct(
+  accountId: string,
+  name: string,
+  description?: string,
+): Promise<StripeProduct> {
+  return invoke<StripeProduct>("create_product", {
+    accountId,
+    name,
+    description: description ?? null,
+  });
+}
+
+export async function archiveProduct(
+  accountId: string,
+  productId: string,
+): Promise<StripeProduct> {
+  return invoke<StripeProduct>("archive_product", { accountId, productId });
+}
+
+export async function createPrice(
+  accountId: string,
+  productId: string,
+  unitAmount: number,
+  currency: string,
+  recurringInterval?: string,
+  recurringIntervalCount?: number,
+  nickname?: string,
+): Promise<StripePrice> {
+  return invoke<StripePrice>("create_price", {
+    accountId,
+    productId,
+    unitAmount,
+    currency,
+    recurringInterval: recurringInterval ?? null,
+    recurringIntervalCount: recurringIntervalCount ?? null,
+    nickname: nickname ?? null,
+  });
+}
+
+export async function archivePrice(
+  accountId: string,
+  priceId: string,
+): Promise<StripePrice> {
+  return invoke<StripePrice>("archive_price", { accountId, priceId });
+}
+
 export async function listProducts(
   accountId: string,
 ): Promise<StripeProduct[]> {

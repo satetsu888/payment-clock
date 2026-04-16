@@ -83,6 +83,7 @@ export interface StripeProduct {
   id: string;
   name: string;
   description: string | null;
+  active: boolean;
 }
 
 export interface StripePrice {

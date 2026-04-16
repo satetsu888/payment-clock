@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { listProducts, listPrices } from "../../../lib/api";
+import { listProducts, listPrices, createProduct as apiCreateProduct, createPrice as apiCreatePrice } from "../../../lib/api";
 import { formatDateTime, formatPrice, toDatetimeLocalUTC } from "../../../lib/format";
 import type {
   ResourceItem,
@@ -9,6 +9,8 @@ import type {
   BillingCycleAnchorConfig,
 } from "../../../lib/types";
 import { Dialog } from "../../ui/Dialog";
+import { CreateProductDialog } from "../product/CreateProductDialog";
+import { CreatePriceDialog } from "../product/CreatePriceDialog";
 
 type TrialMode = "days" | "end";
 type BillingAnchorMode = "timestamp" | "config";
@@ -83,6 +85,8 @@ export function CreateSubscriptionDialog({
   const [configSecond, setConfigSecond] = useState<string>("");
   const [showTimeFields, setShowTimeFields] = useState(false);
   const [prorationBehavior, setProrationBehavior] = useState<"create_prorations" | "none">("create_prorations");
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [createPriceTarget, setCreatePriceTarget] = useState<StripeProduct | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -244,31 +248,54 @@ export function CreateSubscriptionDialog({
                 return (
                   <div key={row.key} className="flex items-start gap-2 p-2 bg-gray-50 rounded-md">
                     <div className="flex-1 space-y-1">
-                      <select
-                        value={row.productId}
-                        onChange={(e) => updateRow(row.key, "productId", e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                        disabled={loading || products.length === 0}
-                      >
-                        {products.length === 0 && <option value="">No products</option>}
-                        <option value="">Select product...</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={row.priceId}
-                        onChange={(e) => updateRow(row.key, "priceId", e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                        disabled={loading || !row.productId}
-                      >
-                        <option value="">Select price...</option>
-                        {productPrices.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {formatPrice(p)}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={row.productId}
+                          onChange={(e) => updateRow(row.key, "productId", e.target.value)}
+                          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                          disabled={loading || products.length === 0}
+                        >
+                          {products.length === 0 && <option value="">No products</option>}
+                          <option value="">Select product...</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateProduct(true)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 whitespace-nowrap"
+                        >
+                          + New
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={row.priceId}
+                          onChange={(e) => updateRow(row.key, "priceId", e.target.value)}
+                          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                          disabled={loading || !row.productId}
+                        >
+                          <option value="">Select price...</option>
+                          {productPrices.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {formatPrice(p)}
+                            </option>
+                          ))}
+                        </select>
+                        {row.productId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const prod = products.find((p) => p.id === row.productId);
+                              if (prod) setCreatePriceTarget(prod);
+                            }}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 whitespace-nowrap"
+                          >
+                            + New
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {priceRows.length > 1 && (
                       <button
@@ -568,6 +595,53 @@ export function CreateSubscriptionDialog({
           </Dialog.ActionButton>
         </Dialog.Footer>
       </form>
+
+      {showCreateProduct && (
+        <CreateProductDialog
+          onSubmit={async (name, description) => {
+            const product = await apiCreateProduct(accountId, name, description);
+            const [prods, prs] = await Promise.all([
+              listProducts(accountId),
+              listPrices(accountId),
+            ]);
+            setProducts(prods);
+            setAllPrices(prs);
+            setPriceRows((prev) =>
+              prev.map((row) =>
+                !row.productId ? { ...row, productId: product.id } : row,
+              ),
+            );
+          }}
+          onClose={() => setShowCreateProduct(false)}
+        />
+      )}
+
+      {createPriceTarget && (
+        <CreatePriceDialog
+          product={createPriceTarget}
+          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname) => {
+            const price = await apiCreatePrice(
+              accountId,
+              productId,
+              unitAmount,
+              currency,
+              interval,
+              intervalCount,
+              nickname,
+            );
+            const prs = await listPrices(accountId);
+            setAllPrices(prs);
+            setPriceRows((prev) =>
+              prev.map((row) =>
+                row.productId === productId && !row.priceId
+                  ? { ...row, priceId: price.id }
+                  : row,
+              ),
+            );
+          }}
+          onClose={() => setCreatePriceTarget(null)}
+        />
+      )}
     </Dialog>
   );
 }

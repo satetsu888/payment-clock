@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeftRight, CircleUserRound, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, CircleUserRound, Clock, Package, RefreshCw } from "lucide-react";
 import { useAccountContext } from "../../contexts/AccountContext";
 import { useTestClocks } from "../../hooks/useTestClocks";
 import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../../lib/api";
@@ -9,6 +9,7 @@ import { StripeIdLink } from "../ui/StripeIdLink";
 import { TestClockCard } from "../features/test-clock/TestClockCard";
 import { CreateTestClockDialog } from "../features/test-clock/CreateTestClockDialog";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { ProductPriceSection } from "../features/product/ProductPriceSection";
 
 interface DashboardScreenProps {
   onSelectTestClock: (clock: TestClock) => void;
@@ -25,6 +26,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [selectedForPurge, setSelectedForPurge] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"test-clocks" | "products">("test-clocks");
 
   const handleCreate = async (
     frozenTime: number,
@@ -116,86 +118,117 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
           </span>
         }
         actions={
-          <>
-            <button
-              onClick={refresh}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
-              title="Refresh"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-            >
-              + New Clock
-            </button>
-          </>
+          activeTab === "test-clocks" ? (
+            <>
+              <button
+                onClick={refresh}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                title="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+              >
+                + New Clock
+              </button>
+            </>
+          ) : undefined
         }
       />
 
-      <main className="p-6 max-w-4xl mx-auto">
-
-        {loading && (
-          <p className="text-sm text-gray-500 text-center py-8">Loading...</p>
-        )}
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md mb-4">
-            {error}
-          </p>
-        )}
-
-        {!loading && activeClocks.length === 0 && !error && (
-          <p className="text-sm text-gray-400 text-center py-8">
-            No test clocks yet. Create one to get started.
-          </p>
-        )}
-
-        <div className="space-y-2">
-          {activeClocks.map((clock) => (
-            <TestClockCard
-              key={clock.id}
-              clock={clock}
-              customerCount={resourceCounts[clock.id]?.customerCount}
-              subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
-              onSelect={() => { onSelectTestClock(clock); }}
-              onDelete={(id) => setConfirmTarget({ type: "delete", testClockId: id })}
-            />
+      <div className="flex min-h-[calc(100vh-64px)]">
+        <nav className="w-48 shrink-0 border-r border-gray-200 bg-white p-3 space-y-1">
+          {([
+            { key: "test-clocks" as const, label: "Test Clocks", icon: Clock },
+            { key: "products" as const, label: "Products & Prices", icon: Package },
+          ]).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                activeTab === key
+                  ? "bg-indigo-50 text-indigo-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
           ))}
-        </div>
+        </nav>
 
-        {deletedClocks.length > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                Deleted
-              </h3>
-              <button
-                onClick={() => setConfirmTarget({ type: "bulk-purge", testClockId: "" })}
-                className="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-              >
-                {selectedForPurge.size > 0
-                  ? `Purge (${selectedForPurge.size})`
-                  : "Purge All"}
-              </button>
-            </div>
-            <div className="space-y-2 opacity-60">
-              {deletedClocks.map((clock) => (
-                <TestClockCard
-                  key={clock.id}
-                  clock={clock}
-                  customerCount={resourceCounts[clock.id]?.customerCount}
-                  subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
-                  onSelect={() => { onSelectTestClock(clock); }}
-                  onPurge={(id) => setConfirmTarget({ type: "purge", testClockId: id })}
-                  selected={selectedForPurge.has(clock.id)}
-                  onToggleSelect={toggleSelectForPurge}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
+        <main className="flex-1 p-6 max-w-4xl">
+          {activeTab === "test-clocks" && (
+            <>
+              {loading && (
+                <p className="text-sm text-gray-500 text-center py-8">Loading...</p>
+              )}
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md mb-4">
+                  {error}
+                </p>
+              )}
+
+              {!loading && activeClocks.length === 0 && !error && (
+                <p className="text-sm text-gray-400 text-center py-8">
+                  No test clocks yet. Create one to get started.
+                </p>
+              )}
+
+              <div className="space-y-2">
+                {activeClocks.map((clock) => (
+                  <TestClockCard
+                    key={clock.id}
+                    clock={clock}
+                    customerCount={resourceCounts[clock.id]?.customerCount}
+                    subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
+                    onSelect={() => { onSelectTestClock(clock); }}
+                    onDelete={(id) => setConfirmTarget({ type: "delete", testClockId: id })}
+                  />
+                ))}
+              </div>
+
+              {deletedClocks.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                      Deleted
+                    </h3>
+                    <button
+                      onClick={() => setConfirmTarget({ type: "bulk-purge", testClockId: "" })}
+                      className="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      {selectedForPurge.size > 0
+                        ? `Purge (${selectedForPurge.size})`
+                        : "Purge All"}
+                    </button>
+                  </div>
+                  <div className="space-y-2 opacity-60">
+                    {deletedClocks.map((clock) => (
+                      <TestClockCard
+                        key={clock.id}
+                        clock={clock}
+                        customerCount={resourceCounts[clock.id]?.customerCount}
+                        subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
+                        onSelect={() => { onSelectTestClock(clock); }}
+                        onPurge={(id) => setConfirmTarget({ type: "purge", testClockId: id })}
+                        selected={selectedForPurge.has(clock.id)}
+                        onToggleSelect={toggleSelectForPurge}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === "products" && (
+            <ProductPriceSection accountId={selectedAccount!.id} />
+          )}
+        </main>
+      </div>
 
       {showCreate && (
         <CreateTestClockDialog
