@@ -6,7 +6,7 @@ interface UpdateBillingAnchorDialogProps {
   subscriptionId: string;
   subscriptionData: Record<string, unknown>;
   frozenTime: string;
-  onSubmit: (anchor: "now", prorationBehavior: string) => Promise<void>;
+  onSubmit: (anchor: "now" | "unchanged", prorationBehavior: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -18,6 +18,7 @@ export function UpdateBillingAnchorDialog({
 }: UpdateBillingAnchorDialogProps) {
   const currentAnchor = subscriptionData.billing_cycle_anchor as number | undefined;
 
+  const [anchorValue, setAnchorValue] = useState<"now" | "unchanged">("now");
   const [prorationBehavior, setProrationBehavior] = useState("create_prorations");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function UpdateBillingAnchorDialog({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit("now", prorationBehavior);
+      await onSubmit(anchorValue, prorationBehavior);
     } catch (e) {
       setError(String(e));
       setLoading(false);
@@ -35,7 +36,7 @@ export function UpdateBillingAnchorDialog({
 
   return (
     <Dialog onClose={onClose} size="md">
-      <Dialog.Header title="Reset Billing Cycle Anchor" />
+      <Dialog.Header title="Update Billing Cycle Anchor" />
       <Dialog.Content compact>
         {currentAnchor && (
           <div className="text-xs text-gray-500">
@@ -43,9 +44,35 @@ export function UpdateBillingAnchorDialog({
           </div>
         )}
 
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+            <input
+              type="radio"
+              name="anchorValue"
+              value="now"
+              checked={anchorValue === "now"}
+              onChange={() => setAnchorValue("now")}
+              className="text-indigo-600 focus:ring-indigo-500"
+            />
+            Reset to frozen time ({formatDateTime(new Date(frozenTime))})
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+            <input
+              type="radio"
+              name="anchorValue"
+              value="unchanged"
+              checked={anchorValue === "unchanged"}
+              onChange={() => setAnchorValue("unchanged")}
+              className="text-indigo-600 focus:ring-indigo-500"
+            />
+            Keep current anchor (unchanged)
+          </label>
+        </div>
+
         <div className="text-xs text-gray-600 bg-gray-50 rounded-md p-2">
-          Resets the billing cycle anchor to the current frozen time ({formatDateTime(new Date(frozenTime))}).
-          This will immediately end the current billing period and start a new cycle.
+          {anchorValue === "now"
+            ? "Resets the billing cycle anchor to the current frozen time. This will immediately end the current billing period and start a new cycle."
+            : "Keeps the current billing cycle anchor. Only the proration behavior below will be applied."}
         </div>
 
         {/* Proration behavior */}
@@ -70,9 +97,9 @@ export function UpdateBillingAnchorDialog({
           size="compact"
           onClick={handleSubmit}
           loading={loading}
-          loadingText="Resetting..."
+          loadingText={anchorValue === "now" ? "Resetting..." : "Updating..."}
         >
-          Reset Anchor
+          {anchorValue === "now" ? "Reset Anchor" : "Update"}
         </Dialog.ActionButton>
       </Dialog.Footer>
     </Dialog>

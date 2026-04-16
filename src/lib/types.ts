@@ -97,11 +97,20 @@ export interface StripePrice {
   nickname: string | null;
 }
 
+export interface BillingCycleAnchorConfig {
+  day_of_month: number;
+  month?: number;
+  hour?: number;
+  minute?: number;
+  second?: number;
+}
+
 export interface CreateSubscriptionOptions {
   trialPeriodDays?: number;
   trialEnd?: number;
   trialEndBehavior?: "create_invoice" | "cancel" | "pause";
   billingCycleAnchor?: number;
+  billingCycleAnchorConfig?: BillingCycleAnchorConfig;
   prorationBehavior?: "create_prorations" | "none";
   metadata?: Record<string, string>;
 }
@@ -122,7 +131,7 @@ export interface SubscriptionActions {
   resume: (subscriptionId: string) => Promise<void>;
   updateItems: (subscriptionId: string, items: SubscriptionItemUpdate[], prorationBehavior: string) => Promise<void>;
   updateTrial: (subscriptionId: string, trialEnd: number | "now", endBehavior?: string) => Promise<void>;
-  updateBillingAnchor: (subscriptionId: string, anchor: number | "now", prorationBehavior: string) => Promise<void>;
+  updateBillingAnchor: (subscriptionId: string, anchor: number | "now" | "unchanged", prorationBehavior: string) => Promise<void>;
   applyDiscount: (subscriptionId: string, couponId?: string, promotionCodeId?: string) => Promise<void>;
 }
 

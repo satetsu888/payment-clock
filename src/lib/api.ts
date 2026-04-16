@@ -166,6 +166,7 @@ export async function createSubscription(
     trialEnd: options?.trialEnd ?? null,
     trialEndBehavior: options?.trialEndBehavior ?? null,
     billingCycleAnchor: options?.billingCycleAnchor ?? null,
+    billingCycleAnchorConfig: options?.billingCycleAnchorConfig ?? null,
     prorationBehavior: options?.prorationBehavior ?? null,
     metadata: options?.metadata ?? null,
   });

@@ -6,10 +6,12 @@ import type {
   StripeProduct,
   StripePrice,
   CreateSubscriptionOptions,
+  BillingCycleAnchorConfig,
 } from "../../../lib/types";
 import { Dialog } from "../../ui/Dialog";
 
 type TrialMode = "days" | "end";
+type BillingAnchorMode = "timestamp" | "config";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
 
 function toDatetimeLocalValue(isoString: string): string {
@@ -70,9 +72,16 @@ export function CreateSubscriptionDialog({
   const [trialEndBehavior, setTrialEndBehavior] =
     useState<TrialEndBehavior>("create_invoice");
   const [enableBillingAnchor, setEnableBillingAnchor] = useState(false);
+  const [billingAnchorMode, setBillingAnchorMode] = useState<BillingAnchorMode>("timestamp");
   const [billingAnchorDate, setBillingAnchorDate] = useState<string>(
     toDatetimeLocalValue(frozenTime),
   );
+  const [configDayOfMonth, setConfigDayOfMonth] = useState<string>("1");
+  const [configMonth, setConfigMonth] = useState<string>("");
+  const [configHour, setConfigHour] = useState<string>("");
+  const [configMinute, setConfigMinute] = useState<string>("");
+  const [configSecond, setConfigSecond] = useState<string>("");
+  const [showTimeFields, setShowTimeFields] = useState(false);
   const [prorationBehavior, setProrationBehavior] = useState<"create_prorations" | "none">("create_prorations");
 
   const loadData = useCallback(async () => {
@@ -157,10 +166,37 @@ export function CreateSubscriptionDialog({
         }
         options.trialEndBehavior = trialEndBehavior;
       }
-      if (enableBillingAnchor && billingAnchorDate) {
-        options.billingCycleAnchor = Math.floor(
-          new Date(billingAnchorDate + "Z").getTime() / 1000,
-        );
+      if (enableBillingAnchor) {
+        if (billingAnchorMode === "timestamp" && billingAnchorDate) {
+          options.billingCycleAnchor = Math.floor(
+            new Date(billingAnchorDate + "Z").getTime() / 1000,
+          );
+        } else if (billingAnchorMode === "config") {
+          const dayOfMonth = parseInt(configDayOfMonth, 10);
+          if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+            setError("Day of month must be between 1 and 31");
+            setLoading(false);
+            return;
+          }
+          const config: BillingCycleAnchorConfig = { day_of_month: dayOfMonth };
+          if (configMonth) {
+            const m = parseInt(configMonth, 10);
+            if (!isNaN(m)) config.month = m;
+          }
+          if (configHour) {
+            const h = parseInt(configHour, 10);
+            if (!isNaN(h)) config.hour = h;
+          }
+          if (configMinute) {
+            const min = parseInt(configMinute, 10);
+            if (!isNaN(min)) config.minute = min;
+          }
+          if (configSecond) {
+            const s = parseInt(configSecond, 10);
+            if (!isNaN(s)) config.second = s;
+          }
+          options.billingCycleAnchorConfig = config;
+        }
         options.prorationBehavior = prorationBehavior;
       }
       await onSubmit(customerId, validPriceIds, options);
@@ -364,19 +400,138 @@ export function CreateSubscriptionDialog({
 
             {enableBillingAnchor && (
               <div className="mt-3 ml-6 space-y-3">
-                <div>
-                  <input
-                    type="datetime-local"
-                    value={billingAnchorDate}
-                    min={frozenTimeMin}
-                    onChange={(e) => setBillingAnchorDate(e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Set the billing cycle reference date (e.g., 1st of each month to align billing)
-                  </p>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billingAnchorMode"
+                      value="timestamp"
+                      checked={billingAnchorMode === "timestamp"}
+                      onChange={() => setBillingAnchorMode("timestamp")}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                      disabled={loading}
+                    />
+                    Specific date
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billingAnchorMode"
+                      value="config"
+                      checked={billingAnchorMode === "config"}
+                      onChange={() => setBillingAnchorMode("config")}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                      disabled={loading}
+                    />
+                    Day of month
+                  </label>
                 </div>
+
+                {billingAnchorMode === "timestamp" ? (
+                  <div>
+                    <input
+                      type="datetime-local"
+                      value={billingAnchorDate}
+                      min={frozenTimeMin}
+                      onChange={(e) => setBillingAnchorDate(e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Set the billing cycle reference date
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Day of month</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={configDayOfMonth}
+                        onChange={(e) => setConfigDayOfMonth(e.target.value)}
+                        className="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        disabled={loading}
+                      />
+                      <span className="text-xs text-gray-400">(1-31, 31 = last day)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Month</label>
+                      <select
+                        value={configMonth}
+                        onChange={(e) => setConfigMonth(e.target.value)}
+                        className="w-40 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        disabled={loading}
+                      >
+                        <option value="">Not set (monthly)</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                      </select>
+                      <span className="text-xs text-gray-400">(for yearly)</span>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowTimeFields(!showTimeFields)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800"
+                      >
+                        {showTimeFields ? "- Hide time fields" : "+ Set time (UTC)"}
+                      </button>
+                      {showTimeFields && (
+                        <div className="mt-2 flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="23"
+                            placeholder="HH"
+                            value={configHour}
+                            onChange={(e) => setConfigHour(e.target.value)}
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            disabled={loading}
+                          />
+                          <span className="text-gray-400">:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="MM"
+                            value={configMinute}
+                            onChange={(e) => setConfigMinute(e.target.value)}
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            disabled={loading}
+                          />
+                          <span className="text-gray-400">:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="SS"
+                            value={configSecond}
+                            onChange={(e) => setConfigSecond(e.target.value)}
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            disabled={loading}
+                          />
+                          <span className="text-xs text-gray-400 ml-1">UTC</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Only for monthly/yearly subscriptions. Day 31 auto-adjusts for shorter months.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">
                     Billing until anchor

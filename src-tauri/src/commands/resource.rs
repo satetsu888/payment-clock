@@ -239,6 +239,7 @@ pub async fn create_subscription(
     trial_end: Option<i64>,
     trial_end_behavior: Option<String>,
     billing_cycle_anchor: Option<i64>,
+    billing_cycle_anchor_config: Option<stripe::subscription::BillingCycleAnchorConfig>,
     proration_behavior: Option<String>,
     metadata: Option<std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
@@ -252,6 +253,7 @@ pub async fn create_subscription(
         trial_end,
         trial_end_behavior.as_deref(),
         billing_cycle_anchor,
+        billing_cycle_anchor_config.clone(),
         proration_behavior.as_deref(),
         metadata.as_ref(),
     )
@@ -276,6 +278,7 @@ pub async fn create_subscription(
         "trial_end": trial_end,
         "trial_end_behavior": trial_end_behavior,
         "billing_cycle_anchor": billing_cycle_anchor,
+        "billing_cycle_anchor_config": billing_cycle_anchor_config,
         "proration_behavior": proration_behavior,
     })
     .to_string();

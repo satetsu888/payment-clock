@@ -179,8 +179,8 @@ export function useTestClockResources(
   );
 
   const updateSubscriptionBillingAnchor = useCallback(
-    async (subscriptionId: string, anchor: number | "now", prorationBehavior: string) => {
-      const anchorStr = anchor === "now" ? "now" : String(anchor);
+    async (subscriptionId: string, anchor: number | "now" | "unchanged", prorationBehavior: string) => {
+      const anchorStr = typeof anchor === "string" ? anchor : String(anchor);
       await apiUpdateSubscriptionBillingAnchor(accountId, testClockId, subscriptionId, anchorStr, prorationBehavior);
       await load();
     },

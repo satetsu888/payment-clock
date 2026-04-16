@@ -1,6 +1,15 @@
 use crate::error::AppError;
 use crate::stripe::client::StripeClient;
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct BillingCycleAnchorConfig {
+    pub day_of_month: u32,
+    pub month: Option<u32>,
+    pub hour: Option<u32>,
+    pub minute: Option<u32>,
+    pub second: Option<u32>,
+}
+
 pub async fn create_subscription(
     api_key: &str,
     customer_id: &str,
@@ -9,6 +18,7 @@ pub async fn create_subscription(
     trial_end: Option<i64>,
     trial_end_behavior: Option<&str>,
     billing_cycle_anchor: Option<i64>,
+    billing_cycle_anchor_config: Option<BillingCycleAnchorConfig>,
     proration_behavior: Option<&str>,
     metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
@@ -33,6 +43,20 @@ pub async fn create_subscription(
     }
     if let Some(anchor) = billing_cycle_anchor {
         params.push(("billing_cycle_anchor".into(), anchor.to_string()));
+    } else if let Some(ref config) = billing_cycle_anchor_config {
+        params.push(("billing_cycle_anchor_config[day_of_month]".into(), config.day_of_month.to_string()));
+        if let Some(month) = config.month {
+            params.push(("billing_cycle_anchor_config[month]".into(), month.to_string()));
+        }
+        if let Some(hour) = config.hour {
+            params.push(("billing_cycle_anchor_config[hour]".into(), hour.to_string()));
+        }
+        if let Some(minute) = config.minute {
+            params.push(("billing_cycle_anchor_config[minute]".into(), minute.to_string()));
+        }
+        if let Some(second) = config.second {
+            params.push(("billing_cycle_anchor_config[second]".into(), second.to_string()));
+        }
     }
     if let Some(pb) = proration_behavior {
         params.push(("proration_behavior".into(), pb.to_string()));
