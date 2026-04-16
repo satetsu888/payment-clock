@@ -54,3 +54,18 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Inject README into DMG and re-upload
+        if: matrix.platform == 'macos-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DMG_PATH=$(find src-tauri/target -name "*.dmg" -not -name "*rw*" | head -1)
+          echo "Found DMG: $DMG_PATH"
+          chmod +x scripts/inject-dmg-readme.sh
+          ./scripts/inject-dmg-readme.sh "$DMG_PATH" "src-tauri/dmg-resources/README.txt"
+
+          DMG_NAME=$(basename "$DMG_PATH")
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          gh release delete-asset "$TAG_NAME" "$DMG_NAME" -y || true
+          gh release upload "$TAG_NAME" "$DMG_PATH"
