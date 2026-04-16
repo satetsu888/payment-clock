@@ -16,15 +16,13 @@ export function Hero() {
         <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
           {content.hero.subtitle}
         </p>
-        <div className="mt-10">
-          <DownloadButtons />
+        {/* App screenshot */}
+        <div className="mt-16 mx-auto max-w-3xl rounded-xl bg-gray-50 screenshot-frame overflow-hidden">
+          <img src={import.meta.env.BASE_URL + 'hero.png'} alt="Payment Clock app screenshot" className="w-full" />
         </div>
 
-        {/* Screenshot placeholder */}
-        <div className="mt-16 mx-auto max-w-3xl rounded-xl bg-gray-50 screenshot-frame overflow-hidden">
-          <div className="aspect-[16/10] flex items-center justify-center text-gray-400 text-sm">
-            App screenshot
-          </div>
+        <div className="mt-10">
+          <DownloadButtons />
         </div>
       </div>
     </section>

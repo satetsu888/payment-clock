@@ -19,17 +19,17 @@ export const content = {
         value: "See exactly what's happening at every point in time.",
       },
       {
-        title: 'Subscription Lifecycle Simulation',
+        title: 'Complex Subscriptions Made Easy',
         description:
-          'Pause, cancel, and resume subscriptions right from the UI. Combine multiple subscriptions with different billing cycles and watch how they interact as time moves forward.',
+          'Trials, billing cycle anchors, metered usage, multiple line items, weekly or yearly intervals — even complex billing configurations are just a few clicks away.',
         value:
-          'Test complex scenarios like trial-to-paid conversion, mid-cycle cancellation, and reactivation — without writing test scripts.',
+          'Set up realistic scenarios and watch them play out on the timeline.',
       },
       {
-        title: 'Event Log',
+        title: 'Stripe Events at a Glance',
         description:
-          'After each time advancement, Stripe Events are automatically fetched and displayed chronologically. See exactly which invoices were created, payments succeeded, or subscriptions changed.',
-        value: 'Close the feedback loop — advance time, see what changed, decide what to try next.',
+          'Every Stripe Event triggered by a time advance is automatically fetched and listed chronologically. Invoice created, payment succeeded, subscription updated — see the full picture without opening the Stripe Dashboard.',
+        value: 'Advance time, see what happened, decide what to try next.',
       },
     ],
   },
