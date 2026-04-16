@@ -20,10 +20,11 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
     useTestClocks(selectedAccount!.id);
   const [showCreate, setShowCreate] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<{
-    type: "delete" | "purge";
+    type: "delete" | "purge" | "bulk-purge";
     testClockId: string;
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [selectedForPurge, setSelectedForPurge] = useState<Set<string>>(new Set());
 
   const handleCreate = async (
     frozenTime: number,
@@ -57,6 +58,14 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
     try {
       if (confirmTarget.type === "delete") {
         await remove(confirmTarget.testClockId);
+      } else if (confirmTarget.type === "bulk-purge") {
+        const targets = selectedForPurge.size > 0
+          ? [...selectedForPurge]
+          : deletedClocks.map((c) => c.id);
+        for (const id of targets) {
+          await purge(id);
+        }
+        setSelectedForPurge(new Set());
       } else {
         await purge(confirmTarget.testClockId);
       }
@@ -64,6 +73,18 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
       setConfirmLoading(false);
       setConfirmTarget(null);
     }
+  };
+
+  const toggleSelectForPurge = (id: string) => {
+    setSelectedForPurge((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const activeClocks = testClocks.filter((c) => !c.deletedAt);
@@ -145,9 +166,19 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
 
         {deletedClocks.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">
-              Deleted
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                Deleted
+              </h3>
+              <button
+                onClick={() => setConfirmTarget({ type: "bulk-purge", testClockId: "" })}
+                className="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+              >
+                {selectedForPurge.size > 0
+                  ? `Purge (${selectedForPurge.size})`
+                  : "Purge All"}
+              </button>
+            </div>
             <div className="space-y-2 opacity-60">
               {deletedClocks.map((clock) => (
                 <TestClockCard
@@ -157,6 +188,8 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
                   subscriptionCount={resourceCounts[clock.id]?.subscriptionCount}
                   onSelect={() => { onSelectTestClock(clock); }}
                   onPurge={(id) => setConfirmTarget({ type: "purge", testClockId: id })}
+                  selected={selectedForPurge.has(clock.id)}
+                  onToggleSelect={toggleSelectForPurge}
                 />
               ))}
             </div>
@@ -177,7 +210,9 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
           message={
             confirmTarget.type === "delete"
               ? "This test clock will be deleted from Stripe. This action cannot be undone."
-              : "All local data (operations, events, snapshots) for this test clock will be permanently removed."
+              : confirmTarget.type === "bulk-purge"
+                ? `${selectedForPurge.size > 0 ? selectedForPurge.size : deletedClocks.length} test clock(s) will be purged. All local data (operations, events, snapshots) will be permanently removed.`
+                : "All local data (operations, events, snapshots) for this test clock will be permanently removed."
           }
           confirmLabel={confirmTarget.type === "delete" ? "Delete" : "Purge"}
           onConfirm={handleConfirm}

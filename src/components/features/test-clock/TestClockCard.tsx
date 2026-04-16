@@ -13,6 +13,8 @@ interface TestClockCardProps {
   onSelect: (clockId: string) => void;
   onDelete?: (testClockId: string) => void;
   onPurge?: (testClockId: string) => void;
+  selected?: boolean;
+  onToggleSelect?: (testClockId: string) => void;
 }
 
 function formatFrozenTime(isoString: string): string {
@@ -51,6 +53,8 @@ export function TestClockCard({
   onSelect,
   onDelete,
   onPurge,
+  selected,
+  onToggleSelect,
 }: TestClockCardProps) {
   const isDeleted = !!clock.deletedAt;
 
@@ -81,10 +85,19 @@ export function TestClockCard({
   }
 
   return (
-    <button
-      onClick={() => onSelect(clock.id)}
-      className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-indigo-300 transition-colors relative"
-    >
+    <div className="flex items-center gap-2">
+      {isDeleted && onToggleSelect && (
+        <input
+          type="checkbox"
+          checked={selected ?? false}
+          onChange={() => onToggleSelect(clock.id)}
+          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
+        />
+      )}
+      <button
+        onClick={() => onSelect(clock.id)}
+        className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-md hover:border-indigo-300 transition-colors relative"
+      >
       <div className="flex items-center mb-1">
         <Clock className="w-4 h-4 text-gray-400 mr-1.5 shrink-0" />
         <span className="text-sm font-medium text-gray-900 mr-2">
@@ -117,6 +130,7 @@ export function TestClockCard({
           <StripeIdLink stripeId={clock.stripeTestClockId} />
         </div>
       )}
-    </button>
+      </button>
+    </div>
   );
 }
