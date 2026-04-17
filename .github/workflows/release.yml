@@ -55,7 +55,7 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      - name: Inject README into DMG and re-upload
+      - name: Inject README into DMG and re-upload as versionless
         if: matrix.platform == 'macos-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,7 +66,75 @@ jobs:
           ./scripts/inject-dmg-readme.sh "$DMG_PATH" "src-tauri/dmg-resources/README.txt"
 
           DMG_NAME=$(basename "$DMG_PATH")
-          ASSET_NAME="${DMG_NAME// /.}"
+          VERSIONED_ASSET="${DMG_NAME// /.}"
+          VERSIONLESS_NAME="Payment.Clock_aarch64.dmg"
+          VERSIONLESS_PATH="$(dirname "$DMG_PATH")/$VERSIONLESS_NAME"
+          cp "$DMG_PATH" "$VERSIONLESS_PATH"
+
           TAG_NAME="${GITHUB_REF#refs/tags/}"
-          gh release delete-asset "$TAG_NAME" "$ASSET_NAME" -y || true
-          gh release upload "$TAG_NAME" "$DMG_PATH"
+          gh release delete-asset "$TAG_NAME" "$VERSIONED_ASSET" -y || true
+          gh release delete-asset "$TAG_NAME" "$VERSIONLESS_NAME" -y || true
+          gh release upload "$TAG_NAME" "$VERSIONLESS_PATH"
+
+      - name: Rename Windows installers to versionless
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+
+          replace_asset() {
+            local src="$1"
+            local versionless_name="$2"
+            local versioned_name
+            versioned_name=$(basename "$src")
+            versioned_name="${versioned_name// /.}"
+            local versionless_path
+            versionless_path="$(dirname "$src")/$versionless_name"
+            cp "$src" "$versionless_path"
+            gh release delete-asset "$TAG_NAME" "$versioned_name" -y || true
+            gh release delete-asset "$TAG_NAME" "$versionless_name" -y || true
+            gh release upload "$TAG_NAME" "$versionless_path"
+          }
+
+          EXE_PATH=$(find src-tauri/target -name "*_x64-setup.exe" | head -1)
+          echo "Found EXE: $EXE_PATH"
+          replace_asset "$EXE_PATH" "Payment.Clock_x64-setup.exe"
+          if [ -f "${EXE_PATH}.sig" ]; then
+            replace_asset "${EXE_PATH}.sig" "Payment.Clock_x64-setup.exe.sig"
+          fi
+
+          MSI_PATH=$(find src-tauri/target -name "*_x64_en-US.msi" | head -1)
+          echo "Found MSI: $MSI_PATH"
+          replace_asset "$MSI_PATH" "Payment.Clock_x64_en-US.msi"
+          if [ -f "${MSI_PATH}.sig" ]; then
+            replace_asset "${MSI_PATH}.sig" "Payment.Clock_x64_en-US.msi.sig"
+          fi
+
+  finalize-latest-json:
+    needs: publish-tauri
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Rewrite latest.json URLs to versionless filenames
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+
+          gh release download "$TAG_NAME" --pattern "latest.json" --output latest.json
+          echo "Original latest.json:"
+          cat latest.json
+
+          # Underscores cannot appear inside base64 signature payloads, so this
+          # only touches URL fields.
+          sed -i "s|_${VERSION}_|_|g" latest.json
+
+          echo "Updated latest.json:"
+          cat latest.json
+
+          gh release delete-asset "$TAG_NAME" "latest.json" -y || true
+          gh release upload "$TAG_NAME" latest.json
