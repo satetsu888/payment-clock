@@ -43,8 +43,22 @@ export function Features() {
 
             const isSide = layout === 'side' || layout === 'side-tall'
 
+            const textColClass =
+              layout === 'stacked'
+                ? ''
+                : layout === 'side-tall'
+                  ? 'md:basis-2/5 md:flex-none'
+                  : 'flex-1'
+
+            const imageColClass =
+              layout === 'stacked'
+                ? ''
+                : layout === 'side-tall'
+                  ? 'md:basis-3/5 md:flex-none'
+                  : 'flex-1'
+
             const textBlock = (
-              <div className={`${layout === 'stacked' ? '' : 'flex-1'} p-8 flex flex-col justify-center`}>
+              <div className={`${textColClass} p-8 flex flex-col justify-center`}>
                 <div
                   className={`h-10 w-10 rounded-lg ${iconBg} flex items-center justify-center mb-4`}
                 >
@@ -64,16 +78,20 @@ export function Features() {
 
             const imageBlock = screenshot ? (
               <div
-                className={`${layout === 'stacked' ? '' : 'flex-1'} bg-gray-50 ${
+                className={`${imageColClass} bg-gray-50 ${
                   layout === 'stacked'
                     ? 'border-t border-gray-100 p-6'
                     : `border-t md:border-t-0 ${reversed ? 'md:border-r' : 'md:border-l'} border-gray-100`
-                } ${layout === 'side-tall' ? 'flex items-center justify-center p-6' : ''}`}
+                } ${layout === 'side-tall' ? 'flex items-center justify-center p-8' : ''}`}
               >
                 <img
                   src={import.meta.env.BASE_URL + screenshot}
                   alt={item.title}
-                  className={layout === 'side-tall' ? 'max-h-80 w-auto' : 'w-full'}
+                  className={
+                    layout === 'side-tall'
+                      ? 'max-h-96 md:max-h-[560px] w-auto'
+                      : 'w-full'
+                  }
                 />
               </div>
             ) : (
