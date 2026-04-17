@@ -145,7 +145,10 @@ await page.setViewportSize({ width: 1280, height: 640 });
 await page.setContent(html, { waitUntil: 'networkidle' });
 
 const outputPath = path.resolve(projectRoot, 'social-preview.png');
+const lpOutputPath = path.resolve(projectRoot, 'lp/public/social-preview.png');
 await page.screenshot({ path: outputPath, type: 'png', clip: { x: 0, y: 0, width: 1280, height: 640 } });
+fs.copyFileSync(outputPath, lpOutputPath);
 await browser.close();
 
 console.log(`Generated: ${outputPath}`);
+console.log(`Copied to: ${lpOutputPath}`);
