@@ -66,6 +66,7 @@ jobs:
           ./scripts/inject-dmg-readme.sh "$DMG_PATH" "src-tauri/dmg-resources/README.txt"
 
           DMG_NAME=$(basename "$DMG_PATH")
+          ASSET_NAME="${DMG_NAME// /.}"
           TAG_NAME="${GITHUB_REF#refs/tags/}"
-          gh release delete-asset "$TAG_NAME" "$DMG_NAME" -y || true
+          gh release delete-asset "$TAG_NAME" "$ASSET_NAME" -y || true
           gh release upload "$TAG_NAME" "$DMG_PATH"
