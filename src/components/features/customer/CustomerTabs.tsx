@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import type {
   CustomerWithResources,
   CreateSubscriptionOptions,
+  CustomerAddress,
   SubscriptionActions,
+  SubscriptionItemInput,
 } from "../../../lib/types";
 import { useAccountContext } from "../../../contexts/AccountContext";
 import { CreateCustomerDialog } from "./CreateCustomerDialog";
@@ -19,11 +21,16 @@ interface CustomerTabsProps {
   testClockId: string;
   activeTabIndex: number;
   onActiveTabChange: (index: number) => void;
-  onCreateCustomer: (name?: string, email?: string, metadata?: Record<string, string>) => Promise<void>;
+  onCreateCustomer: (
+    name?: string,
+    email?: string,
+    address?: CustomerAddress,
+    metadata?: Record<string, string>,
+  ) => Promise<void>;
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
-  onCreateSubscription: (customerId: string, priceIds: string[], options?: CreateSubscriptionOptions) => Promise<void>;
+  onCreateSubscription: (customerId: string, items: SubscriptionItemInput[], options?: CreateSubscriptionOptions) => Promise<void>;
   onCancelSubscription: (subscriptionId: string) => Promise<void>;
   onPauseSubscription: (subscriptionId: string) => Promise<void>;
   onResumeSubscription: (subscriptionId: string) => Promise<void>;
@@ -72,8 +79,13 @@ export function CustomerTabs({
     }
   }, [customerGroups.length, activeTabIndex, onActiveTabChange]);
 
-  const handleCreateCustomer = async (name?: string, email?: string, metadata?: Record<string, string>) => {
-    await onCreateCustomer(name, email, metadata);
+  const handleCreateCustomer = async (
+    name?: string,
+    email?: string,
+    address?: CustomerAddress,
+    metadata?: Record<string, string>,
+  ) => {
+    await onCreateCustomer(name, email, address, metadata);
     onActiveTabChange(customerGroups.length); // will be the new last index
   };
 

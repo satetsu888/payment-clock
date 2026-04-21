@@ -18,6 +18,17 @@ fn has_item_level_period(api_version: &str) -> bool {
     api_version >= SUBSCRIPTION_PERIOD_MOVED_VERSION
 }
 
+/// Returns true if the given API version uses the new `total_taxes` field on
+/// Invoice (Basil API 2025-03-31 replaced `total_tax_amounts`).
+/// None is treated as "new" since accounts without a recorded version are
+/// likely using the current default.
+pub fn uses_total_taxes_field(api_version: Option<&str>) -> bool {
+    match api_version {
+        Some(v) => v >= SUBSCRIPTION_PERIOD_MOVED_VERSION,
+        None => true,
+    }
+}
+
 /// Extract `current_period_end` from a subscription JSON object,
 /// using the correct field path for the given API version.
 pub fn subscription_current_period_end(

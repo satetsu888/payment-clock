@@ -1,20 +1,31 @@
 import { useCallback, useEffect, useState } from "react";
-import { listProducts, listPrices, createProduct as apiCreateProduct, createPrice as apiCreatePrice } from "../../../lib/api";
+import {
+  listProducts,
+  listPrices,
+  listTaxRates,
+  createTaxRate as apiCreateTaxRate,
+  createProduct as apiCreateProduct,
+  createPrice as apiCreatePrice,
+} from "../../../lib/api";
 import { formatDateTime, formatPrice, toDatetimeLocalUTC } from "../../../lib/format";
 import type {
   ResourceItem,
   StripeProduct,
   StripePrice,
+  StripeTaxRate,
+  SubscriptionItemInput,
   CreateSubscriptionOptions,
   BillingCycleAnchorConfig,
 } from "../../../lib/types";
 import { Dialog } from "../../ui/Dialog";
 import { CreateProductDialog } from "../product/CreateProductDialog";
 import { CreatePriceDialog } from "../product/CreatePriceDialog";
+import { CreateTaxRateDialog } from "../tax/CreateTaxRateDialog";
 
 type TrialMode = "days" | "end";
 type BillingAnchorMode = "timestamp" | "config";
 type TrialEndBehavior = "create_invoice" | "cancel" | "pause";
+type TaxMode = "none" | "automatic" | "manual";
 
 function toDatetimeLocalValue(isoString: string): string {
   return toDatetimeLocalUTC(new Date(isoString));
@@ -24,6 +35,7 @@ interface PriceRow {
   key: number;
   productId: string;
   priceId: string;
+  taxRateIds: string[];
 }
 
 interface CreateSubscriptionDialogProps {
@@ -34,7 +46,7 @@ interface CreateSubscriptionDialogProps {
   defaultCustomerId?: string;
   onSubmit: (
     customerId: string,
-    priceIds: string[],
+    items: SubscriptionItemInput[],
     options?: CreateSubscriptionOptions,
   ) => Promise<void>;
   onClose: () => void;
@@ -55,8 +67,10 @@ export function CreateSubscriptionDialog({
   );
   const [products, setProducts] = useState<StripeProduct[]>([]);
   const [allPrices, setAllPrices] = useState<StripePrice[]>([]);
-  const [priceRows, setPriceRows] = useState<PriceRow[]>([{ key: 0, productId: "", priceId: "" }]);
+  const [taxRates, setTaxRates] = useState<StripeTaxRate[]>([]);
+  const [priceRows, setPriceRows] = useState<PriceRow[]>([{ key: 0, productId: "", priceId: "", taxRateIds: [] }]);
   const [nextKey, setNextKey] = useState(1);
+  const [showCreateTaxRate, setShowCreateTaxRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,23 +99,34 @@ export function CreateSubscriptionDialog({
   const [configSecond, setConfigSecond] = useState<string>("");
   const [showTimeFields, setShowTimeFields] = useState(false);
   const [prorationBehavior, setProrationBehavior] = useState<"create_prorations" | "none">("create_prorations");
+  const [taxMode, setTaxMode] = useState<TaxMode>("none");
   const [showCreateProduct, setShowCreateProduct] = useState(false);
   const [createPriceTarget, setCreatePriceTarget] = useState<StripeProduct | null>(null);
 
+  const selectedCustomer = customers.find((c) => (c.data.id as string) === customerId);
+  const selectedCustomerCountry = (() => {
+    if (!selectedCustomer) return null;
+    const addr = selectedCustomer.data.address as { country?: string } | null | undefined;
+    return addr?.country ?? null;
+  })();
+
   const loadData = useCallback(async () => {
     try {
-      const [prods, prs] = await Promise.all([
+      const [prods, prs, trs] = await Promise.all([
         listProducts(accountId),
         listPrices(accountId),
+        listTaxRates(accountId),
       ]);
       setProducts(prods);
       setAllPrices(prs);
+      setTaxRates(trs);
       if (prods.length > 0) {
         const firstProductPrices = prs.filter((p) => p.product === prods[0].id);
         setPriceRows([{
           key: 0,
           productId: prods[0].id,
           priceId: firstProductPrices.length > 0 ? firstProductPrices[0].id : "",
+          taxRateIds: [],
         }]);
       }
     } catch (e) {
@@ -130,19 +155,68 @@ export function CreateSubscriptionDialog({
   };
 
   const addRow = () => {
-    setPriceRows((prev) => [...prev, { key: nextKey, productId: "", priceId: "" }]);
+    setPriceRows((prev) => [...prev, { key: nextKey, productId: "", priceId: "", taxRateIds: [] }]);
     setNextKey((k) => k + 1);
+  };
+
+  const toggleTaxRate = (key: number, taxRateId: string) => {
+    setPriceRows((prev) =>
+      prev.map((row) => {
+        if (row.key !== key) return row;
+        const has = row.taxRateIds.includes(taxRateId);
+        return {
+          ...row,
+          taxRateIds: has
+            ? row.taxRateIds.filter((id) => id !== taxRateId)
+            : [...row.taxRateIds, taxRateId],
+        };
+      }),
+    );
+  };
+
+  const handleCreateTaxRate = async (
+    displayName: string,
+    percentage: string,
+    inclusive: boolean,
+    country?: string,
+    stateCode?: string,
+    jurisdiction?: string,
+  ) => {
+    const rate = await apiCreateTaxRate(
+      accountId,
+      displayName,
+      percentage,
+      inclusive,
+      country,
+      stateCode,
+      jurisdiction,
+    );
+    setTaxRates((prev) => [...prev, rate]);
+    if (showCreateTaxRate !== null) {
+      const rowKey = showCreateTaxRate;
+      setPriceRows((prev) =>
+        prev.map((row) =>
+          row.key === rowKey
+            ? { ...row, taxRateIds: [...row.taxRateIds, rate.id] }
+            : row,
+        ),
+      );
+    }
   };
 
   const removeRow = (key: number) => {
     setPriceRows((prev) => prev.filter((r) => r.key !== key));
   };
 
-  const validPriceIds = priceRows.filter((r) => r.priceId).map((r) => r.priceId);
+  const validRows = priceRows.filter((r) => r.priceId);
+  const validItems: SubscriptionItemInput[] = validRows.map((r) => ({
+    price: r.priceId,
+    tax_rates: taxMode === "manual" ? r.taxRateIds : [],
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId || validPriceIds.length === 0) return;
+    if (!customerId || validItems.length === 0) return;
     setLoading(true);
     setError(null);
     try {
@@ -169,6 +243,9 @@ export function CreateSubscriptionDialog({
           );
         }
         options.trialEndBehavior = trialEndBehavior;
+      }
+      if (taxMode === "automatic") {
+        options.automaticTaxEnabled = true;
       }
       if (enableBillingAnchor) {
         if (billingAnchorMode === "timestamp" && billingAnchorDate) {
@@ -203,7 +280,7 @@ export function CreateSubscriptionDialog({
         }
         options.prorationBehavior = prorationBehavior;
       }
-      await onSubmit(customerId, validPriceIds, options);
+      await onSubmit(customerId, validItems, options);
       onClose();
     } catch (e) {
       setError(String(e));
@@ -296,6 +373,56 @@ export function CreateSubscriptionDialog({
                           </button>
                         )}
                       </div>
+                      {taxMode === "manual" && (
+                        <div className="pt-1">
+                          <div className="text-xs text-gray-500 mb-1">Tax rates</div>
+                          {taxRates.length === 0 ? (
+                            <div className="text-xs text-gray-400">
+                              No tax rates yet.{" "}
+                              <button
+                                type="button"
+                                onClick={() => setShowCreateTaxRate(row.key)}
+                                className="text-indigo-600 hover:text-indigo-800"
+                              >
+                                + Create one
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {taxRates.map((tr) => {
+                                const checked = row.taxRateIds.includes(tr.id);
+                                return (
+                                  <label
+                                    key={tr.id}
+                                    className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded border cursor-pointer ${
+                                      checked
+                                        ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                                        : "bg-white border-gray-300 text-gray-600"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => toggleTaxRate(row.key, tr.id)}
+                                      className="hidden"
+                                      disabled={loading}
+                                    />
+                                    {tr.display_name} ({tr.percentage}%
+                                    {tr.inclusive ? " incl." : ""})
+                                  </label>
+                                );
+                              })}
+                              <button
+                                type="button"
+                                onClick={() => setShowCreateTaxRate(row.key)}
+                                className="text-xs text-indigo-600 hover:text-indigo-800"
+                              >
+                                + New tax rate
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {priceRows.length > 1 && (
                       <button
@@ -577,6 +704,64 @@ export function CreateSubscriptionDialog({
             )}
           </div>
 
+          <div className="border-t border-gray-200 pt-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Tax calculation</div>
+            <div className="flex flex-col gap-1.5 ml-1">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="radio"
+                  name="taxMode"
+                  value="none"
+                  checked={taxMode === "none"}
+                  onChange={() => setTaxMode("none")}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                  disabled={loading}
+                />
+                None
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="radio"
+                  name="taxMode"
+                  value="automatic"
+                  checked={taxMode === "automatic"}
+                  onChange={() => setTaxMode("automatic")}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                  disabled={loading}
+                />
+                Automatic (Stripe Tax)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="radio"
+                  name="taxMode"
+                  value="manual"
+                  checked={taxMode === "manual"}
+                  onChange={() => setTaxMode("manual")}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                  disabled={loading}
+                />
+                Manual (per-item tax rates)
+              </label>
+            </div>
+            {taxMode === "automatic" && !selectedCustomerCountry && (
+              <p className="mt-2 ml-6 text-xs text-amber-700 bg-amber-50 px-2 py-1.5 rounded">
+                Customer has no country set. Invoice finalization may fail.
+                Set a country when creating the customer.
+              </p>
+            )}
+            {taxMode === "automatic" && selectedCustomerCountry && (
+              <p className="mt-2 ml-6 text-xs text-gray-500">
+                Tax will be calculated based on customer country ({selectedCustomerCountry}).
+              </p>
+            )}
+            {taxMode === "manual" && (
+              <p className="mt-2 ml-6 text-xs text-gray-500">
+                Select Tax Rates for each item below. Rates apply only to that item.
+              </p>
+            )}
+          </div>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
               {error}
@@ -587,7 +772,7 @@ export function CreateSubscriptionDialog({
           <Dialog.CancelButton onClick={onClose} disabled={loading} />
           <Dialog.ActionButton
             type="submit"
-            disabled={!customerId || validPriceIds.length === 0}
+            disabled={!customerId || validItems.length === 0}
             loading={loading}
             loadingText="Creating..."
           >
@@ -620,7 +805,7 @@ export function CreateSubscriptionDialog({
         <CreatePriceDialog
           accountId={accountId}
           product={createPriceTarget}
-          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname, usageType, meterId) => {
+          onSubmit={async (productId, unitAmount, currency, interval, intervalCount, nickname, usageType, meterId, taxBehavior) => {
             const price = await apiCreatePrice(
               accountId,
               productId,
@@ -631,6 +816,7 @@ export function CreateSubscriptionDialog({
               nickname,
               usageType,
               meterId,
+              taxBehavior,
             );
             const prs = await listPrices(accountId);
             setAllPrices(prs);
@@ -643,6 +829,13 @@ export function CreateSubscriptionDialog({
             );
           }}
           onClose={() => setCreatePriceTarget(null)}
+        />
+      )}
+
+      {showCreateTaxRate !== null && (
+        <CreateTaxRateDialog
+          onSubmit={handleCreateTaxRate}
+          onClose={() => setShowCreateTaxRate(null)}
         />
       )}
     </Dialog>

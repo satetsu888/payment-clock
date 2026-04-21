@@ -1,11 +1,18 @@
 use crate::error::AppError;
 use crate::stripe::client::StripeClient;
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct CustomerAddress {
+    pub country: String,
+    pub postal_code: Option<String>,
+}
+
 pub async fn create_customer(
     api_key: &str,
     test_clock_id: &str,
     name: Option<&str>,
     email: Option<&str>,
+    address: Option<&CustomerAddress>,
     metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
@@ -15,6 +22,16 @@ pub async fn create_customer(
     }
     if let Some(e) = email {
         params.push(("email".into(), e.to_string()));
+    }
+    if let Some(addr) = address {
+        if !addr.country.is_empty() {
+            params.push(("address[country]".into(), addr.country.clone()));
+        }
+        if let Some(ref postal) = addr.postal_code {
+            if !postal.is_empty() {
+                params.push(("address[postal_code]".into(), postal.clone()));
+            }
+        }
     }
     if let Some(meta) = metadata {
         for (key, value) in meta {

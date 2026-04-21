@@ -63,6 +63,7 @@ export function useProducts(accountId: string) {
       nickname?: string,
       usageType?: string,
       meterId?: string,
+      taxBehavior?: string,
     ) => {
       const price = await apiCreatePrice(
         accountId,
@@ -74,6 +75,7 @@ export function useProducts(accountId: string) {
         nickname,
         usageType,
         meterId,
+        taxBehavior,
       );
       await load();
       return price;

@@ -32,9 +32,12 @@ interface CreatePriceDialogProps {
     nickname?: string,
     usageType?: string,
     meterId?: string,
+    taxBehavior?: string,
   ) => Promise<void>;
   onClose: () => void;
 }
+
+type TaxBehavior = "unspecified" | "exclusive" | "inclusive";
 
 export function CreatePriceDialog({
   accountId,
@@ -49,6 +52,7 @@ export function CreatePriceDialog({
   const [nickname, setNickname] = useState("");
   const [isRecurring, setIsRecurring] = useState(true);
   const [usageType, setUsageType] = useState<"licensed" | "metered">("licensed");
+  const [taxBehavior, setTaxBehavior] = useState<TaxBehavior>("unspecified");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,6 +122,7 @@ export function CreatePriceDialog({
         nickname.trim() || undefined,
         isMetered ? "metered" : undefined,
         isMetered ? selectedMeterId : undefined,
+        taxBehavior,
       );
       onClose();
     } catch (e) {
@@ -373,6 +378,25 @@ export function CreatePriceDialog({
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               disabled={loading}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tax behavior (for Stripe Tax)
+            </label>
+            <select
+              value={taxBehavior}
+              onChange={(e) => setTaxBehavior(e.target.value as TaxBehavior)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              disabled={loading}
+            >
+              <option value="unspecified">Unspecified (use account default)</option>
+              <option value="exclusive">Exclusive (tax added on top)</option>
+              <option value="inclusive">Inclusive (tax already in amount)</option>
+            </select>
+            <p className="text-xs text-amber-600 mt-1">
+              Once set to exclusive or inclusive, this cannot be changed on the price.
+            </p>
           </div>
 
           {preview && (

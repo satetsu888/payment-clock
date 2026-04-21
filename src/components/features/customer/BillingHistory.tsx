@@ -25,10 +25,78 @@ interface BillingRow {
 
 // --- InvoiceAmountPopover ---
 
+interface TaxBreakdown {
+  jurisdiction: string | null;
+  percentage: number | null;
+  amount: number;
+  taxabilityReason: string | null;
+  inclusive: boolean;
+}
+
 interface LineItem {
   description: string | null;
   amount: number;
   quantity: number | null;
+}
+
+function extractTaxRate(taxRate: unknown): { jurisdiction: string | null; percentage: number | null; inclusive: boolean } {
+  if (!taxRate || typeof taxRate !== "object") {
+    return { jurisdiction: null, percentage: null, inclusive: false };
+  }
+  const tr = taxRate as Record<string, unknown>;
+  const displayName = tr.display_name as string | undefined;
+  const jurisdiction = tr.jurisdiction as string | undefined;
+  const country = tr.country as string | undefined;
+  const state = tr.state as string | undefined;
+  const label = jurisdiction
+    || displayName
+    || [country, state].filter(Boolean).join(" / ")
+    || null;
+  return {
+    jurisdiction: label,
+    percentage: typeof tr.percentage === "number" ? tr.percentage : null,
+    inclusive: tr.inclusive === true,
+  };
+}
+
+function extractTaxAmounts(data: Record<string, unknown>): TaxBreakdown[] {
+  // Basil API (2025-03-31+): total_taxes with tax_rate_details.tax_rate
+  const basil = data.total_taxes;
+  if (Array.isArray(basil)) {
+    return basil
+      .map((raw) => {
+        const entry = raw as Record<string, unknown>;
+        const details = entry.tax_rate_details as Record<string, unknown> | null | undefined;
+        const tr = extractTaxRate(details?.tax_rate);
+        const behavior = entry.tax_behavior as string | undefined;
+        return {
+          jurisdiction: tr.jurisdiction,
+          percentage: tr.percentage,
+          amount: typeof entry.amount === "number" ? entry.amount : 0,
+          taxabilityReason: (entry.taxability_reason as string) ?? null,
+          inclusive: behavior === "inclusive" || tr.inclusive,
+        };
+      })
+      .filter((t) => t.amount !== 0 || t.jurisdiction !== null);
+  }
+  // Pre-Basil: total_tax_amounts with flat tax_rate
+  const legacy = data.total_tax_amounts;
+  if (Array.isArray(legacy)) {
+    return legacy
+      .map((raw) => {
+        const entry = raw as Record<string, unknown>;
+        const tr = extractTaxRate(entry.tax_rate);
+        return {
+          jurisdiction: tr.jurisdiction,
+          percentage: tr.percentage,
+          amount: typeof entry.amount === "number" ? entry.amount : 0,
+          taxabilityReason: (entry.taxability_reason as string) ?? null,
+          inclusive: tr.inclusive,
+        };
+      })
+      .filter((t) => t.amount !== 0 || t.jurisdiction !== null);
+  }
+  return [];
 }
 
 function extractLineItems(data: Record<string, unknown>): LineItem[] {
@@ -42,6 +110,17 @@ function extractLineItems(data: Record<string, unknown>): LineItem[] {
       quantity: (li.quantity as number) ?? null,
     };
   });
+}
+
+function formatTaxLabel(t: TaxBreakdown): string {
+  const parts: string[] = [];
+  if (t.jurisdiction) parts.push(t.jurisdiction);
+  if (t.percentage != null) parts.push(`${t.percentage}%`);
+  if (t.inclusive) parts.push("incl.");
+  if (t.taxabilityReason && t.taxabilityReason !== "standard_rated") {
+    parts.push(`(${t.taxabilityReason})`);
+  }
+  return parts.length > 0 ? `Tax · ${parts.join(" ")}` : "Tax";
 }
 
 const POPOVER_GAP = 6;
@@ -98,8 +177,11 @@ function InvoiceAmountPopover({
   const amountPaid = (data.amount_paid as number) ?? 0;
   const amountRemaining = (data.amount_remaining as number) ?? 0;
   const lineItems = extractLineItems(data);
+  const invoiceTaxes = extractTaxAmounts(data);
 
-  const showSubtotalSection = subtotal !== total || tax > 0;
+  const hasInvoiceTaxes = invoiceTaxes.length > 0;
+  const showSubtotalSection = subtotal !== total || tax > 0 || hasInvoiceTaxes;
+  const showSubtotalLine = subtotal !== total;
   const showPaymentSection = amountPaid !== total || amountRemaining > 0;
   const showLineItems = lineItems.length > 1 || (lineItems.length === 1 && showSubtotalSection);
 
@@ -143,15 +225,26 @@ function InvoiceAmountPopover({
             {showSubtotalSection && (
               <>
                 {showLineItems && <hr className="my-1.5 border-gray-200" />}
-                <div className="flex justify-between text-gray-600 py-0.5">
-                  <span>Subtotal</span>
-                  <span className="font-mono">{fmt(subtotal)}</span>
-                </div>
-                {tax > 0 && (
+                {showSubtotalLine && (
                   <div className="flex justify-between text-gray-600 py-0.5">
-                    <span>Tax</span>
-                    <span className="font-mono">{fmt(tax)}</span>
+                    <span>Subtotal</span>
+                    <span className="font-mono">{fmt(subtotal)}</span>
                   </div>
+                )}
+                {hasInvoiceTaxes ? (
+                  invoiceTaxes.map((t, i) => (
+                    <div key={i} className="flex justify-between text-gray-600 py-0.5">
+                      <span className="truncate max-w-[320px]">{formatTaxLabel(t)}</span>
+                      <span className="font-mono">{fmt(t.amount)}</span>
+                    </div>
+                  ))
+                ) : (
+                  tax > 0 && (
+                    <div className="flex justify-between text-gray-600 py-0.5">
+                      <span>Tax</span>
+                      <span className="font-mono">{fmt(tax)}</span>
+                    </div>
+                  )
                 )}
               </>
             )}

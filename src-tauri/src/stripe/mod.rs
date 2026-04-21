@@ -9,4 +9,5 @@ pub mod payment_intent;
 pub mod payment_method;
 pub mod product;
 pub mod subscription;
+pub mod tax_rate;
 pub mod test_clock;

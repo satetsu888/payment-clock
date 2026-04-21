@@ -5,6 +5,7 @@ import type {
   PaymentMethodData,
   CreateSubscriptionOptions,
   SubscriptionActions,
+  SubscriptionItemInput,
 } from "../../../lib/types";
 import { CreateSubscriptionDialog } from "../subscription/CreateSubscriptionDialog";
 import { StripeIdLink } from "../../ui/StripeIdLink";
@@ -59,7 +60,7 @@ export function CustomerTabContent({
   onAttachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onSetDefaultPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
   onDetachPaymentMethod: (customerId: string, paymentMethodId: string) => Promise<void>;
-  onCreateSubscription: (customerId: string, priceIds: string[], options?: CreateSubscriptionOptions) => Promise<void>;
+  onCreateSubscription: (customerId: string, items: SubscriptionItemInput[], options?: CreateSubscriptionOptions) => Promise<void>;
   onCancelSubscription: (subscriptionId: string) => Promise<void>;
   onPauseSubscription: (subscriptionId: string) => Promise<void>;
   onResumeSubscription: (subscriptionId: string) => Promise<void>;
@@ -116,10 +117,10 @@ export function CustomerTabContent({
 
   const handleCreateSubscription = async (
     customerId: string,
-    priceIds: string[],
+    items: SubscriptionItemInput[],
     options?: CreateSubscriptionOptions,
   ) => {
-    await onCreateSubscription(customerId, priceIds, options);
+    await onCreateSubscription(customerId, items, options);
     setShowCreateSubscription(false);
   };
 

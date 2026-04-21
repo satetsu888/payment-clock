@@ -10,24 +10,35 @@ pub struct BillingCycleAnchorConfig {
     pub second: Option<u32>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct SubscriptionItemInput {
+    pub price: String,
+    #[serde(default)]
+    pub tax_rates: Vec<String>,
+}
+
 pub async fn create_subscription(
     api_key: &str,
     customer_id: &str,
-    price_ids: &[String],
+    items: &[SubscriptionItemInput],
     trial_period_days: Option<u32>,
     trial_end: Option<i64>,
     trial_end_behavior: Option<&str>,
     billing_cycle_anchor: Option<i64>,
     billing_cycle_anchor_config: Option<BillingCycleAnchorConfig>,
     proration_behavior: Option<&str>,
+    automatic_tax_enabled: Option<bool>,
     metadata: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
     let mut params: Vec<(String, String)> = vec![
         ("customer".into(), customer_id.to_string()),
     ];
-    for (i, price_id) in price_ids.iter().enumerate() {
-        params.push((format!("items[{}][price]", i), price_id.clone()));
+    for (i, item) in items.iter().enumerate() {
+        params.push((format!("items[{}][price]", i), item.price.clone()));
+        for (j, tax_rate_id) in item.tax_rates.iter().enumerate() {
+            params.push((format!("items[{}][tax_rates][{}]", i, j), tax_rate_id.clone()));
+        }
     }
     if let Some(days) = trial_period_days {
         params.push(("trial_period_days".into(), days.to_string()));
@@ -60,6 +71,12 @@ pub async fn create_subscription(
     }
     if let Some(pb) = proration_behavior {
         params.push(("proration_behavior".into(), pb.to_string()));
+    }
+    if let Some(enabled) = automatic_tax_enabled {
+        params.push((
+            "automatic_tax[enabled]".into(),
+            if enabled { "true".into() } else { "false".into() },
+        ));
     }
     if let Some(meta) = metadata {
         for (key, value) in meta {

@@ -52,6 +52,7 @@ pub async fn create_price(
     nickname: Option<&str>,
     usage_type: Option<&str>,
     meter_id: Option<&str>,
+    tax_behavior: Option<&str>,
 ) -> Result<serde_json::Value, AppError> {
     let client = StripeClient::new(api_key);
     let amount_str = unit_amount.to_string();
@@ -76,6 +77,9 @@ pub async fn create_price(
     }
     if let Some(nick) = nickname {
         params.push(("nickname", nick));
+    }
+    if let Some(tb) = tax_behavior {
+        params.push(("tax_behavior", tb));
     }
     client.post("/v1/prices", &params).await
 }

@@ -13,6 +13,9 @@ import type {
   AdvancePreview,
   PaymentMethodData,
   CreateSubscriptionOptions,
+  CustomerAddress,
+  StripeTaxRate,
+  SubscriptionItemInput,
 } from "./types";
 
 export async function validateAndSaveAccount(
@@ -140,6 +143,7 @@ export async function createCustomer(
   testClockId: string,
   name?: string,
   email?: string,
+  address?: CustomerAddress,
   metadata?: Record<string, string>,
 ): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("create_customer", {
@@ -147,6 +151,7 @@ export async function createCustomer(
     testClockId,
     name,
     email,
+    address: address ?? null,
     metadata,
   });
 }
@@ -155,20 +160,21 @@ export async function createSubscription(
   accountId: string,
   testClockId: string,
   customerId: string,
-  priceIds: string[],
+  items: SubscriptionItemInput[],
   options?: CreateSubscriptionOptions,
 ): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("create_subscription", {
     accountId,
     testClockId,
     customerId,
-    priceIds,
+    items,
     trialPeriodDays: options?.trialPeriodDays ?? null,
     trialEnd: options?.trialEnd ?? null,
     trialEndBehavior: options?.trialEndBehavior ?? null,
     billingCycleAnchor: options?.billingCycleAnchor ?? null,
     billingCycleAnchorConfig: options?.billingCycleAnchorConfig ?? null,
     prorationBehavior: options?.prorationBehavior ?? null,
+    automaticTaxEnabled: options?.automaticTaxEnabled ?? null,
     metadata: options?.metadata ?? null,
   });
 }
@@ -360,6 +366,7 @@ export async function createPrice(
   nickname?: string,
   usageType?: string,
   meterId?: string,
+  taxBehavior?: string,
 ): Promise<StripePrice> {
   return invoke<StripePrice>("create_price", {
     accountId,
@@ -371,6 +378,7 @@ export async function createPrice(
     nickname: nickname ?? null,
     usageType: usageType ?? null,
     meterId: meterId ?? null,
+    taxBehavior: taxBehavior ?? null,
   });
 }
 
@@ -467,4 +475,35 @@ export async function createMeterEvent(
     value,
     timestamp: timestamp ?? null,
   });
+}
+
+export async function listTaxRates(accountId: string): Promise<StripeTaxRate[]> {
+  return invoke<StripeTaxRate[]>("list_tax_rates", { accountId });
+}
+
+export async function createTaxRate(
+  accountId: string,
+  displayName: string,
+  percentage: string,
+  inclusive: boolean,
+  country?: string,
+  stateCode?: string,
+  jurisdiction?: string,
+): Promise<StripeTaxRate> {
+  return invoke<StripeTaxRate>("create_tax_rate", {
+    accountId,
+    displayName,
+    percentage,
+    inclusive,
+    country: country ?? null,
+    stateCode: stateCode ?? null,
+    jurisdiction: jurisdiction ?? null,
+  });
+}
+
+export async function archiveTaxRate(
+  accountId: string,
+  taxRateId: string,
+): Promise<StripeTaxRate> {
+  return invoke<StripeTaxRate>("archive_tax_rate", { accountId, taxRateId });
 }

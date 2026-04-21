@@ -110,6 +110,9 @@ pub fn run() {
             commands::resource::fetch_test_clock_resources,
             commands::event::fetch_events,
             commands::event::get_test_clock_events,
+            commands::tax::list_tax_rates,
+            commands::tax::create_tax_rate,
+            commands::tax::archive_tax_rate,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::error::AppError;
-use crate::models::{operation, resource_snapshot};
+use crate::models::{account, operation, resource_snapshot};
 use crate::state::AppState;
 use crate::stripe;
 
@@ -30,6 +30,7 @@ pub async fn create_customer(
     test_clock_id: String,
     name: Option<String>,
     email: Option<String>,
+    address: Option<stripe::customer::CustomerAddress>,
     metadata: Option<std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
@@ -39,6 +40,7 @@ pub async fn create_customer(
         &stripe_clock_id,
         name.as_deref(),
         email.as_deref(),
+        address.as_ref(),
         metadata.as_ref(),
     )
     .await?;
@@ -58,6 +60,7 @@ pub async fn create_customer(
     let params_json = serde_json::json!({
         "name": name,
         "email": email,
+        "address": address,
     })
     .to_string();
     operation::record(
@@ -234,13 +237,14 @@ pub async fn create_subscription(
     account_id: String,
     test_clock_id: String,
     customer_id: String,
-    price_ids: Vec<String>,
+    items: Vec<stripe::subscription::SubscriptionItemInput>,
     trial_period_days: Option<u32>,
     trial_end: Option<i64>,
     trial_end_behavior: Option<String>,
     billing_cycle_anchor: Option<i64>,
     billing_cycle_anchor_config: Option<stripe::subscription::BillingCycleAnchorConfig>,
     proration_behavior: Option<String>,
+    automatic_tax_enabled: Option<bool>,
     metadata: Option<std::collections::HashMap<String, String>>,
 ) -> Result<serde_json::Value, AppError> {
     let api_key = state.get_api_key(&account_id)?;
@@ -248,13 +252,14 @@ pub async fn create_subscription(
     let subscription = stripe::subscription::create_subscription(
         &api_key,
         &customer_id,
-        &price_ids,
+        &items,
         trial_period_days,
         trial_end,
         trial_end_behavior.as_deref(),
         billing_cycle_anchor,
         billing_cycle_anchor_config.clone(),
         proration_behavior.as_deref(),
+        automatic_tax_enabled,
         metadata.as_ref(),
     )
     .await?;
@@ -273,13 +278,14 @@ pub async fn create_subscription(
     )?;
     let params_json = serde_json::json!({
         "customer_id": customer_id,
-        "price_ids": price_ids,
+        "items": items,
         "trial_period_days": trial_period_days,
         "trial_end": trial_end,
         "trial_end_behavior": trial_end_behavior,
         "billing_cycle_anchor": billing_cycle_anchor,
         "billing_cycle_anchor_config": billing_cycle_anchor_config,
         "proration_behavior": proration_behavior,
+        "automatic_tax_enabled": automatic_tax_enabled,
     })
     .to_string();
     operation::record(
@@ -849,6 +855,7 @@ pub async fn create_price(
     nickname: Option<String>,
     usage_type: Option<String>,
     meter_id: Option<String>,
+    tax_behavior: Option<String>,
 ) -> Result<serde_json::Value, AppError> {
     let api_key = state.get_api_key(&account_id)?;
     let price = stripe::product::create_price(
@@ -861,6 +868,7 @@ pub async fn create_price(
         nickname.as_deref(),
         usage_type.as_deref(),
         meter_id.as_deref(),
+        tax_behavior.as_deref(),
     )
     .await?;
 
@@ -876,6 +884,7 @@ pub async fn create_price(
         "nickname": nickname,
         "usage_type": usage_type,
         "meter_id": meter_id,
+        "tax_behavior": tax_behavior,
     })
     .to_string();
     operation::record(
@@ -1018,6 +1027,10 @@ pub async fn fetch_test_clock_resources(
     test_clock_id: String,
 ) -> Result<TestClockResources, AppError> {
     let (api_key, stripe_clock_id) = state.get_api_key_and_clock(&account_id, &test_clock_id)?;
+    let api_version = {
+        let db = state.db.lock().unwrap();
+        account::get_api_version(&db, &account_id)?
+    };
 
     // Fetch customers for this test clock
     let customers =
@@ -1039,7 +1052,7 @@ pub async fn fetch_test_clock_resources(
         all_subscriptions.extend(subs);
 
         let invoices =
-            stripe::invoice::list_invoices_by_customer(&api_key, cust_id).await?;
+            stripe::invoice::list_invoices_by_customer(&api_key, cust_id, api_version.as_deref()).await?;
         all_invoices.extend(invoices);
 
         let pis =

@@ -18,7 +18,7 @@ import {
   pauseSubscriptionWithOptions as apiPauseSubscriptionWithOptions,
   applySubscriptionDiscount as apiApplySubscriptionDiscount,
 } from "../lib/api";
-import type { TestClockResources, CustomerWithResources, CreateSubscriptionOptions, SubscriptionActions, SubscriptionItemUpdate } from "../lib/types";
+import type { TestClockResources, CustomerWithResources, CreateSubscriptionOptions, CustomerAddress, SubscriptionActions, SubscriptionItemUpdate, SubscriptionItemInput } from "../lib/types";
 import { groupResourcesByCustomer } from "../lib/resource-grouping";
 
 /** Stripe APIは作成日降順（新しい順）で返すので、reverseして昇順（古い順）にする */
@@ -67,8 +67,13 @@ export function useTestClockResources(
   }, [resources]);
 
   const createCustomer = useCallback(
-    async (name?: string, email?: string, metadata?: Record<string, string>) => {
-      await apiCreateCustomer(accountId, testClockId, name, email, metadata);
+    async (
+      name?: string,
+      email?: string,
+      address?: CustomerAddress,
+      metadata?: Record<string, string>,
+    ) => {
+      await apiCreateCustomer(accountId, testClockId, name, email, address, metadata);
       await load();
     },
     [accountId, testClockId, load],
@@ -99,8 +104,8 @@ export function useTestClockResources(
   );
 
   const createSubscription = useCallback(
-    async (customerId: string, priceIds: string[], options?: CreateSubscriptionOptions) => {
-      await apiCreateSubscription(accountId, testClockId, customerId, priceIds, options);
+    async (customerId: string, items: SubscriptionItemInput[], options?: CreateSubscriptionOptions) => {
+      await apiCreateSubscription(accountId, testClockId, customerId, items, options);
       await load();
     },
     [accountId, testClockId, load],

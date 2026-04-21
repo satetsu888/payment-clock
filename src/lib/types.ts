@@ -118,6 +118,16 @@ export interface BillingCycleAnchorConfig {
   second?: number;
 }
 
+export interface CustomerAddress {
+  country: string;
+  postal_code?: string;
+}
+
+export interface SubscriptionItemInput {
+  price: string;
+  tax_rates: string[];
+}
+
 export interface CreateSubscriptionOptions {
   trialPeriodDays?: number;
   trialEnd?: number;
@@ -125,7 +135,20 @@ export interface CreateSubscriptionOptions {
   billingCycleAnchor?: number;
   billingCycleAnchorConfig?: BillingCycleAnchorConfig;
   prorationBehavior?: "create_prorations" | "none";
+  automaticTaxEnabled?: boolean;
   metadata?: Record<string, string>;
+}
+
+export interface StripeTaxRate {
+  id: string;
+  display_name: string;
+  percentage: number;
+  inclusive: boolean;
+  active: boolean;
+  country: string | null;
+  state: string | null;
+  jurisdiction: string | null;
+  tax_type: string | null;
 }
 
 export interface SubscriptionItemUpdate {

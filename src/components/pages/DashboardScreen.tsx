@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeftRight, CircleUserRound, Clock, Package, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, CircleUserRound, Clock, Package, Percent, RefreshCw } from "lucide-react";
 import { useAccountContext } from "../../contexts/AccountContext";
 import { useTestClocks } from "../../hooks/useTestClocks";
 import { createCustomer as apiCreateCustomer, attachPaymentMethod } from "../../lib/api";
@@ -10,6 +10,7 @@ import { TestClockCard } from "../features/test-clock/TestClockCard";
 import { CreateTestClockDialog } from "../features/test-clock/CreateTestClockDialog";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { ProductPriceSection } from "../features/product/ProductPriceSection";
+import { TaxRateSection } from "../features/tax/TaxRateSection";
 
 interface DashboardScreenProps {
   onSelectTestClock: (clock: TestClock) => void;
@@ -26,7 +27,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [selectedForPurge, setSelectedForPurge] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<"test-clocks" | "products">("test-clocks");
+  const [activeTab, setActiveTab] = useState<"test-clocks" | "products" | "tax-rates">("test-clocks");
 
   const handleCreate = async (
     frozenTime: number,
@@ -38,7 +39,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
     if (options?.createCustomer) {
       const customerName = options.customerName;
       const metadata = customerName ? { payment_clock_label: customerName } : undefined;
-      const customer = await apiCreateCustomer(selectedAccount!.id, clock.id, customerName, undefined, metadata);
+      const customer = await apiCreateCustomer(selectedAccount!.id, clock.id, customerName, undefined, undefined, metadata);
       const customerId = (customer as { id: string }).id;
 
       for (const pmId of options.paymentMethodIds) {
@@ -143,6 +144,7 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
           {([
             { key: "test-clocks" as const, label: "Test Clocks", icon: Clock },
             { key: "products" as const, label: "Products & Prices", icon: Package },
+            { key: "tax-rates" as const, label: "Tax Rates", icon: Percent },
           ]).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -226,6 +228,10 @@ export function DashboardScreen({ onSelectTestClock }: DashboardScreenProps) {
 
           {activeTab === "products" && (
             <ProductPriceSection accountId={selectedAccount!.id} />
+          )}
+
+          {activeTab === "tax-rates" && (
+            <TaxRateSection accountId={selectedAccount!.id} />
           )}
         </main>
       </div>
