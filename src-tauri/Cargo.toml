@@ -1,6 +1,6 @@
 [package]
 name = "payment-clock"
-version = "0.3.1"
+version = "0.4.0"
 description = "Stripe Test Clock Manager"
 authors = ["satetsu888"]
 license = "MIT"
