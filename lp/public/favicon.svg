@@ -1,4 +1,53 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="10"/>
-  <polyline points="12 6 12 12 16 14"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#635BFF"/>
+      <stop offset="100%" stop-color="#7A73FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!-- Clock face - soft white circle -->
+  <circle cx="256" cy="256" r="200" fill="rgba(255,255,255,0.12)"/>
+
+  <!-- 12 dot markers around the clock (r=179 from center) -->
+  <!-- 12 o'clock -->
+  <circle cx="256" cy="77" r="11" fill="white"/>
+  <!-- 1 o'clock -->
+  <circle cx="346" cy="101" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 2 o'clock -->
+  <circle cx="411" cy="166" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 3 o'clock -->
+  <circle cx="435" cy="256" r="11" fill="white"/>
+  <!-- 4 o'clock -->
+  <circle cx="411" cy="346" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 5 o'clock -->
+  <circle cx="346" cy="411" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 6 o'clock -->
+  <circle cx="256" cy="435" r="11" fill="white"/>
+  <!-- 7 o'clock -->
+  <circle cx="166" cy="411" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 8 o'clock -->
+  <circle cx="101" cy="346" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 9 o'clock - emphasized, the "trigger" moment -->
+  <circle cx="77" cy="256" r="14" fill="white"/>
+  <!-- 10 o'clock -->
+  <circle cx="101" cy="166" r="7" fill="rgba(255,255,255,0.55)"/>
+  <!-- 11 o'clock -->
+  <circle cx="166" cy="101" r="7" fill="rgba(255,255,255,0.55)"/>
+
+  <!-- Hour hand: pointing just before 9 (~8:59), angle ~266deg from 12 -->
+  <!-- x = 256 + 96*sin(266deg) = 256 + 96*(-0.9976) = 160.2 -->
+  <!-- y = 256 - 96*cos(266deg) = 256 - 96*(-0.0698) = 262.7 -->
+  <line x1="256" y1="256" x2="160" y2="263" stroke="white" stroke-width="26" stroke-linecap="round"/>
+
+  <!-- Minute hand: pointing just before 12 (~11:59 min), angle ~354deg -->
+  <!-- x = 256 + 141*sin(354deg) = 256 + 141*(-0.1045) = 241.3 -->
+  <!-- y = 256 - 141*cos(354deg) = 256 - 141*(0.9945) = 115.8 -->
+  <line x1="256" y1="256" x2="241" y2="116" stroke="white" stroke-width="25" stroke-linecap="round"/>
+
+  <!-- Center dot -->
+  <circle cx="256" cy="256" r="20" fill="white"/>
 </svg>
